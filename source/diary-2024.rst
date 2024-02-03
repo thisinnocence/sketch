@@ -73,8 +73,6 @@ Keyword             Description
 快速编辑表格
 ++++++++++++++
 
-快速编辑表格的技巧：
-
 https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/table.html#creating-a-table
 
 - 自动转逗号分隔符格式为表格
