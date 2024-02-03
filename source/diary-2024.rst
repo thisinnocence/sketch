@@ -94,13 +94,11 @@ https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/tab
        :alt: 对于不能显示图片的时候, 显示这些文字
        :align: right
 
-也可以使用图像指令 ``figure``, 包含图例和标题。
+| 也可以使用图像指令 ``figure``, 包含图例和标题。
+| https://iridescent.ink/HowToMakeDocs/Basic/reST.html#directives
 
-https://iridescent.ink/HowToMakeDocs/Basic/reST.html#directives
-
-为方便插入剪切板图片，可以使用 ``Paste Image`` 插件， 插件配置说明：
-
-https://github.com/mushanshitiancai/vscode-paste-image
+| 为方便插入剪切板图片，可以使用 ``Paste Image`` 插件， 插件配置说明：
+| https://github.com/mushanshitiancai/vscode-paste-image
 
 配置快捷键 Keyboard Shortcuts, 我个人喜欢 ``Alt + v``, 然后配置自动生成路径, 然后再
 vscode的settings.json中加入下面的配置即可：
