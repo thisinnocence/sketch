@@ -10,7 +10,7 @@ Welcome to wm-sketch's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   diary-2024
 
 Indices and tables
 ==================
