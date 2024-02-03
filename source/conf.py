@@ -15,6 +15,7 @@ author = 'Michael-Wu'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+# https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 extensions = [
     'myst_parser',
 ]
@@ -27,10 +28,11 @@ language = 'zh_CN'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+# https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html
 html_theme = 'sphinx_rtd_theme'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# html_theme_path = [sphinx_rtd_theme.get_html_theme_path()] # 这行会引起左侧导航树bug，一定要注释掉
+html_theme_options = {
+    'navigation_depth': 4,
+}
 
 html_static_path = ['_static']
-
-source_suffix = ['.rst', '.md']
-
