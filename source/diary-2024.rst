@@ -44,8 +44,25 @@ vscode插件技巧
 
 vscode支持rst主要使用插件 ``reStructuredText``
 
+标题快捷键
+^^^^^^^^^^^^^^^^
+
+通常情况下，并没有特定字符分配标题级别，结构是根据标题的连续出现确定的。在Python开发者指南中。这些约定提供了
+一种通过特定字符表示不同级别标题的方法 ::
+
+  # 和上划线：用于部分。
+  * 和上划线：用于章节。
+  =：用于节。
+  -：用于子节。
+  ^：用于子子节。
+  "：用于段落。
+
+| 有的会出现上下都有特定字符，但是上划线也不是必须，主要是有个缩进的作用，提高格式美观。
+| 这个插件可以支持 ``ctrl+k ctrl+=`` ，来给选中的字符下面加上=，不过要看 keymap 是否冲突。
+| https://docs.restructuredtext.net/articles/section
+
 有用的 snippets
-++++++++++++++++
+^^^^^^^^^^^^^^^^
 
 https://docs.restructuredtext.net/articles/snippets
 
@@ -71,7 +88,7 @@ Keyword             Description
 =================== ==============
 
 快速编辑表格
-++++++++++++++
+^^^^^^^^^^^^^^
 
 https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/table.html#creating-a-table
 
@@ -81,7 +98,7 @@ https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/tab
 还有一些很方便的方法详细看上面链接。
 
 快速插入图片
-+++++++++++++++
+^^^^^^^^^^^^^^^
 
 通过 ``.. image:: imagepath`` 实现插入图像: ::
 
@@ -98,7 +115,7 @@ https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/tab
 | 为方便插入剪切板图片，可以使用 ``Paste Image`` 插件， 插件配置说明：
 | https://github.com/mushanshitiancai/vscode-paste-image
 
-配置快捷键 Keyboard Shortcuts, 我个人喜欢 ``Alt + v``, 然后配置自动生成路径, 然后再
+配置快捷键 Keyboard Shortcuts, 我个人喜欢 ``ALT + v``, 然后配置自动生成路径, 然后再
 vscode的settings.json中加入下面的配置即可：
 
 .. code-block:: js
@@ -111,10 +128,10 @@ vscode的settings.json中加入下面的配置即可：
     }
 
 .. tip:: 
-    使用 ``win + v`` 可以看剪切板里有什么图片
+    使用 ``windows + v`` 可以看windows的剪切板里有什么图片
 
 sphinx_rtd_theme 左侧导航层级问题
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 今天周末差不多陆陆续续整了一整天的sphinx工程。期间，遇到了一个左侧导航栏无法展开超过三级的问题，折腾了好久。定位的过程搜了
 很多资料，也看了生成的网页HTML源码，都没有解决。但是网上的其他工程都没有问题，那就可以得出结论一定是自己配置的问题，不是
