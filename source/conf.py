@@ -7,7 +7,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import sphinx_rtd_theme
-from recommonmark.parser import CommonMarkParser
 
 project = 'wm-sketch'
 copyright = '2024, Michael-Wu'
@@ -17,7 +16,7 @@ author = 'Michael-Wu'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'recommonmark',
+    'myst_parser',
 ]
 
 templates_path = ['_templates']
@@ -33,9 +32,5 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 html_static_path = ['_static']
 
-# support markdown
-source_parsers = {
-    '.md': CommonMarkParser,
-}
 source_suffix = ['.rst', '.md']
 
