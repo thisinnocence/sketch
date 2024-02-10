@@ -61,7 +61,7 @@ vscode支持rst主要使用插件 ``reStructuredText``
 | 这个插件可以支持 ``ctrl+k ctrl+=`` ，来给选中的字符下面加上=，不过要看 keymap 是否冲突。
 | https://docs.restructuredtext.net/articles/section
 
-有用的 snippets
+有用的snippets
 ^^^^^^^^^^^^^^^^
 
 https://docs.restructuredtext.net/articles/snippets
@@ -118,7 +118,7 @@ https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/tab
 配置快捷键 Keyboard Shortcuts, 我个人喜欢 ``ALT + v``, 然后配置自动生成路径, 然后再
 vscode的settings.json中加入下面的配置即可：
 
-.. code-block:: js
+.. code-block:: json
 
     {
         "pasteImage.path": "${currentFileDir}/pic",
@@ -130,8 +130,76 @@ vscode的settings.json中加入下面的配置即可：
 .. tip:: 
     使用 ``windows + v`` 可以看windows的剪切板里有什么图片
 
+交叉引用
+-------------------
+
+文档内任意位置引用
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+| 参考: https://sphinx-doc-zh.readthedocs.io/en/latest/markup/inline.html#ref-role
+| 在文档内部任意交叉引用, 使用标准的 reST Label，必须整个文档内部全局唯一，有两个方式 ：
+
+在标题前面加label，可以使用 ``:ref:`label-name```
+::
+
+    .. _my-reference-label:
+
+    Section to cross-reference
+    --------------------------
+
+    This is the text of the section.
+
+    It refers to the section itself, see :ref:`my-reference-label`.
+
+这种同样使用与图像标签
+
+::
+
+    .. _my-figure:
+
+    .. figure:: whatever
+
+    Figure caption
+
+脚注参考引用
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+脚注:  https://iridescent.ink/HowToMakeDocs/Basic/reST.html#footnotes
+
+包含两步:
+
+- 在文档底部放置脚注主体, 以 ``rubric`` 指令标示: ::
+
+    .. rubric:: Footnotes
+
+    .. [#name] 这里是脚注内容
+
+- 在需要插入脚注的地方插入脚注名 ``[#name]``
+
+其中, 使用 ``[#name]_`` 可以实现自动编号, 当然你也可以使用数字来指示确定的脚注编号 ``[1]_`` .
+
+举例:
+
+::
+
+    我后面插入了一个自编号的脚注 [#f1]_ , 后面又跟了一个手动编号的脚注 [2]_ , 后面还跟着一个自动编号的 [#fn]_ .
+
+    .. rubric:: Footnotes
+
+    .. [#f1] 我是自编号脚注1
+    .. [2] 我是手动编号脚注2
+    .. [#fn] 我是自编号脚注3
+
+我后面插入了一个自编号的脚注 [#f1]_ , 后面又跟了一个手动编号的脚注 [2]_ , 后面还跟着一个自动编号的 [#fn]_ .
+
+.. rubric:: Footnotes
+
+.. [#f1] 我是自编号脚注1
+.. [2] 我是手动编号脚注2
+.. [#fn] 我是自编号脚注3
+
 sphinx_rtd_theme 左侧导航层级问题
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 今天周末差不多陆陆续续整了一整天的sphinx工程。期间，遇到了一个左侧导航栏无法展开超过三级的问题，折腾了好久。定位的过程搜了
 很多资料，也看了生成的网页HTML源码，都没有解决。但是网上的其他工程都没有问题，那就可以得出结论一定是自己配置的问题，不是
