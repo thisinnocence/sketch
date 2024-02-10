@@ -1,12 +1,9 @@
-.. Michael Wu 版权所有 2024~2027
+.. Michael Wu 版权所有
 
 :Authors: Michael Wu
 :Version: 1.0
 
-diary-2024
-************************
-
-240203 开始使用sphinx
+Sphinx入门使用
 ==========================
 
 Why sphinx

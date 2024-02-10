@@ -7,10 +7,11 @@ Welcome to wm-sketch's documentation!
 =====================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
-   diary-2024
+   blogs/index
+   diary/index
 
 Indices and tables
 ==================
