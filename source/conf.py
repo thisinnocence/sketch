@@ -6,8 +6,6 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import sphinx_rtd_theme
-
 project = 'wm-sketch'
 copyright = '2024, Michael-Wu'
 author = 'Michael-Wu'
@@ -36,6 +34,7 @@ html_theme_options = {
 }
 
 html_static_path = ['_static']
+pygments_style = 'sphinx'
 
 def setup(app):
     app.add_css_file('my_theme.css')

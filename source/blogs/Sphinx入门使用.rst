@@ -195,22 +195,21 @@ vscode的settings.json中加入下面的配置即可：
 .. [2] 我是手动编号脚注2
 .. [#fn] 我是自编号脚注3
 
-sphinx_rtd_theme 左侧导航层级问题
+sphinx_rtd_theme Q&A
 ------------------------------------
+
+1. 左侧导航栏展开层级问题
 
 今天周末差不多陆陆续续整了一整天的sphinx工程。期间，遇到了一个左侧导航栏无法展开超过三级的问题，折腾了好久。定位的过程搜了
 很多资料，也看了生成的网页HTML源码，都没有解决。但是网上的其他工程都没有问题，那就可以得出结论一定是自己配置的问题，不是
 index.rst 的问题，就是 conf.py 的问题，最后一点点的改配置，然后再去生成，终于结局了问题。导致问题的关键配置是
 
 .. attention:: 
-
     | 在 conf.py 文件，下面这一行加了后就会有bug，需要删除！
     | html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
-后来看 https://github.com/Pennsieve/sphinx_rtd_theme  首页的REAME，发现有如下说明 ::
+2. 默认块 ``::`` 的样式问题, ::
 
-    从 (since v0.2.5) 之后，都只需要配置 html_theme = "sphinx_rtd_theme",
-    多配置反而会有问题。
-    
-所以，在当前就不需要这个配置了，如果不小心从别的blog拷贝过来了这行，就会引入上面的问题。
-也侧面说明了，要看最新配套的官方文档，才会少踩坑。
+    pygments_style = 'sphinx'
+
+这样默认块主题就是sphinx默认的样式。
