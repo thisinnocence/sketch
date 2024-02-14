@@ -109,3 +109,69 @@ readthedocs:
 
 想了一下日志文档结构的划分，虽然是不定期的随意的记录，但是一整年的日志都写到一个文件里还是太大了。按照季度 ``Q1, Q2, Q3, Q4`` 这
 样的形式分，感觉应该可以，三个月的不定期日志写到一个文件里面去。
+
+每天的日志都有个以 `MM-DD`` 这种开头，然后里面可以放一些子标题，方便时间就了检索也。
+
+OpenAI大佬的一些经典Twitter言论
+-----------------------------------
+
+- CEO Sam Altman: https://twitter.com/sama
+
+.. note::
+
+  | i failed pretty hard at my first startup--it sucked!--and am doing pretty well on my second.
+
+  | the thing i wish someone told me during the first one is that no one else thinks about your failures 
+    as much as you do, and that as long as don't psych yourself out you can try again.
+  
+  | 第一个创业项目彻底失败，简直太糟糕了！不过第二个做得还不错。 我希望当初有人告诉我，没有人会像你一样一直想着你的失败，
+    只要克服心理障碍，你完全可以再次尝试。
+
+- CTO Greg Brockman: https://twitter.com/gdb
+
+.. note::
+
+  | In machine learning systems engineering, complexity always ends up lower in the long run when you tackle 
+    the gnarly low-level issues rather than sidestep them.
+  | 处理机器学习系统工程中复杂低层问题，从长远来看，总是比回避它们更能降低系统的复杂性。
+
+  | Programming productivity is a precious and fragile thing stemming from great focus. Maintaining it requires 
+    active protection from the individual and organization. 
+  | 程序员的效率是珍贵且脆弱的，源于高度的专注力。要保持这种效率，需要个人和组织积极维护。
+
+  | Personal energy management is as important as any technical skill.
+  | 个人能量管理与任何技术技能都同样重要。
+
+  | People often ask if ML or software skills are more the bottleneck to AI progress. 
+    It’s the wrong question—both are invaluable, and people with both sets of skills can have outsized impact. 
+    We find it easier, however, to teach people ML skills as needed than software engineering.
+  | 人们总是问机器学习和软件技术那个是AI进步的瓶颈，这个问题本身就问错了——两者都不可或缺，同时拥有这两类技能的人能够产生巨大的影响。
+    然而，我们发现，相比软件工程，教授人们所需的机器学习技能更容易一些。
+
+  | At a low level, there is no magic in machine learning — just lots of straightforward mathematics and systems 
+    engineering. And somehow the end result is entirely magical.
+  | 机器学习的底层原理并没有什么魔法，它仅仅是由大量直白的数学和系统工程知识构建而成。然而，令人惊叹的是，
+    最终的结果却往往令人觉得不可思议，仿佛是魔法一般。
+
+- Chief-Scientist Ilya Sutskever: https://twitter.com/ilyasut
+
+.. note::
+
+  | Criticizing a decision is, to a first order approximation, 100x easier than making one
+  | 从一阶近似来看，批评一个决定比做出一个决定容易 100 倍。
+
+  | The biggest trick our brains play is to create the illusion of understanding what’s going on, 
+    both around us and in the world
+  | 我们大脑最大的诡计就是制造对周围事物和世界发生的事情理解的幻觉。
+
+  | A one sentence articulation (of existing ideas) for why AI alignment need not be straightforward:  
+    humans can lie, hide their intent (alignment), and do so for years. Why not AGI? This can be hard to detect.
+  | 用一句话（现有想法）阐明了为什么人工智能对齐不需要简单明了：人类可以撒谎、隐藏自己的意图（结盟），并且可以持续多年。
+    为什么不是AGI？这可能很难被发现。
+  
+  | User Many believe that great AI advances must contain a new “idea”. But it is not so: many of AI’s greatest 
+    advances had the form “huh, turns out this familiar unimportant idea, when done right, is downright incredible”
+  | 许多人认为，伟大的人工智能进步必须包含新的“想法”。但事实并非如此：人工智能的许多最伟大的进步都是
+    这样的形式：“嗯，事实证明，这个熟悉的不重要的想法，如果做得正确，也可以取得令人难以置信的效果”
+
+很多观点非常赞同，记录一下。
