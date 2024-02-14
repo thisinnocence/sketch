@@ -7,4 +7,4 @@
    :maxdepth: 3
    :caption: Contents:
 
-   diary-2024
+   2024-Q1
