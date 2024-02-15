@@ -8,3 +8,4 @@
    :caption: Contents:
 
    Sphinx入门使用
+   道德经的哲学
