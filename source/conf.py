@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'wm-sketch'
+project = 'wu-sketch'
 copyright = '2024, Michael-Wu'
 author = 'Michael-Wu'
 
