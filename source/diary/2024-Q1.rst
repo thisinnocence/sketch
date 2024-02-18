@@ -148,3 +148,40 @@ OpenAI大佬的一些经典Twitter言论
 - `逻辑哲学论 <https://book.douban.com/subject/1005354/>`_ 
 - `百年孤独 <https://book.douban.com/subject/6082808/>`_ 
 - `矛盾论 <https://book.douban.com/subject/2979192/>`_ 
+
+0218 关于文章分类
+==================
+
+系统性的博客，可以针对性的总结几个专栏，如：Linux、ARM、QEMU，后就是高性能网络编程，web编程，AI LLM，新兴的一些语言Rust等。
+
+| 看了一篇博客： https://notes.caijiqhx.top/ucas/virtualization/dma_and_iommu
+| 对应的工程是： https://github.com/caijiqhx/Notes
+| 看起来用的是： https://www.mkdocs.org
+
+mkdocs也是python工程，可以从md生成静态网站，支持的格式是markdown，看起来也不错。还是用 rst ，这个更适合写结构性的文档，样式
+也更加的丰富。
+
+如何保持心流
+--------------
+
+这个视频讲的有点道理:  https://twitter.com/crypto_chanshi/status/1758456769804968311
+这里面提到了，改变姿势和环境，换地方、行走、动起来，站着办公，走路思考都是好的办法。
+这个出发的角度倒是从人的生理角度出发的，而不是从你做事请本身的方法，很有参考性。
+
+OpenAI Sora研发团队
+---------------------
+
+他们的Twitter: https://twitter.com/glow1n/status/1759156700731629911
+
+大脑上瘾回路
+-------------------
+
+参考： https://twitter.com/Michael_Easter/status/1708124980498833917
+
+让人上瘾的“稀缺回路”有三部分：
+
+1. 潜在机会。
+2. 无法预测的奖励。
+3. 可以快速重复。
+
+另外，人脑的一个缺陷是，把赌一块钱赢80分的游戏也视为一种奖励 (虽然实际上亏了钱)，这给老虎机的设计者以可乘之机。
