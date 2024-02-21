@@ -30,7 +30,7 @@ language = 'zh_CN'
 html_theme = 'sphinx_rtd_theme'
 # html_theme_path = [sphinx_rtd_theme.get_html_theme_path()] # 这行会引起左侧导航树bug，一定要注释掉
 html_theme_options = {
-    'navigation_depth': 4,
+    'navigation_depth': 5,
 }
 
 html_static_path = ['_static']
