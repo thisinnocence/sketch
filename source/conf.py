@@ -3,6 +3,10 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import sys
+import os
+import sphinx
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -10,12 +14,15 @@ project = 'wu-sketch'
 copyright = '2024, Michael-Wu'
 author = 'Michael-Wu'
 
+sys.path.append(os.path.abspath("./_extensions"))
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 # https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 extensions = [
     'myst_parser',
+    'chinese_space'
 ]
 
 templates_path = ['_templates']
