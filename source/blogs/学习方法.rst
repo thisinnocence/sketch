@@ -1,3 +1,8 @@
+.. Michael Wu 版权所有
+
+:Authors: Michael Wu
+:Version: 1.0
+
 学习方法
 ================
 
