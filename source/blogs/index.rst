@@ -7,6 +7,7 @@
    :maxdepth: 2
    :caption: Contents:
 
-   Sphinx入门使用
-   道德经的哲学
    QEMU仿真虚拟化
+   Sphinx入门使用
+   学习方法
+   道德经的哲学
