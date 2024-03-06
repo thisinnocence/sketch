@@ -81,6 +81,12 @@ QEMU仿真虚拟化
 选项解析与初始化
 -----------------
 
+首先说一下怎么看qemu所支持的参数 ::
+
+    ./qemu-system-aarch64 -help   // 可以看所有参数
+    ./qemu-system-aarch64 -d help // 可以看调试所支持项
+    在编译的build目录下有个 qemu-options.def，也有所有的标砖的参数
+
 展开看下QEMU启动一个machine的选项与配置 ::
 
     qemu_init
@@ -120,16 +126,87 @@ QEMU仿真虚拟化
 
 上面就是使用QEMU解析命令行参数和配置文件启动virt(arm machine)跑Linux的流程。
 
-中断的仿真
+TCG的原理
 -----------
 
 | QEMU仿真的核心机制是DBT(Dynamic Binary Translate), 在TCG模块不停的翻译Guest的指令为Host的指令。
 | see: `QEMU - Binary Translation <https://www.slideshare.net/RampantJeff/qemu-binary-translation>`_ 
 
-.. image:: pic/qemu-tcg-flow.png
-    :scale: 50%
+把Guest的汇编指令翻译为Host的汇编指令，有个论文做的统计是大概是原来指令数的10多倍。那么为什么会多执行了这么多？很简单，比如
+下面的情况：
 
-可以看出，QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理 ::
+- 访问内存的指令(访存指令)，肯定需要调用到对应内存的回调；
+- 访问IO的指令(IO指令)，也会调用到对应IO的仿真回调函数；
+- 特定系统寄存器的访问(系统寄存器读写指令)，也会调用到对应的helper函数中；
+- 指令执行出现异常后的处理，这个也需要额外的处理；
+
+这片文章讲的很不错: `QEMU tcg源码分析与unicorn原理 <https://bbs.kanxue.com/thread-277163.htm>`_ ，讲了下面几个点：
+
+.. note:: 
+
+    1. 普通算术逻辑运算指令如何更新Host体系结构相关寄存器
+    2. 内存读写如何处理
+    3. 分支指令(条件跳转、非条件跳转、返回指令）
+    4. 目标机器没有的指令、特权指令、敏感指令
+    5. 非普通内存读写如设备寄存器访问MMIO
+    6. 指令执行出现了同步异常如何处理(如系统调用)
+    7. 硬件中断如何处理
+
+QEMU会 ``mmap`` 一段空间，放到 ``code_gen_buffer`` 这个指针指向的位置，加入执行权限，然后来存放TCG对Guest指令进行翻译后的指令, 
+可以看 ``/qemu/tcg/region.c`` 相关的实现。
+
+这些情况必须正确处理了，才能够做到一个真正的仿真。TCG是按照TB(Translate Block)进行一块一块的翻译。遇到函数调用类似 ``callq`` 等
+就会有跳转，这时就会执行另一个TB。每个TB处理都会有 prologue, epilogue 的预处理和后处理，方便做特殊处理，比如遇到异常等，如下：
+
+.. image:: pic/tcg_exec_trans.png
+    :scale: 60%
+
+TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以直接执行这些翻译过的指令了，这样就提高了效率，大概执行的流程如下：
+
+.. image:: pic/qemu-tcg-flow.png
+    :scale: 60%
+
+| 上面执行过程也可以看出，当遇到 Exception 时，回去执行异常处理，如中断、IO访问等。
+
+还可以使用 ``-d help`` 看支持的选项，把tcg翻译前后的指令打印出来，先安装 ``apt install libcapstone-dev`` 支持反汇编。
+还是用前面的环境配置，用下面一行命令拉起  ::
+    
+    qemu-system-aarch64 -nographic -cpu cortex-a57 -readconfig virt.cfg -d in_asm,out_asm -D a.log
+
+    运行后的日志就被打印到 a.log 里了，大概如下，可以明显看出，一条guest会有很多host指令 ：
+    IN: 
+    0xffff8000083ca030:  910163e0  add      x0, sp, #0x58
+    0xffff8000083ca034:  f9002fe3  str      x3, [sp, #0x58]
+    0xffff8000083ca038:  b90063e4  str      w4, [sp, #0x60]
+    0xffff8000083ca03c:  940345d5  bl       #0xffff80000849b790
+
+    OUT: [size=296]
+      -- guest addr 0x0000000000000030 + tb prologue
+    0x7f985d36c280:  8b 5d f0                 movl     -0x10(%rbp), %ebx
+    0x7f985d36c283:  85 db                    testl    %ebx, %ebx
+    0x7f985d36c285:  0f 8c b3 00 00 00        jl       0x7f985d36c33e
+    0x7f985d36c28b:  c6 45 f4 00              movb     $0, -0xc(%rbp)
+    0x7f985d36c28f:  48 8b 9d 38 01 00 00     movq     0x138(%rbp), %rbx
+    0x7f985d36c296:  4c 8d 63 58              leaq     0x58(%rbx), %r12
+    0x7f985d36c29a:  4c 89 65 40              movq     %r12, 0x40(%rbp)
+      -- guest addr 0x0000000000000034
+    0x7f985d36c29e:  4c 8d 63 58              leaq     0x58(%rbx), %r12
+    0x7f985d36c2a2:  4c 8b 6d 58              movq     0x58(%rbp), %r13
+    0x7f985d36c2a6:  49 8b fc                 movq     %r12, %rdi
+    0x7f985d36c2a9:  48 c1 ef 07              shrq     $7, %rdi
+    0x7f985d36c2ad:  48 23 bd 10 ff ff ff     andq     -0xf0(%rbp), %rdi
+    0x7f985d36c2b4:  48 03 bd 18 ff ff ff     addq     -0xe8(%rbp), %rdi
+    0x7f985d36c2bb:  49 8d 74 24 07           leaq     7(%r12), %rsi
+    0x7f985d36c2c0:  48 81 e6 00 f0 ff ff     andq     $0xfffffffffffff000, %rsi
+    0x7f985d36c2c7:  48 3b 77 08              cmpq     8(%rdi), %rsi
+    0x7f985d36c2cb:  0f 85 79 00 00 00        jne      0x7f985d36c34a
+    0x7f985d36c2d1:  48 8b 7f 18              movq     0x18(%rdi), %rdi
+    0x7f985d36c2d5:  4d 89 2c 3c              movq     %r13, 0(%r12, %rdi)
+
+中断的仿真
+-----------
+
+QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理 ::
 
     (gdb) bt
     #0  cpu_exit (cpu=0x5555563bf3fb <qemu_cond_broadcast+71>) at ../hw/core/cpu-common.c:85
@@ -144,6 +221,7 @@ QEMU仿真虚拟化
     #8  0x0000555555a73048 in gic_update (s=0x555557c859f0) at ../hw/intc/arm_gic.c:229
     #9  0x0000555555a73902 in gic_set_irq (opaque=0x555557c859f0, irq=27, level=1) at ../hw/intc/arm_gic.c:419
     #10 0x00005555561b72ad in qemu_set_irq (irq=0x555557c9eb40, level=1) at ../hw/core/irq.c:44
+    <||>
     #11 0x0000555555e93f8c in gt_update_irq (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2615
     #12 0x0000555555e941ca in gt_recalc_timer (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2690
     #13 0x0000555555e94f8b in arm_gt_vtimer_cb (opaque=0x555557b3d370) at ../target/arm/helper.c:3083
@@ -157,3 +235,24 @@ QEMU仿真虚拟化
 
 定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
 
+ARM GIC
+---------
+
+主要参考ARM官方文档:  https://developer.arm.com/documentation/ihi0069/h/?lang=en
+
+GIC的组成和中断的分类：
+
+.. image:: pic/gic-compose.png
+    :scale: 60%
+
+然后中断的上报流程可以看，不包括LPI（都是消息中断)：
+
+.. image:: pic/gic_step.png
+    :scale: 50%
+
+按照安全非安全进行分组如下，以及对应的使用场景：
+
+.. image:: pic/gic_safe_group.png
+    :scale: 45%
+
+上面的结构都可以在QEMU源码中找到对应起来。
