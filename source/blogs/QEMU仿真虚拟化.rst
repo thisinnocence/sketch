@@ -234,25 +234,3 @@ QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Excep
     #20 0x00005555561af790 in main (argc=6, argv=0x7fffffffdf18) at ../system/main.c:48
 
 定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
-
-ARM GIC
----------
-
-主要参考ARM官方文档:  https://developer.arm.com/documentation/ihi0069/h/?lang=en
-
-GIC的组成和中断的分类：
-
-.. image:: pic/gic-compose.png
-    :scale: 60%
-
-然后中断的上报流程可以看，不包括LPI（都是消息中断)：
-
-.. image:: pic/gic_step.png
-    :scale: 50%
-
-按照安全非安全进行分组如下，以及对应的使用场景：
-
-.. image:: pic/gic_safe_group.png
-    :scale: 45%
-
-上面的结构都可以在QEMU源码中找到对应起来。
