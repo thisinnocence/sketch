@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-Sphinx入门使用
+Sphinx文档系统
 ==========================
 
 Why sphinx

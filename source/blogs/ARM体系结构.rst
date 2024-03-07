@@ -6,8 +6,8 @@
 ARM体系结构
 ===========
 
-GIC
------
+GIC中断控制器
+----------------
 
 主要参考ARM官方文档:  https://developer.arm.com/documentation/ihi0069/h/?lang=en
 
@@ -26,4 +26,4 @@ GIC的组成和中断的分类：
 .. image:: pic/gic_safe_group.png
     :scale: 45%
 
-上面的结构都可以在QEMU源码中找到对应起来。
+结合QEMU和Linux的源码实现，可以更好的理解其实现细节。

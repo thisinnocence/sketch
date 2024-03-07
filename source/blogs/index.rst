@@ -8,7 +8,8 @@
    :caption: Contents:
 
    ARM体系结构
+   Linux操作系统
    QEMU仿真虚拟化
-   Sphinx入门使用
-   学习方法
+   Sphinx文档系统
+   学习方法总结
    道德经的哲学
