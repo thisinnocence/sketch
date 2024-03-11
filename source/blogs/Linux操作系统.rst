@@ -14,6 +14,8 @@ Linux操作系统
 首先下载下载对应版本的Linux源码，可以去 https://www.kernel.org/ 或github下载，然后
 使用menuconfig勾选RAM disks支持，并调整大小为: 65536 kb，主要方便后面用QEMU拉起进行调试。
 
+Linux v6.0.9，发布日期2022-11-16，用下面方式可编译arm64镜像。
+
 .. code-block:: bash
 
     make CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 O=build menuconfig -j32
@@ -28,7 +30,9 @@ Linux操作系统
 编译initrd
 ----------------
 
-从 https://busybox.net 下载源码，然后交叉编译
+从 https://busybox.net 下载源码，然后交叉编译。
+
+BusyBox v1.35.0, 发布日期2021-11-26，用下面命令可以编译arm64的initrd.
 
 .. code-block:: bash
 
