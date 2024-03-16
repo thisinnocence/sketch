@@ -77,7 +77,32 @@ GIC的组成和中断的分类：
 | 按照中断号分：
 | https://developer.arm.com/documentation/198123/0302/Arm-GIC-fundamentals
 
-.. image:: pic/arm-int-id.png
+.. list-table::
+   :header-rows: 1
+
+   * - INTID
+     - Interrupt Type
+     - Notes
+   * - 0-15
+     - SGIs
+     - Banked per PE
+   * - | 16-31
+       | 1056-1119 (GICv3.1)
+     - PPIs
+     - Banked per PE
+   * - | 32-1019
+       | 4096-5119 (GICv3.1)
+     - SPIs
+     -
+   * - 1020-1023
+     - Special interrupt number
+     - Used to signal special cases, see Settings for each PE for more information.
+   * - 1024-8191
+     - Reserved
+     -
+   * - 8192 and greater
+     - LPIs
+     - The upper boundary is IMPLEMENTATION DEFINED
 
 然后中断的上报流程可以看，不包括LPI（都是消息中断)：
 
