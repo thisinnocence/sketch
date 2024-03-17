@@ -166,7 +166,7 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
 .. image:: pic/qemu-tcg-flow.png
     :scale: 60%
 
-| 上面执行过程也可以看出，当遇到 Exception 时，回去执行异常处理，如中断、IO访问等。
+| 上面执行过程也可以看出，当遇到 Exception 时，会去执行异常处理，如中断、IO访问等。
 
 还可以使用 ``-d help`` 看支持的选项，把tcg翻译前后的指令打印出来，先安装 ``apt install libcapstone-dev`` 支持反汇编。
 还是用前面的环境配置，用下面一行命令拉起  ::
