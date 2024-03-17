@@ -117,33 +117,79 @@ GIC的组成和中断的分类：
 | 下面从软件使能GIC视角讲了一些原理和用法:
 | https://developer.arm.com/documentation/den0024/a/AArch64-Exception-Handling/The-Generic-Interrupt-Controller
 
-.. note:: 
+**Distributor**
 
-    The GIC is accessed as a memory-mapped peripheral. All cores can access the common
-    Distributor, but the CPU interface is banked, that is, each core uses the same address to access
-    its own private CPU interface. It is not possible for a core to access the CPU interface of another
-    core。
+  To which all interrupt sources in the system are connected. The Distributor determines the highest priority 
+  pending interrupt that can be delivered to a core and forwards that to the CPU interface of the core.
 
-    In the Distributor, software must configure the priority, target, security and enable individual
-    interrupts. The Distributor must subsequently be enabled through its control register
-    (GICD_CTLR). For each CPU interface, software must program the priority mask and
-    preemption settings.
+  The Distributor provides registers which report the current state of the different interrupt IDs..
 
-    Each CPU interface block itself must be enabled through its control register (GICD_CTLR).
-    This prepares the GIC to deliver interrupts to the core.
+**CPU interface**
 
-    When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
-    vector table and begins execution.
+  Through which a core receives an interrupt. The CPU interface hosts registers to
+  mask, identify and control states of interrupts forwarded to that core. 
 
-    The top-level interrupt handler reads the Interrupt Acknowledge Register from the CPU
-    Interface block to obtain the interrupt ID.
+  The core executes the exception handler in response. The handler must query the interrupt ID
+  from a CPU interface register and begin servicing the interrupt source. When finished, the
+  handler must write to a CPU interface register to report the end of processing.
 
-    As well as returning the interrupt ID, the read causes the interrupt to be marked as active in the
-    Distributor. Once the interrupt ID is known (identifying the interrupt source), the top-level
-    handler can now dispatch a device-specific handler to service the interrupt.
+**Interrupt state**
 
-    When the device-specific handler finishes execution, the top-level handler writes the same
-    interrupt ID to the End of Interrupt (EoI) register in the CPU Interface block, indicating the end
-    of interrupt processing.
+  - Inactive -> Pending
+      When the interrupt is asserted by the peripheral.
+  - Pending -> Active
+      When the handler acknowledges the interrupt.
+  - Active -> Inactive
+      When the handle has finished dealing with the interrupt
+
+**Configure and Initialization**
+
+  The GIC is accessed as a memory-mapped peripheral. All cores can access the common
+  Distributor, but the CPU interface is banked, that is, each core uses the same address to access
+  its own private CPU interface. It is not possible for a core to access the CPU interface of another
+  core.
+
+  The Distributor hosts a number of registers that you can use to configure the properties of
+  individual interrupts.
+
+  The Distributor also provides priority masking by which interrupts below a certain priority are
+  prevented from reaching the core. The distributor uses this when determining whether a pending
+  interrupt can be forwarded to a particular core.
+
+  The CPU interfaces on each core helps with fine-tuning interrupt control and handling on that core.
+
+  Both the Distributor and the CPU interfaces are disabled at reset. The GIC must be initialized
+  after reset before it can deliver interrupts to the core.
+
+  In the Distributor, software must configure the priority, target, security and enable individual
+  interrupts.
+
+  Before interrupts are expected in the core, software prepares the core to take interrupts by setting
+  a valid interrupt vector in the vector table, and clearing interrupt mask bits in PSTATE, and setting
+  the routing controls. For an interrupt to reach the core, the individual interrupt, Distributor and CPU interface 
+  must all be enabled. The interrupt also needs to be of sufficient priority, that is, higher than the core's
+  priority mask.
+
+**Interrupt handling**
+
+  When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
+  vector table and begins execution.
+
+  The top-level interrupt handler reads the Interrupt Acknowledge Register from the CPU Interface block to 
+  obtain the interrupt ID. As well as returning the interrupt ID, the read causes the interrupt to be marked 
+  as active in the Distributor. 
+
+  When the device-specific handler finishes execution, the top-level handler writes the same
+  interrupt ID to the End of Interrupt (EoI) register in the CPU Interface.
+
+  It is possible for there to be more than one interrupt waiting to be serviced on the same core, but
+  the CPU Interface can signal only one interrupt at a time. The top-level interrupt handler could
+  repeat the above sequence until it reads the special interrupt ID value 1023, indicating that there
+  are no more interrupts pending at this core. This special interrupt ID is called the spurious
+  interrupt ID.
+
+  The spurious interrupt ID is a reserved value, and cannot be assigned to any device in the
+  system. When the top-level handler has read the spurious interrupt ID it can complete its
+  execution, and prepare the core to resume the task it was doing before taking the interrupt.
 
 结合QEMU和Linux的源码实现，可以更好的理解其实现细节。
