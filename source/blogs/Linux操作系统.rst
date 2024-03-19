@@ -162,6 +162,8 @@ device tree的基本单元是node。这些node被组织成树状结构，除了r
     - https://community.arm.com/oss-platforms/w/docs/525/device-tree
     - https://elinux.org/images/f/f9/Petazzoni-device-tree-dummies_0.pdf
 
+.. _virt_dts:
+
 QEMU导出dts
 ^^^^^^^^^^^^^
 
