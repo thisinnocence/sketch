@@ -76,7 +76,7 @@ QEMU仿真虚拟化
     #5  0x0000555555d14cbe in qmp_x_exit_preconfig (errp=0x5555575a7f20 <error_fatal>) at ../system/vl.c:2706
     #6  0x0000555555d174ed in qemu_init (argc=6, argv=0x7fffffffdc88) at ../system/vl.c:3753
 
-内核启动是需要Bootloader的，硬件初始化，把内核从文件加载到内存，PC设置到入口等等。
+内核启动是需要Bootloader的，硬件初始化，把内核/DTB从文件加载到内存，PC设置到入口等等。
 
 选项解析与初始化
 -----------------

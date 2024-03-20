@@ -27,6 +27,30 @@ Linux v6.0.9，发布日期2022-11-16，用下面方式可编译arm64镜像。
     make CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 O=build -j32
     file build/arch/arm64/boot/Image 
 
+ARM Linux常见的内核镜像格式：
+
+- Image: the generic Linux kernel binary image file.
+- zImage: a compressed version of the Linux kernel image that is **self-extracting** .
+- uImage: an image file that has a **U-Boot** wrapper (installed by the mkimage utility) that includes the OS type and 
+  loader information.
+
+.. note::
+    Since a zImage file is self-extracting (i.e. needs no external decompressors), the wrapper would indicate that 
+    this kernel is "not compressed" even though it actually is.
+
+    uImage维护者认为：
+
+    Actually it's pretty stupid to use a zImage inside an uImage. It is much better to use normal (uncompressed) 
+    kernel image, compress it using just gzip, and use this as poayload for mkimage. 
+    This way U-Boot does the uncompresiong instead of including yet another uncompressor with each kernel image.
+
+    https://docs.yoctoproject.org/pipermail/yocto/2013-October/016778.html
+
+制作 uImage 的方法 ::
+
+    sudo apt install u-boot-tools
+    mkimage -A <arch> -O linux -T kernel -C none -a <load-address> -e <entry-point> -n "Linux kernel" -d arch/arm/boot/zImage uImage
+
 编译initrd
 ----------------
 
@@ -373,4 +397,24 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
         };
     };
 
-然后结合文档就可以理解各个关键属性，以及对应的硬件IP是什么了。
+然后结合文档就可以理解各个关键属性，以及对应的硬件IP是什么了。在QEMU拉起的virt machine中，看下部分地址 ::
+
+    // QEMU 命令 info mtree 可以查看：
+    0000000008000000-0000000008000fff (prio 0, i/o): gic_dist
+    0000000008010000-0000000008011fff (prio 0, i/o): gic_cpu
+    0000000008020000-0000000008020fff (prio 0, i/o): gicv2m
+    0000000009000000-0000000009000fff (prio 0, i/o): pl011
+
+针对 pl011 uart来看
+
+.. code-block:: dts
+
+    pl011@9000000 {
+        clock-names = "uartclk\0apb_pclk";
+        clocks = <0x8000 0x8000>;
+        interrupts = <0x00 0x01 0x04>;
+        reg = <0x00 0x9000000 0x00 0x1000>;
+        compatible = "arm,pl011\0arm,primecell";
+    };
+
+最核心的 reg_base_addr, reg_len, irq_num，对比理解DTS里这几个字段或者一组每个值什么含义。
