@@ -195,3 +195,81 @@ GIC的组成和中断的分类：
   execution, and prepare the core to resume the task it was doing before taking the interrupt.
 
 结合QEMU和Linux的源码实现，可以更好的理解其实现细节。
+
+ARM architected timer(arch_timer)
+------------------------------------
+
+主要参考：
+
+| https://developer.arm.com/documentation/102379/0103/The-processor-timers
+| https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/arch_timer.txt
+
+The Generic Timer includes a ``System Counter`` and set of **per-core timers**.
+
+The ``System Counter`` is an always-on device, which provides a fixed frequency **incrementing**
+system count. The system count value is broadcast to all the cores in the system, giving the cores
+a common view of the passage of time. 
+
+Software can configure timers to generate interrupts or events in set points in the future.
+Software can also use the system count to add timestamps, because the system count gives a common
+reference point for all cores.
+
+| 针对Server Base System Architecture (SBSA)的推荐中断ID配置：
+| (csv转表格VSCO的插件真的好用^_^)
+
++-------------------------------+------------------------+
+| Timer                         | SBSA recommended INTID |
++===============================+========================+
+| EL1 Physical Timer            | 30                     |
++-------------------------------+------------------------+
+| EL1 Virtual Timer             | 27                     |
++-------------------------------+------------------------+
+| Non-secure EL2 Physical Timer | 26                     |
++-------------------------------+------------------------+
+| Non-secure EL2 Virtual Timer  | 28                     |
++-------------------------------+------------------------+
+| EL3 Physical Timer            | 29                     |
++-------------------------------+------------------------+
+| Secure EL2 Physical Timer     | 20                     |
++-------------------------------+------------------------+
+| Secure EL2 Virtual Timer      | 19                     |
++-------------------------------+------------------------+
+
+.. note:: 
+  These INTIDs are in the Private Peripheral Interrupt (PPI) range. These INTIDs are
+  private to a specific core. This means that each core sees its EL1 physical timer as
+  INTID 30. 
+
+看下 QEMU virt-machine dts里的timer配置, see :ref:`virt_dts`
+
+.. code-block:: dts
+
+    timer {
+      interrupts = <0x01 0x0d 0x304 0x01 0x0e 0x304 0x01 0x0b 0x304 0x01 0x0a 0x304>;
+      always-on;
+      compatible = "arm,armv8-timer\0arm,armv7-timer";
+    };
+
+都是 non-spi 中断，显然这是ppi，然后中断号: 0xd(13) 0x0e(14) 0x0b(11) 0x0a(10), 对应QEMU代码是
+
+.. code-block:: c
+
+  /* These are architectural INTID values */
+  #define VIRTUAL_PMU_IRQ            23
+  #define ARCH_GIC_MAINT_IRQ         25
+  #define ARCH_TIMER_NS_EL2_IRQ      26
+  #define ARCH_TIMER_VIRT_IRQ        27
+  #define ARCH_TIMER_NS_EL2_VIRT_IRQ 28
+  #define ARCH_TIMER_S_EL1_IRQ       29
+  #define ARCH_TIMER_NS_EL1_IRQ      30
+
+  #define INTID_TO_PPI(irq) ((irq) - 16)
+
+减去了16，加上后就对上了，看来配置PPI的时候，硬件的编号配置到DTS里时，也是减去了16，前16个是SGI，这样又是从0开始了。
+
+针对 Physical timers 和 Virtual timers :
+
+- Physical timers,  compare against the count value provided by the System Counter.
+- Virtual timers, compare against a virtual count. Virtual count计算方法: ``Virtual Count = Physical Count - <offset>``
+
+还需要配合内核看下对应处理。
