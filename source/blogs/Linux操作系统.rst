@@ -121,6 +121,7 @@ DTS基础知识
 
 | 官方地址： https://www.devicetree.org/
 | 文档specification： https://github.com/devicetree-org/devicetree-specification ，也是一个sphinx工程。
+| 文档渲染后发布平台: https://devicetree-specification.readthedocs.io
 
 关于ARM Linux的DTS，历史渊源是Linus非常不满意ARM硬件细节硬编码到代码里，把代码弄的一团乱，然后社区才引入了DTS这个机制。这个
 机制用来描述一个硬件平台的硬件资源，起源于 OpenFirmware (OF)。社区当时讨论的方案是：
