@@ -64,6 +64,8 @@ Exception and Interrupt
   - The synchronous exception types can have many causes but they are handled in a similar way. 
   - The asynchronous exception type is subdivided into three interrupt types, IRQ, FIQ, and SError (System Error).
 
+.. _int_id_type:
+
 GIC中断控制器
 ----------------
 

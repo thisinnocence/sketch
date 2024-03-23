@@ -405,8 +405,10 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
     0000000008020000-0000000008020fff (prio 0, i/o): gicv2m
     0000000009000000-0000000009000fff (prio 0, i/o): pl011
 
-pl011 uart 的dts描述
-^^^^^^^^^^^^^^^^^^^^^^
+QEMU virt machine dts解析
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+从 UART pl011 的dts配置看起：
 
 .. code-block:: dts
 
@@ -422,25 +424,24 @@ pl011 uart 的dts描述
         };
     }
 
-最核心的 reg_base_addr, reg_len, irq_num，对比理解DTS里这几个字段或者一组每个值什么含义。
+最主要的 reg_base_addr, reg_len, irq_num，对比理解DTS里这几个字段或者一组每个值什么含义。
 
 先看下 reg 属性。注意，根据 ARM DTS的官方specification：
 
 | Property name: reg
 | Property value: <prop-encoded-array> encoded as an arbitrary number of (address, length) pairs.
 
-需要注意的是，address/length可以是1个或这个2个u32的值，根据下面两个属性确定:
+需要注意的是，address/length可以是1个或这个2个u32(dts规范称之位cell)的值，根据下面两个属性确定:
 
 .. note:: 
 
-    #address-cells 和 #size-cells 属性可以在设备树层次结构中具有子节点的任何设备节点中使用，用于描述如何寻址子设备节点。
+    | #address-cells 和 #size-cells 属性可在层次结构中具有子节点的任何设备节点中使用，用于描述如何寻址子设备节点。
+    | #address-cells 和 #size-cells 属性不会从设备树的祖先节点继承。它们应该被明确地定义, 即先看当前，再看父节点。
 
     - #address-cells 属性定义了用于编码子节点的 reg 属性中地址字段的 <u32> 个数。
     - #size-cells 属性定义了用于编码子节点的 reg 属性中大小字段的 <u32> 个数。
 
-    #address-cells 和 #size-cells 属性不会从设备树的祖先节点继承。它们应该被明确地定义。
-
-所以上面 pl011 中的reg的 (addr, size) 每个value是两个u32的值，一个高32bit，一个低32bit，共同组成。这样就可以的出 pl011 的
+所以上面 pl011 中的reg的 (addr, size) 每个value是两个u32的值，一个高32bit，一个低32bit，共同组成。这样就可以的出pl011的
 地址基地址和范围了。
 
 然后看 interrupt 属性。
@@ -456,16 +457,27 @@ interrupts-extended property 覆盖，通常只有1个被使用。
 | https://stackoverflow.com/questions/48188392/in-an-arm-device-tree-file-what-do-the-three-interrupt-values-mean
 | https://xillybus.com/tutorials/device-tree-zynq-4
 
-这个还需要看 intc (interrupt controller) 里的这个定义 ::
+为什么是3个字段，这个还需要看 intc (interrupt controller) 里的这个定义 ::
 
     intc@8000000 {
-         phandle = <0x8003>;
-         #interrupt-cells = <0x03>;
+        phandle = <0x8003>;
+        reg = <0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000>;
+        #interrupt-cells = <0x03>;
+        #size-cells = <0x02>;
+        #address-cells = <0x02>;
     }
+    // 然后 pl011 属性的父节点里： interrupt-parent = <0x8003>;  关联起来，所以 interrupts 就是3个字段
 
-    然后 pl011 属性的父节点里： interrupt-parent = <0x8003>;  关联起来，所以 interrupts 就是3个字段
+    // 顺便解释一下 intc 的 reg 都是什么mmio地址段, 8个cell, 2个cell是一个值, 4个值，2个(addr, size) pairs.
+    // base_addr,  size
+    // 0x8000000,  0x10000 (hex(0x8000000+0x10000-1) == 0x800ffff)
+    // 0x8010000,  0x10000 (hex(0x8010000+0x10000-1) == 0x801ffff)
 
-这些可结合Linux kernel内核的实现代码结合起来看。Linux 内核文档的说明
+    // info mtree 里关于intc的显示如下, qemu virt machine实际的大小没有dts分配的多
+    0000000008000000-0000000008000fff (prio 0, i/o): gic_dist
+    0000000008010000-0000000008011fff (prio 0, i/o): gic_cpu
+
+这些结合Linux kernel内核的实现代码结合起来看。Linux 内核文档的说明
 
 https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/interrupt-controller/arm%2Cgic.yaml
 
@@ -482,7 +494,8 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
 
   The 2nd cell contains the interrupt number for the interrupt type. 
 
-    - SPI interrupts are in the range [0-987].  (显然对于硬件手册里的中断号，我们配置DTS减去32)
+    - | SPI interrupts are in the range [0-987].  (显然对于硬件手册里的中断号，我们配置DTS减去32)
+      | 硬件定义的中断编号可参考 :ref:`int_id_type`
     - PPI interrupts are in the range [0-15].
 
   The 3rd cell is the flags, encoded as follows:
@@ -502,3 +515,18 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
   default value).
 
 这个解释就和内核实现对一个起来了，可以完全理解这个字段的意思。
+
+然后是 ram 的配置, 这里比较好理解 ::
+
+    // dts 里配置
+    memory@40000000 {
+        reg = <0x00 0x40000000 0x01 0x00>;
+        device_type = "memory";
+    };
+
+    和前面一样，都是 2 cell u32的值，base: 0x40000000, size 0x100000000
+    >>> hex(0x40000000+0x100000000-1)
+    '0x13fffffff'
+
+    // info mtree (qemu console)
+    0000000040000000-000000013fffffff (prio 0, ram): mach-virt.ram
