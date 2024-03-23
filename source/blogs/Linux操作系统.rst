@@ -399,22 +399,87 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
 
 然后结合文档就可以理解各个关键属性，以及对应的硬件IP是什么了。在QEMU拉起的virt machine中，看下部分地址 ::
 
-    // QEMU 命令 info mtree 可以查看：
+    // QEMU console 命令 info mtree 可以查看：
     0000000008000000-0000000008000fff (prio 0, i/o): gic_dist
     0000000008010000-0000000008011fff (prio 0, i/o): gic_cpu
     0000000008020000-0000000008020fff (prio 0, i/o): gicv2m
     0000000009000000-0000000009000fff (prio 0, i/o): pl011
 
-针对 pl011 uart来看
+pl011 uart 的dts描述
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: dts
 
-    pl011@9000000 {
-        clock-names = "uartclk\0apb_pclk";
-        clocks = <0x8000 0x8000>;
-        interrupts = <0x00 0x01 0x04>;
-        reg = <0x00 0x9000000 0x00 0x1000>;
-        compatible = "arm,pl011\0arm,primecell";
-    };
+    / {
+        #size-cells = <0x02>;
+        #address-cells = <0x02>;
+        pl011@9000000 {
+            clock-names = "uartclk\0apb_pclk";
+            clocks = <0x8000 0x8000>;
+            interrupts = <0x00 0x01 0x04>;
+            reg = <0x00 0x9000000 0x00 0x1000>;
+            compatible = "arm,pl011\0arm,primecell";
+        };
+    }
 
 最核心的 reg_base_addr, reg_len, irq_num，对比理解DTS里这几个字段或者一组每个值什么含义。
+
+先看下 reg 属性。注意，根据 ARM DTS的官方specification：
+
+| Property name: reg
+| Property value: <prop-encoded-array> encoded as an arbitrary number of (address, length) pairs.
+
+需要注意的是，address/length可以是1个或这个2个u32的值，根据下面两个属性确定:
+
+.. note:: 
+
+    #address-cells 和 #size-cells 属性可以在设备树层次结构中具有子节点的任何设备节点中使用，用于描述如何寻址子设备节点。
+
+    - #address-cells 属性定义了用于编码子节点的 reg 属性中地址字段的 <u32> 个数。
+    - #size-cells 属性定义了用于编码子节点的 reg 属性中大小字段的 <u32> 个数。
+
+    #address-cells 和 #size-cells 属性不会从设备树的祖先节点继承。它们应该被明确地定义。
+
+所以上面 pl011 中的reg的 (addr, size) 每个value是两个u32的值，一个高32bit，一个低32bit，共同组成。这样就可以的出 pl011 的
+地址基地址和范围了。
+
+然后看 interrupt 属性。
+
+| Property: interrupts
+| Value type: <prop-encoded-array> encoded as arbitrary number of interrupt specifiers
+
+interrupt属性的value是一个数组, 格式说明要看绑定的interrupt domain root. Interrupts可以被 
+interrupts-extended property 覆盖，通常只有1个被使用。
+
+对于 pl011, 有3个字段(cells), 有下面资料：
+
+https://stackoverflow.com/questions/48188392/in-an-arm-device-tree-file-what-do-the-three-interrupt-values-mean
+
+这个还需要看 intc (interrupt controller) 里的这个定义 ::
+
+    intc@8000000 {
+         phandle = <0x8003>;
+         #interrupt-cells = <0x03>;
+    }
+
+    然后 pl011 属性的父节点里： interrupt-parent = <0x8003>;  关联起来，所以 interrupts 就是3个字段
+
+根据 https://xillybus.com/tutorials/device-tree-zynq-4 ：
+
+.. note:: 
+    The first number:
+
+        - zero is a flag indicating if the interrupt is an SPI (shared peripheral interrupt). 
+        - nonzero value means it is an SPI. 
+    
+    The second number:
+
+        Interrupt number. SPI interrupt (irq_num + 32) and subtract it by 32.
+
+    The third number is the type of interrupt. Three values are possible:
+
+        - 0 — Leave it as it was (power-up default or what the bootloader set it to, if it did)
+        - 1 — Rising edge
+        - 4 — Level sensitive, active high
+
+这些可结合Linux kernel内核的实现代码结合起来看。
