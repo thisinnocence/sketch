@@ -453,7 +453,8 @@ interrupts-extended property 覆盖，通常只有1个被使用。
 
 对于 pl011, 有3个字段(cells), 有下面资料：
 
-https://stackoverflow.com/questions/48188392/in-an-arm-device-tree-file-what-do-the-three-interrupt-values-mean
+| https://stackoverflow.com/questions/48188392/in-an-arm-device-tree-file-what-do-the-three-interrupt-values-mean
+| https://xillybus.com/tutorials/device-tree-zynq-4
 
 这个还需要看 intc (interrupt controller) 里的这个定义 ::
 
@@ -464,22 +465,40 @@ https://stackoverflow.com/questions/48188392/in-an-arm-device-tree-file-what-do-
 
     然后 pl011 属性的父节点里： interrupt-parent = <0x8003>;  关联起来，所以 interrupts 就是3个字段
 
-根据 https://xillybus.com/tutorials/device-tree-zynq-4 ：
+这些可结合Linux kernel内核的实现代码结合起来看。Linux 内核文档的说明
 
-.. note:: 
-    The first number:
+https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/interrupt-controller/arm%2Cgic.yaml
 
-        - zero is a flag indicating if the interrupt is an SPI (shared peripheral interrupt). 
-        - nonzero value means it is an SPI. 
-    
-    The second number:
+.. note::
 
-        Interrupt number. SPI interrupt (irq_num + 32) and subtract it by 32.
+  | #interrupt-cells:
+  | const: 3
+  | description:
 
-    The third number is the type of interrupt. Three values are possible:
+  The 1st cell is the interrupt type;
 
-        - 0 — Leave it as it was (power-up default or what the bootloader set it to, if it did)
-        - 1 — Rising edge
-        - 4 — Level sensitive, active high
+    - 0 for SPI interrupts
+    - 1 for PPI
 
-这些可结合Linux kernel内核的实现代码结合起来看。
+  The 2nd cell contains the interrupt number for the interrupt type. 
+
+    - SPI interrupts are in the range [0-987].  (显然对于硬件手册里的中断号，我们配置DTS减去32)
+    - PPI interrupts are in the range [0-15].
+
+  The 3rd cell is the flags, encoded as follows:
+  bits[3:0] trigger type and level flags.
+
+    - 1 = low-to-high edge triggered
+    - 2 = high-to-low edge triggered (invalid for SPIs)
+    - 4 = active high level-sensitive
+    - 8 = active low level-sensitive (invalid for SPIs).
+
+  bits[15:8] PPI interrupt cpu mask.  Each bit corresponds to each of
+  the 8 possible cpus attached to the GIC.  A bit set to '1' indicated
+  the interrupt is wired to that CPU.  Only valid for PPI interrupts.
+  Also note that the configurability of PPI interrupts is IMPLEMENTATION
+  DEFINED and as such not guaranteed to be present (most SoC available
+  in 2014 seem to ignore the setting of this flag and use the hardware
+  default value).
+
+这个解释就和内核实现对一个起来了，可以完全理解这个字段的意思。
