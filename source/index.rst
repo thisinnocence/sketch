@@ -11,6 +11,7 @@ Michael Wu's sketch
    :caption: Contents:
 
    blogs/index
+   think/index
    diary/index
 
 Indices and tables
