@@ -273,3 +273,208 @@ reference point for all cores.
 - Virtual timers, compare against a virtual count. Virtual count计算方法: ``Virtual Count = Physical Count - <offset>``
 
 还需要配合内核看下对应处理。
+
+Boot Code
+---------------
+
+參考： https://developer.arm.com/documentation/den0013/d/Boot-Code
+
+ARM的启动代码，包括裸机程序(bare-metal)和Bootloader.
+
+- Code to be run immediately after the core comes out of reset, on a so-called bare-metal system.
+- How a bootloader loads and runs the Linux kernel.
+
+当core reset时，它将从异常向量表中的 ``reset vector`` 位置开始执行（位于地址 **0x00000000** 或 **0xFFFF0000** ）。
+复位处理程序代码必须执行以下一些或全部操作：
+
+- 在多核系统中，使non-primary cores进入睡眠状态。
+- 初始化exception vectors.
+- 初始化内存系统，包括MMU（内存管理单元）。
+- 初始化core mode stacks and registers.
+- 初始化关键的I/O设备。
+- 执行NEON或VFP的必要初始化。
+- 启用中断。
+- 更改core mode or state.
+- 处理Secure world所需的设置。
+- 调用main() application.
+
+首先要考虑的是异常向量表的放置。必须确保它包含一组有效的指令，跳转到正常的handler程序。
+
+GNU Assembler中的 ``_start`` 指令告诉链接器在特定地址定位代码，将代码放置在向量表中。
+初始向量表将位于非易失性(non-volatile)存储器中，并且可以包含跳转到自身的指令（除了复位向量之外, reset时没有可预期异常)
+通常，复位向量包含跳转到ROM中的引导代码的指令。ROM可以别名为异常向量的地址。然后，ROM将写入一些内存重映射外设，
+将RAM映射到地址0，并将真正的异常向量表复制到RAM中。这意味着处理重映射的引导代码部分必须是位置无关的，因为只能使用PC相对寻址。
+
+典型的 exception table ::
+
+  start
+    B Reset_Handler
+    B Undefined_Handler
+    B SWI_Handler
+    B Prefetch_Handler
+    B Data_Handler
+    NOP @ Reserved vector
+    B IRQ_Handler
+  @ FIQ_Handler will follow directly after this table
+
+启动Linux
+^^^^^^^^^^^
+
+通常，当启动系统时，hardware specific boot code 会从闪存或ROM中运行。该代码初始化系统，包括任何必要的硬件外围设备代码，
+然后启动引导加载程序（例如U-Boot）。这会初始化主存储器，并将压缩的Linux内核映像复制到
+主存储器中（从闪存设备、板上存储器、MMC、主机PC或其他位置）。bootloader 将某些初始化参数传递给内核。
+然后，Linux内核会 **解压自身** 并初始化其数据结构和正在运行的用户进程，然后启动命令行环境。
+
+Bootloader
+^^^^^^^^^^^
+
+Bootloader主要会做下面的任务:
+
+- Initializing the memory system and peripherals.
+- Loading the **kernel image** to an appropriate location in memory (and possibly also an initial RAM disk).
+- Generate the **boot parameters** to be passed to the kernel (including machine type).
+- Set up a console (video or serial) for the kernel.
+- Enter the kernel.
+
+Kernel image
+^^^^^^^^^^^^^^
+
+The kernel image 通常编译成 **zImage format** . 其head code包含了一个magic number, 来验证解压缩的完整性，包括起始地址。
+The kernel code is position independent and can be located anywhere in memory. Conventionally, it is placed at
+a 0x8000 offset from the base of physical RAM. This gives space for the parameter block placed
+at a 0x100 offset (used for translation tables etc).
+
+Many systems require an initial RAM disk (initrd), as this lets you have a **root filesystem**
+available without other drivers being setup. The bootloader can place an initial ramdisk image
+into memory and pass the location of this to the kernel using ATAG_INITRD2 (a tag that describes
+the physical location of the compressed RAM disk image) and ATAG_RAMDISK.
+
+The bootloader will typically setup a **serial port** in the target, enabling the kernel serial driver to
+detect the port and use it for a console.
+
+内核的执行必须从core处于固定状态开始。 The bootloader calls the kernel image by branching directly to
+its first instruction, the start label in ``arch/arm/boot/compressed/head.S`` . The MMU and data cache must be disabled.
+The core must be in **Supervisor mode**, with CPSR I and F Bits set (IRQ and FIQ disabled). R0 must contain 0,
+R1 the MACH_TYPE value and R2 the address of the tagged list of parameters.
+
+让内核开始工作的第一步是解压缩它。这主要是与体系结构无关的。保存从bootloader传递的参数，enable the caches and MMU.
+在调用 ``arch/arm/boot/compressed/misc.c``  中的  ``decompress_kernel()`` 之前，会检查解压缩后的映像是否会覆盖压缩映像。
+然后在再次禁用之前，清理和无效化缓存。接着跳转到 ``arch/arm/kernel/head.S`` 中的内核启动入口点。
+
+然后内核启动：
+
+- 使用local_irq_disable()禁用IRQ中断，同时使用lock_kernel()阻止FIQ中断中断内核。它初始化时钟控制、内存系统和
+  特定于体系结构的子系统，并处理引导加载程序传递的命令行选项。
+- 设置堆栈并初始化Linux调度程序。
+- 设置各种内存区域并分配页面。
+- 设置中断和异常表和处理程序，以及GIC（通用中断控制器）。
+- 设置系统定时器，此时启用IRQ中断。进行附加内存系统初始化，然后使用一个称为BogoMips的值来校准核心时钟速度。
+- 设置内核的内部组件，包括文件系统和初始化进程，创建内核线程的守护线程。
+- 解锁内核（启用FIQ），启动调度程序。
+- 调用do_basic_setup()函数来初始化驱动程序、sysctl、工作队列和网络套接字。在此时执行切换到用户模式。
+
+QEMU启动内核
+^^^^^^^^^^^^^
+
+用 ``-S -s`` 调试, 环境版本参考 :doc:`/blogs/QEMU仿真虚拟化`, 大概调试了下相关流程 ::
+
+  (gdb) target remote :1234
+  Remote debugging using :1234
+  0x0000000040000000 in ?? ()
+  (gdb) x/10i $pc
+  => 0x40000000:  ldr     x0, 0x40000018
+     0x40000004:  mov     x1, xzr
+     0x40000008:  mov     x2, xzr
+     0x4000000c:  mov     x3, xzr
+     0x40000010:  ldr     x4, 0x40000020
+     0x40000014:  br      x4
+     0x40000018:  eor     w0, w0, w0
+     <||>
+     0x4000001c:  .inst   0x00000000 ; undefined
+     0x40000020:  .inst   0x40200000 ; undefined
+
+  // 跳转执行到 arch/arm64/kernel/head.S
+  /* The following fragment of code is executed with the MMU enabled. */
+  SYM_FUNC_START_LOCAL(__primary_switched)
+     bl      start_kernel
+
+  // 进去C程序 int/main.c
+  start_kernel
+    /* Interrupts are still disabled. Do necessary setups, then * enable them. */
+    boot_cpu_init();
+    page_address_init();
+    setup_arch(&command_line);
+    setup_boot_config();
+    setup_command_line(command_line);
+    page_alloc_init();
+    ...
+    trap_init();
+    mm_init();
+    /* 在启动中断（如定时器中断）之前设置调度程序。完整的拓扑设置发生在smp_init()时，但同时仍然拥有一个可用的调度程序。*/
+    sched_init();
+    workqueue_init_early();
+    rcu_init();
+    init_IRQ(); // 中断使能
+    tick_init();
+    init_timers();
+    console_init();
+    fork_init();
+    ...
+    arch_call_rest_init(); //  /* Do the rest non-__init'ed, we're now alive */
+      rest_init()
+        rcu_scheduler_starting();
+        /* 我们需要首先生成init，以便它获得pid 1，然而init任务最终会想要创建k线程 */
+        pid = user_mode_thread(kernel_init, NULL, CLONE_FS) // 创建user mode thread, 创建了 kernel_init
+        schedule_preempt_disabled();
+        cpu_startup_entry(CPUHP_ONLINE);
+          do_idle()
+
+  // 在 kernel_init，这个是新内核thread了
+  (gdb) bt
+  #0  kernel_init (unused=0x0) at init/main.c:1510
+  #1  0xffff800008015968 in ret_from_fork () at arch/arm64/kernel/entry.S:860
+
+  // arch_timer 中断处理
+  Breakpoint 2, timer_handler (evt=<optimized out>, access=<optimized out>) at drivers/clocksource/arm_arch_timer.c:651
+  (gdb) bt
+  #0  timer_handler (evt=<optimized out>, access=<optimized out>) at drivers/clocksource/arm_arch_timer.c:651
+  <||> // 这里的timer是11，就是DTS里配置的 EL1 Virtual Timer
+  #1  arch_timer_handler_virt (irq=11, dev_id=0xffff0000ff7d8900) at drivers/clocksource/arm_arch_timer.c:666
+  <||>  // f 2, 切到栈帧2, 可以看到 p desc->irq_data.hwirq = 27 (对应的就是硬件手册的中断号)
+  #2  0xffff8000080fa394 in handle_percpu_devid_irq (desc=0xffff0000c0013600) at arch/arm64/include/asm/percpu.h:46
+  #3  0xffff8000080f31c4 in generic_handle_irq_desc (desc=<optimized out>) at include/linux/irqdesc.h:158
+  #4  handle_irq_desc (desc=<optimized out>) at kernel/irq/irqdesc.c:648
+  #5  generic_handle_domain_irq (domain=0xb, hwirq=4286417152) at kernel/irq/irqdesc.c:704
+  #6  0xffff800008557d48 in gic_handle_irq (regs=0xb) at drivers/irqchip/irq-gic.c:372
+  #7  0xffff8000080159a4 in call_on_irq_stack () at arch/arm64/kernel/entry.S:889
+  Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+  // 串口pl011中断处理
+  include/linux/irq.h
+  struct irq_data {
+    unsigned int        irq;    // interrupt number (内核分配)
+    unsigned long       hwirq;  // hardware interrupt number, local to the interrupt domain, (硬件的)
+    ...
+  }
+
+  (gdb) bt
+  #0  pl011_read (uap=0xffff0000c0101480, reg=11) at drivers/tty/serial/amba-pl011.c:286
+  #1  0xffff8000088077f0 in pl011_int (irq=-1072688000, dev_id=0xffff0000c0101480) at drivers/tty/serial/amba-pl011.c:1556
+  #2  0xffff8000080f3e4c in __handle_irq_event_percpu (desc=0xffff0000c01c9800) at kernel/irq/handle.c:158
+  #3  0xffff8000080f3f58 in handle_irq_event_percpu (desc=0xffff0000c01c9800) at kernel/irq/handle.c:193
+  #4  0xffff8000080f3fe8 in handle_irq_event (desc=0xffff0000c01c9800) at kernel/irq/handle.c:210
+  #5  0xffff8000080f9904 in handle_fasteoi_irq (desc=0xffff0000c01c9800) at kernel/irq/chip.c:714
+  #6  0xffff8000080f31c4 in generic_handle_irq_desc (desc=<optimized out>) at include/linux/irqdesc.h:158
+  #7  handle_irq_desc (desc=<optimized out>) at kernel/irq/irqdesc.c:648
+  #8  generic_handle_domain_irq (domain=0xffff0000c0101480, hwirq=11) at kernel/irq/irqdesc.c:704
+  #9  0xffff800008557d48 in gic_handle_irq (regs=0xffff0000c0101480) at drivers/irqchip/irq-gic.c:372
+  #10 0xffff8000080159a4 in call_on_irq_stack () at arch/arm64/kernel/entry.S:889
+  Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+  (gdb) f 2
+  #2  0xffff8000080f3e4c in __handle_irq_event_percpu (desc=0xffff0000c01c9800) at ../kernel/irq/handle.c:158
+  158                     res = action->handler(irq, action->dev_id);
+  (gdb) p desc->irq_data.hwirq
+  $18 = 33  // 这个就是和DTS中的对应起来了，SPI中断1，加上前面的32(SGI+PPI)就是33
+
+发现看内核代码，没有 vscode clangd支持的 compile_commands.json， 确实不太方便。有vim的ctags感觉跳转的还不是很准，后面如果
+再看还得把看内核的工具在研究一下。
