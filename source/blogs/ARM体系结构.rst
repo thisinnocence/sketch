@@ -215,7 +215,7 @@ Software can also use the system count to add timestamps, because the system cou
 reference point for all cores.
 
 | 针对Server Base System Architecture (SBSA)的推荐中断ID配置：
-| (csv转表格VSCO的插件真的好用^_^)
+| (csv转表格vscode的插件真的好用^_^)
 
 +-------------------------------+------------------------+
 | Timer                         | SBSA recommended INTID |

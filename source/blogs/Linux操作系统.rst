@@ -119,7 +119,7 @@ ARM DTS设备树
 DTS基础知识
 ^^^^^^^^^^^^^^^
 
-| 官方地址： https://www.devicetree.org/
+| 官方地址： https://www.devicetree.org
 | 文档specification： https://github.com/devicetree-org/devicetree-specification ，也是一个sphinx工程。
 | 文档渲染后发布平台: https://devicetree-specification.readthedocs.io
 
