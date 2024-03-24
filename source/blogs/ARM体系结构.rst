@@ -476,5 +476,4 @@ QEMU启动内核
   (gdb) p desc->irq_data.hwirq
   $18 = 33  // 这个就是和DTS中的对应起来了，SPI中断1，加上前面的32(SGI+PPI)就是33
 
-发现看内核代码，没有 vscode clangd支持的 compile_commands.json， 确实不太方便。有vim的ctags感觉跳转的还不是很准，后面如果
-再看还得把看内核的工具在研究一下。
+发现看内核代码，可以参考  :ref:`linux_lsp` 配置，精确跳转可以。

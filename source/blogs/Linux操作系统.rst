@@ -531,3 +531,21 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
 
     // info mtree (qemu console)
     0000000040000000-000000013fffffff (prio 0, ram): mach-virt.ram
+
+.. _linux_lsp:
+
+Linux clangd lsp配置
+-----------------------
+
+参考： https://github.com/clangd/clangd/issues/734
+
+在 linux src 目录加入  ::
+
+  CompileFlags:
+    Remove: -mabi=lp64
+
+然后在当前目录执行  ::
+
+    ./scripts/clang-tools/gen_compile_commands.py -d build
+
+打开vscode的工程，会索引大概5min，然后就可以基本精确跳转了。
