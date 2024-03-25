@@ -537,9 +537,12 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
 Linux clangd lsp配置
 -----------------------
 
-参考： https://github.com/clangd/clangd/issues/734
+| LSP技术发展到现在，我猜Linux内核社区已经支持了，随便搜了下文件发现了就有 gen_compile_commands.py :
+| https://github.com/torvalds/linux/commits/master/scripts/clang-tools/gen_compile_commands.py
+| 可看出，从2020年，这个生成 compile_commands.json 的工具都已经合入了内核代码主线。
 
-在 linux src 目录加入  ::
+中间遇到了clangd解析错误的，然后这个链接解决了问题： https://github.com/clangd/clangd/issues/734, 
+在Linux源码根目录下新建 ``.clangd`` 文件，内容是 ::
 
   CompileFlags:
     Remove: -mabi=lp64
@@ -548,4 +551,11 @@ Linux clangd lsp配置
 
     ./scripts/clang-tools/gen_compile_commands.py -d build
 
-打开vscode的工程，会索引大概5min，然后就可以基本精确跳转了。
+打开vscode的工程，clangd插件会索引大概5min，然后就可以基本精确跳转了。不得不说，有了clangd-lsp支持，比传统的tags/cscope精确
+多了，基于语义的分析给代码浏览跳转体验带来质的飞跃。
+
+.. tip::
+  Linux的内核git log写的非常详细，可以当做代码功能注释补充，配合 vscode GitLens 插件，我们很容易看到某一行的提交以及当时的注释，
+  这个对于我们理解Linux代码很有帮助。看代码还是下载带着git提交记录的版本好一点。
+
+有了这个LSP支持，看内核和修改内核代码效率大增。
