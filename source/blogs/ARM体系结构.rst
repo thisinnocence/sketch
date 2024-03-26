@@ -210,6 +210,8 @@ The ``System Counter`` is an always-on device, which provides a fixed frequency 
 system count. The system count value is broadcast to all the cores in the system, giving the cores
 a common view of the passage of time. 
 
+These timers provide functionality which is used for things like the operating system **scheduler tick**. 
+
 Software can configure timers to generate interrupts or events in set points in the future.
 Software can also use the system count to add timestamps, because the system count gives a common
 reference point for all cores.
@@ -477,3 +479,40 @@ QEMU启动内核
   $18 = 33  // 这个就是和DTS中的对应起来了，SPI中断1，加上前面的32(SGI+PPI)就是33
 
 发现看内核代码，可以参考  :ref:`linux_lsp` 配置，精确跳转可以。
+
+AMR MMU
+-----------
+
+参考： `Armv8-A Address Translation <https://developer.arm.com/documentation/100940/latest/>`_ 
+
+大概得地址布局
+
+.. image:: pic/arm-memory-view.png
+  :scale: 60%
+
+可以看出，外设通常在高地址，ram在低地址。内核在高地质，用户程序在低地址。
+
+.. note:: 
+
+  The table base addresses are specified in the Translation Table Base Registers (TTBR0_EL1) and (TTBR1_EL1):
+
+  - 用户空间：TTBR0 is selected when the upper bits of the virtual address (VA) are all set to 0. 
+  - 内核空间：TTBR1 is selected when the upper bits of the VA are all set to 1. 
+
+  根据上图，就是高16bit，2个Byte来判断的。手册是写：You can enable VA tagging to exclude the top 8 bits from the check.
+
+对于 Hypervisor 和 Firmware, 有独立的虚拟地址空间
+
+At any one time, only one virtual address space is being used (that for the current security state
+Exception level). However, conceptually, because there are three different TTBRs, there are three
+parallel virtual address spaces (EL0/1, EL2, and EL3)
+
+.. image:: pic/two-stage-translate.png
+  :scale: 60%
+
+.. note:: 
+  EL2 and EL3 have a TTBR0, but no TTBR1. This means that is either EL2 or EL3 is using AArch64,
+  they can only use virtual addresses in the range 0x0 to 0x0000FFFF_FFFFFFFF.
+
+
+
