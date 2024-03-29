@@ -541,17 +541,21 @@ Linux clangd lsp配置
 | https://github.com/torvalds/linux/commits/master/scripts/clang-tools/gen_compile_commands.py
 | 可看出，从2020年，这个生成 compile_commands.json 的工具都已经合入了内核代码主线。
 
-中间遇到了clangd解析错误的，然后这个链接解决了问题： https://github.com/clangd/clangd/issues/734, 
-在Linux源码根目录下新建 ``.clangd`` 文件，内容是 ::
+| 中间遇到了clangd解析错误的，然后这个链接解决了问题： https://github.com/clangd/clangd/issues/734,
+| 在Linux源码根目录下新建 ``.clangd`` 文件添加下面内容：
+
+::
 
   CompileFlags:
     Remove: -mabi=lp64
 
-然后在当前目录执行  ::
+然后在build目录执行  ::
 
-    ./scripts/clang-tools/gen_compile_commands.py -d build
+    cd build
+    ./scripts/clang-tools/gen_compile_commands.py
 
-打开vscode的工程，clangd插件会索引大概5min，然后就可以基本精确跳转了。不得不说，有了clangd-lsp支持，比传统的tags/cscope精确
+打开vscode的工程，clangd会尝试建立索引，如果没有可以手工重启一下clangd server: ``ctrl+shift+p`` , 然后输入 ``clangd`` 找到重启
+命令回车。 clangd插件会索引大概5min，然后就可以基本精确跳转了。不得不说，有了clangd-lsp支持，比传统的tags/cscope精确
 多了，基于语义的分析给代码浏览跳转体验带来质的飞跃。
 
 .. tip::
