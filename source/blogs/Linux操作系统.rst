@@ -563,3 +563,50 @@ Linux clangd lsp配置
   这个对于我们理解Linux代码很有帮助。看代码还是下载带着git提交记录的版本好一点。
 
 有了这个LSP支持，看内核和修改内核代码效率大增。
+
+用VScode源码调试Linux
+------------------------
+
+前面我们vscode工程配置好后，使用QEMU ``-S -s`` 拉起linux，这个会使用QEMU内置的gdb server，然后我们给前面的linux工程配置
+一个调试的 launch.json 文件, 内容如下：
+
+.. code-block:: json
+
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "debug-linux",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}/build/vmlinux",
+                "cwd": "/root/arm",
+                "miDebuggerServerAddress": "localhost:1234",
+                "miDebuggerPath": "gdb-multiarch",
+                "stopAtEntry": false,
+                "externalConsole": true,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ],
+            }
+        ]
+    }
+
+大概得效果如下
+
+.. image:: pic/debug-linux.png
+
+当然，也可以直接用 gdb 命令行的方式调试  ::
+
+    cd build
+    gdb-multiarch vmlinux
+    (gdb) target remote :1234
+    (gdb) b start_kernel
+    (gdb) c
+
+然后我们就可以单步调试内核了。 如果学习体系结构相关的，结合QEMU里面对硬件的实现逻辑，会更加方便理解。
