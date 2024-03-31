@@ -514,5 +514,41 @@ parallel virtual address spaces (EL0/1, EL2, and EL3)
   EL2 and EL3 have a TTBR0, but no TTBR1. This means that is either EL2 or EL3 is using AArch64,
   they can only use virtual addresses in the range 0x0 to 0x0000FFFF_FFFFFFFF.
 
+ARM SMMU
+----------
 
+参考：
 
+  - https://developer.arm.com/documentation/109242/0100/Overview
+  - https://developer.arm.com/documentation/ihi0070/latest
+
+ARM SMMU 主要给外设DMA(Direct Memory Access)提供 **IO-VA** 功能支持。
+
+.. image:: pic/arm-smmu-role.png
+  :scale: 45%
+
+SMMU可以提供 地址翻译、地址保护、隔离的作用。多个device可以共享一个SMMU。
+
+StreamID
+
+  SMMU使用StreamID来区分不同device，一般一个device只有1个StreamID，但是也可以有多个。比如一个设备的DMA引擎支持多个channel，那么
+  每个channel都会有一个StreamID。
+
+  .. note:: 
+    How the StreamID is formed is IMPLEMENTATION DEFINED
+
+SubstreamID
+
+  Substreams 可以让device有不同的stage 1 translations翻译时，有相同的stage 2翻译。比如，一个VM跑了多个app，每个app都有自己的
+  DMA channel，所以每个有不同的stage 1 翻译流程。因为这些app在同一个VM，所以共享同样的stage 2翻译。
+
+SMMU在内存中保存翻译流程的数据结构。 ``SMMU_(*_)STRTAB_BASE`` 存了 Stream table 的基地址。Stream table支持两种格式：
+
+- Linear Stream table.
+
+    ``STE_addr = STRTAB_BASE.ADDR + StreamID * sizeof(STE)``
+
+- 2-level Stream table
+
+    | ``L1STD_addr = STRTAB_BASE.ADDR + StreamID[n:x] * sizeof(L1STD)``
+    | ``STE_addr = L1STD.L2Ptr + StreamID[(x - 1):0] * sizeof(STE)``
