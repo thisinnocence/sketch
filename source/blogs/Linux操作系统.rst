@@ -11,7 +11,7 @@ Linux操作系统
 编译Linux kernel
 ------------------
 
-首先下载下载对应版本的Linux源码，可以去 https://www.kernel.org/ 或github下载，然后
+首先下载下载对应版本的Linux源码，可以去 https://www.kernel.org 或github下载，然后
 使用menuconfig勾选RAM disks支持，并调整大小为: 65536 kb，主要方便后面用QEMU拉起进行调试。
 
 Linux v6.0.9，发布日期2022-11-16，用下面方式可编译arm64镜像。
@@ -610,3 +610,19 @@ Linux clangd lsp配置
     (gdb) c
 
 然后我们就可以单步调试内核了。 如果学习体系结构相关的，结合QEMU里面对硬件的实现逻辑，会更加方便理解。
+
+调试Linux内核
+----------------
+
+| QEMU内置的gdb server可以单步调试内核，这个非常方便。可以看内核官方文档的链接:
+| https://docs.kernel.org/dev-tools/gdb-kernel-debugging.html
+
+| 对于比较麻烦的内存类问题：用户态程序内存越界问题会经常用ASAN, 内核态程序也有类似工具KASAN:
+| https://docs.kernel.org/dev-tools/kasan.html
+
+.. note::
+
+  Kernel Address Sanitizer (KASAN) is a **dynamic memory safety error detector** designed to find out-of-bounds and
+  use-after-free bugs.
+
+还有很多的定位手段，可以在上面的链接中看，文档的目录就再内核源码目录的 Documentation/dev-tools 目录下。
