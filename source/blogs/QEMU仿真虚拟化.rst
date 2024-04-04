@@ -6,28 +6,43 @@
 QEMU仿真虚拟化
 ================
 
-环境与版本信息
---------------
+编译和运行
+----------------
 
-环境信息参考: `使用QEMU调试ARM64 Linux内核v6.0.9 <https://blog.csdn.net/thisinnocence/article/details/127931774>`_  
-相对上面的环境，下面使用QEMU v8.2.0最新版本，Linux还是v6.8.0版本，编译出来的是arm64架构的Linux
-启动脚本进行了些修改，把部分参数挪到了启动文件中，使用 ``-readconfig`` 参数加载配置文件，具体如下:
+使用当前（2024.3）的最新版本即可:
 
-启动脚本：
+.. csv-table::
+
+    QEMU, https://www.qemu.org, https://github.com/qemu, v8.2.0
+    Linux, https://www.kernel.org, https://github.com/torvalds/linux, v6.8.0
+    BusyBox, https://busybox.net, https://github.com/mirror/busybox, 1.36.0
+
+编译QEMU, 为了方便调试，加入了 ``--enable-debug`` 选项，这个方便单步调试。
 
 .. code-block:: bash
 
-    # start.sh
+    mkdir build
+    cd build
+    ../configure --target-list=aarch64-softmmu --enable-debug
+    make -j
+
+编译Linux内核，请参考 :doc:`/blogs/Linux操作系统`
+
+启动QEMU, ``start.sh``
+
+.. code-block:: bash
+
+    #!/bin/bash
+
     qemu/build/aarch64-softmmu/qemu-system-aarch64 \
         -nographic \
         -cpu cortex-a57 \
         -readconfig virt.cfg
 
-配置文件：
+配置文件 ``virt.cfg``
 
 .. code-block:: ini
 
-    # virt.cfg 文件
     [machine]
         type = "virt"
         kernel = "linux/build/arch/arm64/boot/Image"
@@ -40,13 +55,40 @@ QEMU仿真虚拟化
     [memory]
         size = "4G"
 
-加载kernel和initrd
------------------------
+我们也可以在 vscode 中拉起，更加容易调试, ``launch.json``
+
+.. code-block:: json
+
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "QEMU",
+                "MIMode": "gdb",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}/build/qemu-system-aarch64",
+                "cwd": "/root/arm",
+                "args": [
+                    "-nographic",
+                    "-cpu", "cortex-a57",
+                    "-readconfig", "virt.cfg"
+                ]
+            }
+        ]
+    }
+
+
+
+加载kernel, initrd, dtb
+------------------------
 
 这里直接使用QEMU命令行传递内核和initrd，关键的流程步骤:
+
 1. load kernel
 2. load initrd
 3. load dtb
+
 执行时的callstack如下 ::
 
     // 1. load kernel

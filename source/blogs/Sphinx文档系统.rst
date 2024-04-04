@@ -87,6 +87,8 @@ Keyword             Description
 快速编辑表格
 ^^^^^^^^^^^^^^
 
+下面是vscode插件的功能：
+
 https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/table.html#creating-a-table
 
 - 自动转逗号分隔符格式为表格
@@ -126,6 +128,15 @@ vscode的settings.json中加入下面的配置即可：
 
 .. tip:: 
     使用 ``windows + v`` 可以看windows的剪切板里有什么图片
+
+
+表格编辑
+----------
+
+| 大部分情况 CSV 表格真的非常的方便， 参考：
+| https://docutils.sourceforge.io/docs/ref/rst/directives.html#tables
+| https://docutils.sourceforge.io/docs/ref/rst/directives.html#csv-table-1
+| 遇到一个单元格内的内容很长需要换行是，我们把内容放到引号里即可，就如上面链接里的例子一样。
 
 交叉引用
 -------------------
