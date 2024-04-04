@@ -6,13 +6,12 @@
 Linux操作系统
 ==============
 
-后面主要针对ARM64架构的相关代码进行介绍。
+本文主要针对ARM64架构的相关代码进行介绍。
 
 编译Linux kernel
 ------------------
 
-首先下载下载对应版本的Linux源码，可以去 https://www.kernel.org 或github下载，然后
-使用menuconfig勾选RAM disks ``build-in`` 支持，并调整大小为: 65536 kb，主要方便后面用QEMU拉起进行调试。
+下载Linux源码后，使用menuconfig勾选RAM disks为 ``build-in`` 支持，并调整大小为: 65536 kb， 方便后面用QEMU拉起。
 
 编译ARM64内核镜像方法如下：
 
@@ -54,9 +53,7 @@ ARM Linux常见的内核镜像格式：
 编译initrd
 ----------------
 
-从 https://busybox.net 下载源码，然后交叉编译。
-
-BusyBox v1.35.0, 发布日期2021-11-26，用下面命令可以编译arm64的initrd.
+从 https://busybox.net 下载源码，然后交叉编译。可以参考下面命令编译ARM64架构的busybox :
 
 .. code-block:: bash
 
@@ -119,9 +116,9 @@ ARM DTS设备树
 DTS基础知识
 ^^^^^^^^^^^^^^^
 
-| 官方地址： https://www.devicetree.org
-| 文档specification： https://github.com/devicetree-org/devicetree-specification ，也是一个sphinx工程。
-| 文档渲染后发布平台: https://devicetree-specification.readthedocs.io
+| 官方地址: https://www.devicetree.org
+| 文档地址: https://devicetree-specification.readthedocs.io
+| 文档工程: https://github.com/devicetree-org/devicetree-specification ，也是一个sphinx工程。
 
 关于ARM Linux的DTS，历史渊源是Linus非常不满意ARM硬件细节硬编码到代码里，把代码弄的一团乱，然后社区才引入了DTS这个机制。这个
 机制用来描述一个硬件平台的硬件资源，起源于 OpenFirmware (OF)。社区当时讨论的方案是：
@@ -192,14 +189,14 @@ device tree的基本单元是node。这些node被组织成树状结构，除了r
 QEMU导出dts
 ^^^^^^^^^^^^^
 
-QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿真虚拟化` 例子里，可以通过加入下面的配置导出virt machine的dts，
-如下 ::
+QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/blogs/QEMU仿真虚拟化` 的例子，用下面方法导出virt machine的dts ::
 
-    启动qemu后，ctrl a,c 进入qemu的console
-    然后敲命令 dumpdtb virt.dtb
-    即可导出来DTB文件： virt.dtb
+    // 方法一, 推荐这种方法
+    启动QEMU后，ctrl a,c 进入 console
+    然后敲命令: dumpdtb virt.dtb
 
-    或者，在 virt.cfg 中，machine项加入下面配置即可
+    // 方法二
+    在 virt.cfg 中，machine项加入下面配置即可
     [machine]
         dumpdtb = "virt.dtb"
 
@@ -222,15 +219,6 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
         #address-cells = <0x02>;
         compatible = "linux,dummy-virt";
 
-        psci {
-            migrate = <0xc4000005>;
-            cpu_on = <0xc4000003>;
-            cpu_off = <0x84000002>;
-            cpu_suspend = <0xc4000001>;
-            method = "hvc";
-            compatible = "arm,psci-1.0\0arm,psci-0.2\0arm,psci";
-        };
-
         memory@40000000 {
             reg = <0x00 0x40000000 0x01 0x00>;
             device_type = "memory";
@@ -244,15 +232,10 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
             compatible = "arm,pl011\0arm,primecell";
         };
 
-        pmu {
-            interrupts = <0x01 0x07 0x304>;
-            compatible = "arm,armv8-pmuv3";
-        };
-
         intc@8000000 {
             phandle = <0x8003>;
             reg = <0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000>;
-            compatible = "arm,cortex-a15-gic";
+            compatible = "arm,cortex-a15-gic";  // gicv2
             ranges;
             #size-cells = <0x02>;
             #address-cells = <0x02>;
@@ -264,30 +247,9 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
             #size-cells = <0x00>;
             #address-cells = <0x01>;
 
-            cpu-map {
-                socket0 {
-                    cluster0 {
-                        core0 {
-                            cpu = <0x8002>;
-                        };
-                        core1 {
-                            cpu = <0x8001>;
-                        };
-                    };
-                };
-            };
-
             cpu@0 {
                 phandle = <0x8002>;
                 reg = <0x00>;
-                enable-method = "psci";
-                compatible = "arm,cortex-a57";
-                device_type = "cpu";
-            };
-
-            cpu@1 {
-                phandle = <0x8001>;
-                reg = <0x01>;
                 enable-method = "psci";
                 compatible = "arm,cortex-a57";
                 device_type = "cpu";
@@ -559,8 +521,8 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
 
 .. _linux_lsp:
 
-Linux clangd lsp配置
------------------------
+用VScode clangd看内核代码
+--------------------------
 
 | LSP技术发展到现在，我猜Linux内核社区已经支持了，随便搜了下文件发现了就有 gen_compile_commands.py :
 | https://github.com/torvalds/linux/commits/master/scripts/clang-tools/gen_compile_commands.py
@@ -589,11 +551,21 @@ Linux clangd lsp配置
 
 有了这个LSP支持，看内核和修改内核代码效率大增。
 
-用VScode源码调试Linux
+调试Linux
 ------------------------
 
-前面我们vscode工程配置好后，使用QEMU ``-S -s`` 拉起linux，这个会使用QEMU内置的gdb server，然后我们给前面的linux工程配置
-一个调试的 launch.json 文件, 内容如下：
+| QEMU内置的gdb server可以单步调试内核，这个非常方便。可以看内核官方文档的链接:
+| https://docs.kernel.org/dev-tools/gdb-kernel-debugging.html
+
+使用QEMU ``-S -s`` 拉起linux，这个会使用QEMU内置的gdb server， 我们用 ``gdb-multiarch`` 连接这个server调试 ::
+
+    cd build
+    gdb-multiarch vmlinux
+    (gdb) target remote :1234
+    (gdb) b start_kernel
+    (gdb) c
+
+前面为了方便看代码，我们配置了VScode工程，在这个工程里我们配置下 ``launch.json`` 文件可以更方便图形调试：
 
 .. code-block:: json
 
@@ -622,27 +594,13 @@ Linux clangd lsp配置
         ]
     }
 
-大概得效果如下
+用VScode调试内核的大概得效果如下：
 
 .. image:: pic/debug-linux.png
 
-当然，也可以直接用 gdb 命令行的方式调试  ::
+一些内核程序的调试手段，可以看内核文档： https://www.kernel.org/doc/html/latest/dev-tools
 
-    cd build
-    gdb-multiarch vmlinux
-    (gdb) target remote :1234
-    (gdb) b start_kernel
-    (gdb) c
-
-然后我们就可以单步调试内核了。 如果学习体系结构相关的，结合QEMU里面对硬件的实现逻辑，会更加方便理解。
-
-调试Linux内核
-----------------
-
-| QEMU内置的gdb server可以单步调试内核，这个非常方便。可以看内核官方文档的链接:
-| https://docs.kernel.org/dev-tools/gdb-kernel-debugging.html
-
-| 对于比较麻烦的内存类问题：用户态程序内存越界问题会经常用ASAN, 内核态程序也有类似工具KASAN:
+| 用户态我们常用ASAN来定位内存类问题, 内核态用类似的KASAN:
 | https://docs.kernel.org/dev-tools/kasan.html
 
 .. note::
@@ -650,4 +608,4 @@ Linux clangd lsp配置
   Kernel Address Sanitizer (KASAN) is a **dynamic memory safety error detector** designed to find out-of-bounds and
   use-after-free bugs.
 
-还有很多的定位手段，可以在上面的链接中看，文档的目录就再内核源码目录的 Documentation/dev-tools 目录下。
+还有很多的定位手段，可以看上面文档链接，或者内核源码目录的 Documentation/dev-tools 下的文档。
