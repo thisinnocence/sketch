@@ -10,7 +10,7 @@ QEMU仿真虚拟化
 --------------
 
 环境信息参考: `使用QEMU调试ARM64 Linux内核v6.0.9 <https://blog.csdn.net/thisinnocence/article/details/127931774>`_  
-相对上面的环境，下面使用QEMU v8.2.0最新版本，Linux还是v6.0.9版本，编译出来的是arm64架构的Linux
+相对上面的环境，下面使用QEMU v8.2.0最新版本，Linux还是v6.8.0版本，编译出来的是arm64架构的Linux
 启动脚本进行了些修改，把部分参数挪到了启动文件中，使用 ``-readconfig`` 参数加载配置文件，具体如下:
 
 启动脚本：
@@ -30,7 +30,7 @@ QEMU仿真虚拟化
     # virt.cfg 文件
     [machine]
         type = "virt"
-        kernel = "linux-6.0.9/build/arch/arm64/boot/Image"
+        kernel = "linux/build/arch/arm64/boot/Image"
         append = "nokaslr root=/dev/ram init=/linuxrc console=ttyAMA0 console=ttyS0"
         initrd = "initrd.ext4"
 

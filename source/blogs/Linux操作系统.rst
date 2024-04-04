@@ -12,9 +12,9 @@ Linux操作系统
 ------------------
 
 首先下载下载对应版本的Linux源码，可以去 https://www.kernel.org 或github下载，然后
-使用menuconfig勾选RAM disks支持，并调整大小为: 65536 kb，主要方便后面用QEMU拉起进行调试。
+使用menuconfig勾选RAM disks ``build-in`` 支持，并调整大小为: 65536 kb，主要方便后面用QEMU拉起进行调试。
 
-Linux v6.0.9，发布日期2022-11-16，用下面方式可编译arm64镜像。
+编译ARM64内核镜像方法如下：
 
 .. code-block:: bash
 
