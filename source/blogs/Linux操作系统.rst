@@ -414,6 +414,8 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
     // info mtree (qemu console)
     0000000040000000-000000013fffffff (prio 0, ram): mach-virt.ram
 
+.. _cut_dts:
+
 裁剪virt的dts
 ^^^^^^^^^^^^^^^^^
 
