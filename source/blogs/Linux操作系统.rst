@@ -195,7 +195,11 @@ QEMU导出dts
 QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿真虚拟化` 例子里，可以通过加入下面的配置导出virt machine的dts，
 如下 ::
 
-    在 virt.cfg 中，machine项加入下面配置即可
+    启动qemu后，ctrl a,c 进入qemu的console
+    然后敲命令 dumpdtb virt.dtb
+    即可导出来DTB文件： virt.dtb
+
+    或者，在 virt.cfg 中，machine项加入下面配置即可
     [machine]
         dumpdtb = "virt.dtb"
 
@@ -205,7 +209,7 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
 
     dtc -I dtb -O dts virt.dtb > virt.dts
 
-导出的内容如下，通过QEMU virt machine可以看一个完整的DTS主要包括什么：
+导出的内容如下，通过QEMU virt machine可以看一个完整的DTS主要包括什么, 下面摘录部分：
 
 .. code-block:: dts
 
@@ -232,73 +236,6 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
             device_type = "memory";
         };
 
-        platform-bus@c000000 {
-            interrupt-parent = <0x8003>;
-            ranges = <0x00 0x00 0xc000000 0x2000000>;
-            #address-cells = <0x01>;
-            #size-cells = <0x01>;
-            compatible = "qemu,platform\0simple-bus";
-        };
-
-        fw-cfg@9020000 {
-            dma-coherent;
-            reg = <0x00 0x9020000 0x00 0x18>;
-            compatible = "qemu,fw-cfg-mmio";
-        };
-
-        virtio_mmio@a000000 {
-            dma-coherent;
-            interrupts = <0x00 0x10 0x01>;
-            reg = <0x00 0xa000000 0x00 0x200>;
-            compatible = "virtio,mmio";
-        };
-        // 还有很多其他 virtio
-
-        gpio-keys {
-            compatible = "gpio-keys";
-
-            poweroff {
-                gpios = <0x8005 0x03 0x00>;
-                linux,code = <0x74>;
-                label = "GPIO Key Poweroff";
-            };
-        };
-
-        pl061@9030000 {
-            phandle = <0x8005>;
-            clock-names = "apb_pclk";
-            clocks = <0x8000>;
-            interrupts = <0x00 0x07 0x04>;
-            gpio-controller;
-            #gpio-cells = <0x02>;
-            compatible = "arm,pl061\0arm,primecell";
-            reg = <0x00 0x9030000 0x00 0x1000>;
-        };
-
-        pcie@10000000 {
-            interrupt-map-mask = <0x1800 0x00 0x00 0x07>;
-            interrupt-map = <0x00 0x00 0x00 0x01 0x8003 0x00 0x00 0x00 0x03 0x04 0x00 0x00 0x00 0x02 0x8003 0x00 0x00 0x00 0x04 0x04 0x00 0x00 0x00 0x03 0x8003 0x00 0x00 0x00 0x05 0x04 0x00 0x00 0x00 0x04 0x8003 0x00 0x00 0x00 0x06 0x04 0x800 0x00 0x00 0x01 0x8003 0x00 0x00 0x00 0x04 0x04 0x800 0x00 0x00 0x02 0x8003 0x00 0x00 0x00 0x05 0x04 0x800 0x00 0x00 0x03 0x8003 0x00 0x00 0x00 0x06 0x04 0x800 0x00 0x00 0x04 0x8003 0x00 0x00 0x00 0x03 0x04 0x1000 0x00 0x00 0x01 0x8003 0x00 0x00 0x00 0x05 0x04 0x1000 0x00 0x00 0x02 0x8003 0x00 0x00 0x00 0x06 0x04 0x1000 0x00 0x00 0x03 0x8003 0x00 0x00 0x00 0x03 0x04 0x1000 0x00 0x00 0x04 0x8003 0x00 0x00 0x00 0x04 0x04 0x1800 0x00 0x00 0x01 0x8003 0x00 0x00 0x00 0x06 0x04 0x1800 0x00 0x00 0x02 0x8003 0x00 0x00 0x00 0x03 0x04 0x1800 0x00 0x00 0x03 0x8003 0x00 0x00 0x00 0x04 0x04 0x1800 0x00 0x00 0x04 0x8003 0x00 0x00 0x00 0x05 0x04>;
-            #interrupt-cells = <0x01>;
-            ranges = <0x1000000 0x00 0x00 0x00 0x3eff0000 0x00 0x10000 0x2000000 0x00 0x10000000 0x00 0x10000000 0x00 0x2eff0000 0x3000000 0x80 0x00 0x80 0x00 0x80 0x00>;
-            reg = <0x40 0x10000000 0x00 0x10000000>;
-            msi-map = <0x00 0x8004 0x00 0x10000>;
-            dma-coherent;
-            bus-range = <0x00 0xff>;
-            linux,pci-domain = <0x00>;
-            #size-cells = <0x02>;
-            #address-cells = <0x03>;
-            device_type = "pci";
-            compatible = "pci-host-ecam-generic";
-        };
-
-        pl031@9010000 {
-            clock-names = "apb_pclk";
-            clocks = <0x8000>;
-            interrupts = <0x00 0x02 0x04>;
-            reg = <0x00 0x9010000 0x00 0x1000>;
-            compatible = "arm,pl031\0arm,primecell";
-        };
-
         pl011@9000000 {
             clock-names = "uartclk\0apb_pclk";
             clocks = <0x8000 0x8000>;
@@ -321,19 +258,6 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
             #address-cells = <0x02>;
             interrupt-controller;
             #interrupt-cells = <0x03>;
-
-            v2m@8020000 {
-                phandle = <0x8004>;
-                reg = <0x00 0x8020000 0x00 0x1000>;
-                msi-controller;
-                compatible = "arm,gic-v2m-frame";
-            };
-        };
-
-        flash@0 {
-            bank-width = <0x04>;
-            reg = <0x00 0x00 0x00 0x4000000 0x00 0x4000000 0x00 0x4000000>;
-            compatible = "cfi-flash";
         };
 
         cpus {
@@ -341,15 +265,11 @@ QEMU可以有个功能，可以导出来machine的dts. 在 :doc:`/blogs/QEMU仿�
             #address-cells = <0x01>;
 
             cpu-map {
-
                 socket0 {
-
                     cluster0 {
-
                         core0 {
                             cpu = <0x8002>;
                         };
-
                         core1 {
                             cpu = <0x8001>;
                         };
@@ -531,6 +451,111 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
 
     // info mtree (qemu console)
     0000000040000000-000000013fffffff (prio 0, ram): mach-virt.ram
+
+裁剪virt的dts
+^^^^^^^^^^^^^^^^^
+
+跑起来一个支持shell的OS，最少需要的硬件有：CPU, RAM, GIC、timer、外设时钟、串口。
+
+裁剪上面dts，然后重新编译dtb文件，通过命令行或者配置文件传给qemu的virt machine，仍然可以拉起来：
+
+.. code-block:: dts
+
+    /dts-v1/;
+
+    / {
+        interrupt-parent = <0x8002>;
+        #size-cells = <0x02>;
+        #address-cells = <0x02>;
+
+        cpus {
+            #size-cells = <0x00>;
+            #address-cells = <0x01>;
+            cpu@0 {
+                phandle = <0x8001>;
+                reg = <0x00>;
+            };
+        };
+
+        memory@40000000 {
+            reg = <0x00 0x40000000 0x01 0x00>;
+        };
+
+        intc@8000000 {
+            phandle = <0x8002>;
+            reg = <0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000>;
+            compatible = "arm,cortex-a15-gic";
+            ranges;
+            #size-cells = <0x02>;
+            #address-cells = <0x02>;
+            interrupt-controller;
+            #interrupt-cells = <0x03>;
+        };
+
+        timer {
+            interrupts = <0x01 0x0d 0x104 0x01 0x0e 0x104 0x01 0x0b 0x104 0x01 0x0a 0x104>;
+            compatible = "arm,armv8-timer";
+        };
+
+        apb-pclk {
+            phandle = <0x8000>;
+            clock-output-names = "clk24mhz";
+            clock-frequency = <0x16e3600>;
+            #clock-cells = <0x00>;
+            compatible = "fixed-clock";
+        };
+
+        pl011@9000000 {
+            clock-names = "apb_pclk";
+            clocks = <0x8000>;
+            interrupts = <0x00 0x01 0x04>;
+            reg = <0x00 0x9000000 0x00 0x1000>;
+            compatible = "arm,pl011", "arm,primecell";
+        };
+
+        chosen {
+            bootargs = "nokaslr root=/dev/ram init=/linuxrc console=ttyAMA0 console=ttyS0";
+        };
+    };
+
+在这个裁剪的DTS中，我们使用的GIC-V2，也可以使用GIC-V3，我们启动virt machine的时候，可以指定，修改 virt.cfg 加入::
+
+    [machine]
+        gic-version = "3"
+
+然后不传递 dtb 参数，启动后我们再导出一个dts，就是gicv3的node节点了，不能直接修改v2的，因为reg的地址也变化了，导出的如下
+
+.. code-block:: dts
+
+    intc@8000000 {
+        phandle = <0x8002>;
+        reg = <0x00 0x8000000 0x00 0x10000 0x00 0x80a0000 0x00 0xf60000>;
+        compatible = "arm,gic-v3";
+        ranges;
+        #size-cells = <0x02>;
+        #address-cells = <0x02>;
+        interrupt-controller;
+        #interrupt-cells = <0x03>;
+
+        its@8080000 {
+            phandle = <0x8003>;
+            reg = <0x00 0x8080000 0x00 0x20000>;
+            #msi-cells = <0x01>;
+            msi-controller;
+            compatible = "arm,gic-v3-its";
+        };
+    };
+
+然后我们拉起内核时，使用命令行把上面的dtb传给qemu即可。在 virt.cfg 中加入, 记得指定好gic的版本 ::
+
+    [machine]
+        dtb = "virt.dtb"
+
+即可, 然后就可以拉起我们裁剪dts后的内核了。上面dts编译还有个warnning，搜了下没解决，不过没有影响。 ::
+
+    virt.dts:48.3-21: Warning (clocks_property): /pl011@9000000:clocks: cell 0 is not a phandle reference
+
+有点奇怪，暂不影响，后面再解决。
 
 .. _linux_lsp:
 
