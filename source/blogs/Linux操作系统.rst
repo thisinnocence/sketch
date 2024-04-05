@@ -501,6 +501,7 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
         interrupt-controller;
         #interrupt-cells = <0x03>;
 
+        // its 并不是最小硬件集合需要的
         its@8080000 {
             phandle = <0x8003>;
             reg = <0x00 0x8080000 0x00 0x20000>;
