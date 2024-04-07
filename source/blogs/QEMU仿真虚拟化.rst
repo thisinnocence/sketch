@@ -563,6 +563,7 @@ Data Register, UARTDR 的偏移是0，屏幕打印就是这个寄存器的值。
         MachineClass *mc = MACHINE_CLASS(oc);
         mc->init = mach_virt_init;
         mc->desc = "mini-virt ARM Machine";
+        mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-a57");
         mc->possible_cpu_arch_ids = virt_possible_cpu_arch_ids;
     }
 
@@ -585,6 +586,8 @@ QEMU源码里实现一个machine，不能像内核一样改改dts配置就行，
 单步内核看，发现是dtb没有load到正确的问题，然后对比了一些 virt 的实现，发现如果用qemu的load dtb机制，需要在
 machine init done后，通过notify来，然后改完后就好了。看内核这块代码，printk早起没有打出来，单步还是很方便的，
 一下子就看到问题所在了，知道明确的失败点就好反推了。
+
+并且由于指定了默认的CPU type，也不用传 ``-cpu`` 这个参数了。
 
 这个拉起来后，可以在看么 meminfo，对比一下qemu console的和内核的，如下 ::
 
