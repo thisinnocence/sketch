@@ -36,6 +36,8 @@ Verilog HDL是专门为复杂数字逻辑电路和系统的设计仿真而开发
 描述（Verilog 建模）转换为门级网表的过程。逻辑综合的目的是产生物理电路门级结构，并在逻辑、时序上进行一定程度的优化，
 寻求逻辑、面积、功耗的平衡，增强电路的可测试性。但不是所有的 Verilog 语句都是可以综合成逻辑单元的，例如时延语句。
 
+.. _chisel_comp:
+
 对比chisel
 ^^^^^^^^^^^^
 
@@ -83,6 +85,47 @@ Verilog HDL是专门为复杂数字逻辑电路和系统的设计仿真而开发
     这也是为什么目前能看到名气比较大的项目都是一些CPU、NPU等。里面有很多模块都是相同的单元在重复，所以很适合用Chisel封装。
     并且，Chisel在验证阶段（特别是最花时间的集成验证）中能做到东西基本为0。这一点就导致它很难对整个项目的进度有质的影响。
 
+对比 System Verilog
+^^^^^^^^^^^^^^^^^^^^^
+
+在 :ref:`chisel_comp` 章节，作者提到了 SystemVerilog(后面简称SV)，“或许比 Verilog 好一点，但是你真的爱她吗？”
+突然就对 System Verilog 有点好奇，据我知道，很多testbench都是SV语言开发的，然后硬件IP模块还是Verilog。
+
+| https://en.wikipedia.org/wiki/SystemVerilog
+| SystemVerilog is based on Verilog and some extensions, and since 2008, Verilog is now part of the same IEEE standard. 
+
+`什么场合下会用到systemverilog？ <https://www.zhihu.com/question/35418837>`_ 
+
+芯片验证中通常要搭建一个完整的测试平台来写所需要测试用例。而 **verilog是出于可综合成电路的目的设计出来的**  ，所以它在书写测试
+平台和测试用例是不够方便的（测试平台和用例不需要综合成电路）。
+
+而 **SV正是由于它不需要满足可综合性** ，所以它变得非常灵活，它引入了面向对象语言的概念。在验证方面，
+如果说verilog是C语言的话，那SV就是C++，SV不光有verilog的所有特性，还有自身面向对象的特性。
+
+Verilog之父Phil Moorby（也参与到SV标准制定当中）评价SV：
+
+1. Verilog产生于20世纪80年代中期，典型的设计大小为5000~10000门，典型的设计方法则是使用图形化原理图输入工具进行设计，仿真开始成为必不可少的门级验证工具。
+2. SystemVerilog在Verilog的基础上进行了重大改进，包括在抽象设计、测试平台，形式和基于C语言的应用程序接口（API）等方面的主要扩展。 
+3. SystemVerilog还定义了Verilog仿真的新层次。与原先的Verilog相比，采用基于SystemVerilog的工具的团队将更高效， 并能够在更短的时间内生成更高质量的设计。
+4. SystemVerilog是Verilog的扩展，并且随着新工具的推出，我相信所有Verilog用户以及其他HDL的许多用户都会自然地采用它。实际上Verilog与SV是一脉相承的。
+
+在Verilog-2005标准之后就几乎不再更新，而SV则获得接力棒，继续更新标准，最新的SV标准基于IEEE 1800-2017。
+SV是分为设计部分和验证部分的，这也是SV当时基于Verilog扩展的目的，是为了在RTL和更高抽象级模型建立过程当中，
+使用SV来同时解决设计和验证的问题。SystemVerilog可综合的部份其实和Verilog差异不是很大，
+SV面向对象的不可综合部份对设计用的偏少，对验证用的较多。UVM就是基于SystemVerilog搭建的。
+
+开发demo CPU
+-------------
+
+IC设计领域比较经典的项目就是设计一个CPU了，在 :ref:`chisel_comp` 章节引用的一个知乎回答提到了 **学术界最爱的MIPS体系结构** ，
+然后刚好前阵子看 ``xv6 OS for armv8`` 时，在作者的github主页看到了使用 ``System Verilog`` 实现一个MIPS的CPU的项目：
+
+| https://github.com/hakula139/MIPS-CPU
+| https://sunfloweraries.github.io/ICS-Spring20-Fudan
+| https://github.com/jasha64/MIPS-Pipeline-with-Cache/blob/master/benchtest/cpu_tb.sv
+
+整个代码量不是很多，通过这个项目理解下CPU基本原理，了解下SV工程还是比较方便的。
+
 verilog开发环境
 ------------------
 
@@ -108,7 +151,7 @@ online verilog练习网站： https://hdlbits.01xz.net/wiki/Step_one
   - `HDLBits: 在线学习 Verilog （〇） <https://zhuanlan.zhihu.com/p/56646479>`_ 
   - `Verilog HDL刷题网站推荐——HDLBits <https://zhuanlan.zhihu.com/p/184031850>`_
 
-该网站很适合Verilog初学者快速上手，也适用于日常练手，其自带基于 **Modelsim** 的在线仿真功能，能够在编写完代码后快速得到反馈，
+该网站很适合Verilog初学者快速上手，也适用于日常练手，其自带基于 **mentor modelsim** 的在线仿真功能，能够在编写完代码后快速得到反馈，
 极大地方便了调试。HDLbits中共有178道题目，大部分题目比较基础，但在组合逻辑、时序逻辑两个模块中也有一些具有挑战性的题。
 
 一些博主分享的答案：
