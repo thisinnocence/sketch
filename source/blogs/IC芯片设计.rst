@@ -85,6 +85,8 @@ Verilog HDL是专门为复杂数字逻辑电路和系统的设计仿真而开发
     这也是为什么目前能看到名气比较大的项目都是一些CPU、NPU等。里面有很多模块都是相同的单元在重复，所以很适合用Chisel封装。
     并且，Chisel在验证阶段（特别是最花时间的集成验证）中能做到东西基本为0。这一点就导致它很难对整个项目的进度有质的影响。
 
+.. _sys_verlog:
+
 对比 System Verilog
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -172,3 +174,60 @@ into a C++ or SystemC model that, after compiling, can be executed.
 
 | 还支持：SystemVerilog Direct Programming Interface(DPI)
 | https://verilator.org/guide/latest/connecting.html#direct-programming-interface-dpi
+
+芯片验证UVM
+------------
+
+在前面 :ref:`sys_verlog` 章节，提到了 SystemVerilog 开发的 UVM (Universal Verification Methodology), 而且提到这是
+芯片验证必须掌握的技能，查了一些资料如下：
+
+- https://en.wikipedia.org/wiki/Universal_Verification_Methodology
+- `zhihu: UVM入门学习笔记（一） <https://zhuanlan.zhihu.com/p/266391581>`_ 
+- `《UVM实战 卷Ⅰ》 <https://github.com/sin-x/FPGA/blob/master/src/docs/UVM%E5%AE%9E%E6%88%98%20%E5%8D%B7%E2%85%A0.pdf>`_ 
+- `《SystemVerilog for Verification(最新版)》 <https://github.com/chunzhimu/Verilog-HDL/blob/master/SystemVerilog%20for%20Verification(%E6%9C%80%E6%96%B0%E7%89%88).pdf>`_
+- https://www.chipverify.com/tutorials/uvm
+
+在上面的知乎笔记里：
+
+.. note::
+
+  我使用的材料是经典的两本书《SystemVerilog for Verification》和《UVM实战》，其中前者主要介绍SV的语法，
+  以及一些代码机制（如面向对象，线程通信等等），而后者着重介绍UVM框架的具体细节，以及如何搭建通用的验证环境。
+  由于UVM是用SV写的，所以我推荐先学习前者，重点记住语法和数据结构，mailbox，semophore之类的线程相关机制，
+  至于书中的验证框架是VMM，可以不去关注。
+
+  数字IC验证，与设计一样，是属于前端的一部分，也是不可或缺的一部分。通常在公司中，一个设计工程师需要配两个验证工程师，
+  因为芯片作为硬件产品，其电路一旦生产出来就无法修改了，所以在验证阶段排除尽量多的bug就尤为关键。
+
+然后是，《UVM实战》里的一些介绍：
+
+当设计说明书完成后， 设计人员开始使用Verilog（ 或者VHDL， 这里以Verilog为例） 将特性列表转换成RTL代码， 而验证人员
+则开始使用验证语言（ 这里以 SystemVerilog 为例） 搭建验证平台， 并且着手建造第一个测试用例（ test case） 。 当RTL代码完成
+后， 验证人员开始验证这些代码（ 通常被称为DUT（ Design Under Test） ， 也可以称为DUV（ Design Under Verification） ， 本书统
+一使用DUT） 的正确性。
+
+有两种通用的设计语言： Verilog和VHDL。伴随着IC的发展， Verilog由于其易用性，在IC设计领域占据了主流地位， 使用VHDL的人越来越少。
+基于Verilog的验证语言主要有如下三种：Verilog，SystemC，SystemVerilog.
+
+.. note:: 
+
+  Verilog：Verilog是针对设计的语言。验证起源于设计， 在最初的时候是没有专门的验证的， 验证与设计合二为一。 考虑到这种现状， 
+  Verilog在其中还包含了一个用于验证的子集， 其中最典型的语句就是initial、 task和function。纯正的设计几乎是用不到这些语句的。
+  通过这些语句的组合， 可以给设计施加激励， 并观测输出结果是否与期望的一致， 达到验证的目的。 Verilog在验证方面最大的问题是
+  功能模块化、 随机化验证上的不足。
+
+  SystemC： SystemC本质上是一个C++的库，适合更复杂的算法验证。通常来说。可以笼统地把IC分为两类，一类是算法需求比较少的， 
+  如网络通信协议； 另一类是算法需求非常复杂的， 如图形图像处理等。在使用Verilog编写代码之前，会使用C或者C++建立一个算法参考模型， 
+  在验证时需要把此参考模型的输出与DUT的输出相比， 因此需要在设计中把基于C++/C的模型集成到验证平台中。C++的强大使得SystemC在算法类
+  的设计中如鱼得水，但是采用C++也有个缺点就是过于复杂。有很多公司专项了 SystemVerilog。
+
+  SystemVerilog： 它是一个Verilog的扩展集， 可以完全兼容Verilog(有点类似C++之于C)。起源于2002年，2005年成为IEEE的标准。
+  SystemVerilog刚一推出就受到了热烈欢迎， 它具有所有面向对象语言的特性： 封装、继承和多态。同时还为验证提供了一些独有的特性， 
+  如约束（ constraint） 、 功能覆盖率（ functional coverage）。因为其与Verilog完全兼容， 很多使用Verilog的用户可以快速上手，
+  且其学习曲线非常短，因此很多原先使用Verilog做验证的工程师们迅速转到SystemVerilog。在与SystemC的对比中， SystemVerilog也不落
+  下风， 它提供了DPI接口， 可以把C/C++的函数导入SystemVerilog代码中， 就像这个函数是用SystemVerilog写成的一样。与C++相比， 
+  SystemVerilog语言本身提供内存管理机制， 用户不用担心内存泄露的问题。 除此之外， 它还支持系统函数$system， 可以直接调用外部的
+  可执行程序， 就像在Linux的shell下直接调用一样。用户可以把使用C++写成的参考模型编译成可执行文件， 使用$system函数调用。
+
+在IC设计领域， 有一句很有名的话是“验证与设计不分家”。 甚至目前在一些IC公司里， 依然存在着同一个人兼任设计人员与验证人员的情况。
+验证与设计只是从不同的角度来做同一件事情而已。 
