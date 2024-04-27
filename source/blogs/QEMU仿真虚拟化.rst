@@ -205,6 +205,8 @@ ARM由于是开放授权的，有很多种硬件。上面链接就说明了当�
 在 docs/system/ppc/powernv.rst 里给出了一个命令行使用PCIe网卡E1000E的方法，几乎开关的qemu各种类型的device都支持了，
 如果想仿真自己特有的machine，就很容易参考了。
 
+一个查所有device的命令： ``qemu -device help``
+
 TCG的原理
 -----------
 
@@ -671,3 +673,87 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 
 代码变少，也很方便看到，到底用到了啥，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
 的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。
+
+QEMU仿真的总线
+---------------
+
+QEMU在功能层面实现了很多总线的仿真，比如 SPI/I2C/PCIe 等。
+
+PCIe
+^^^^^
+
+一些参考资料：
+
+- `KeyStone Architecture Peripheral Component Interconnect Express (PCIe) <https://www.ti.com/lit/ug/sprugs6d/sprugs6d.pdf?ts=1714159982257>`_ 
+- `QEMU docs pcie.txt <https://github.com/qemu/qemu/blob/master/docs/pcie.txt>`_ 
+- `zhihu: qemu PCIe总线结构 <https://zhuanlan.zhihu.com/p/113467453>`_ 
+- `readthedoc: qemu PCIe总线结构 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/qemu_PCIe%E6%80%BB%E7%BA%BF%E7%BB%93%E6%9E%84.html>`_ 
+- `PCIE总线的地址问题 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIE%E6%80%BB%E7%BA%BF%E7%9A%84%E5%9C%B0%E5%9D%80%E9%97%AE%E9%A2%98.html>`_ 
+- `PCIE总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIE%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_ 
+- `认识鲲鹏920：一个服务器SoC/总线.rst#pcie总线 <https://gitee.com/Kenneth-Lee-2012/know_modern_server_from_kunpeng920_pub/blob/pub/source/%E8%AE%A4%E8%AF%86%E9%B2%B2%E9%B9%8F920%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%99%A8SoC/%E6%80%BB%E7%BA%BF.rst#pcie%E6%80%BB%E7%BA%BF>`_ 
+- `PCI+Express体系结构导读.pdf <https://github.com/vvvlan/misc/blob/master/PCI%2BExpress%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84%E5%AF%BC%E8%AF%BB.pdf>`_ 
+
+PCI总线，Peripheral Component Interconnect，是Intel早年推出的一种外设总线，用于连接外部高速设备。这种总线后来逐步成为高速外设
+的一种标准。PCI是一种并行总线，速度有限。
+
+PCIe总线是PCI的发展，它改用了串行DerDes的物理层。PCIe 在软件层面上兼容目前的 PCI 技术和设备。PCIE可以级联，构成多样的组合和物理布局。
+PCIe总线和系统设备通向MMIO空间，所以PCIe设备和总线上的设备非常接近，其他总线设备可以直接访问PCIe设备的的MMIO空间，而PCIe设备也
+可以访问其他的总线空间，包括其他设备的MMIO空间或者总线控制器后面的内存。一些术语：
+
+.. csv-table:: pcie-term-definiton
+
+    Term,definition
+    EP,End point
+    RC,Root Complex
+    VC,Virtual channel
+    PCIESS,PCI Express subsystem
+    TLP,Transaction layer packet
+    BARs,Base address registers
+
+我们把和CPU发出地址的那个总线称为系统总线, PCIe像一个数结构，是一个子总线。如下图，RC是根节点，EP是叶节点。
+
+.. image:: pic/pcie-arch-struct.png
+    :scale: 70%
+
+QEMU可以通过这个命令可以看device的属性，看着PCIe网卡： ``qemu -device e1000e,?`` ::
+
+    $ qemu -device e1000e,?
+
+    e1000e options:
+    acpi-index=<uint32>    -  (default: 0)
+    addr=<int32>           - Slot and optional function number, example: 06.0 or 06 (default: -1)
+    bootindex=<int32>
+    disable_vnet_hdr=<uint8> - Do not use virtio headers, perform SW offloads emulation instead (default: 0)
+    failover_pair_id=<str>
+    init-vet=<bool>        -  (default: true)
+    mac=<str>              - Ethernet 6-byte MAC Address, example: 52:54:00:12:34:56
+    migrate-timadj=<bool>  -  (default: true)
+    multifunction=<bool>   - on/off (default: false)
+    netdev=<str>           - ID of a netdev to use as a backend
+    rombar=<uint32>        -  (default: 1)
+    romfile=<str>
+    romsize=<uint32>       -  (default: 4294967295)
+    subsys=<uint16>        - PCI device Subsystem ID (default: 0)
+    subsys_ven=<uint16>    - PCI device Subsystem Vendor ID (default: 32902)
+    x-pcie-ari-nextfn-1=<bool> - on/off (default: false)
+    x-pcie-err-unc-mask=<bool> - on/off (default: true)
+    x-pcie-extcap-init=<bool> - on/off (default: true)
+    x-pcie-lnksta-dllla=<bool> - on/off (default: true)
+
+这种方式也可以比好方便的看QEMU里的device支持那些属性设置。
+
+在QEMU的帮助文档里，搜索 pcie 也可以看到一些使能 pcie 的示例配置。比如  ::
+
+    -device e1000e,netdev=net0,mac=C0:FF:EE:00:00:02,bus=pcie.0,addr=0x0
+
+给一个 device 指定好bus属性的值pcie.0, 地址是0.
+
+对于PCIe地址处理对于QEMU实现是相对比较关键的。先介绍几个术语：
+
+PCIE总线体系把地址空间分成两个部分，第一个部分叫ECAM空间，是PCIE的标准配置空间，提供标准的控制整个PCIE功能的基本语义，
+它的地址组成是“RC基地址+16位BDF+偏移”（BDF是Bus，Device，Function的简称，在Linux上lspci就能看见）。
+通过对这个空间寻址，就可以实现对PCIE总线系统的配置。
+
+Linux的doc里关于PCI驱动的开发说明：
+
+https://docs.kernel.org/PCI/pci.html
