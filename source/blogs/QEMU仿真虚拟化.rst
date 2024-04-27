@@ -168,6 +168,22 @@ QEMU仿真虚拟化
 
 上面就是使用QEMU解析命令行参数和配置文件启动virt(arm machine)跑Linux的流程。
 
+编译QEMU的rst文档
+------------------
+
+可以直接看docs下面的QEMU文档，也可以本地编译，这样看文档没有相比online更加快不会有时延体验更好，也方便自己修改文档
+是否引入sphinx的编译问题。  ::
+
+    mkdir build
+    cd build
+    ../configure --target-list=aarch64-softmmu --enable-docs
+    make html
+    cd dosc/manual
+
+然后再build目录的 docs/manual 目录下面就有编译好的文档了，直接双击 index.html 浏览器打开即可, 速度非常快。
+
+在QEMU仓库的 docs 目录，还有一些txt的文档，这些不是rst格式，不会sphinx编译发布，这种直接vim打开就好，比如 pcie.txt 文档。
+
 TCG的原理
 -----------
 
