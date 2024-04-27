@@ -184,6 +184,27 @@ QEMU仿真虚拟化
 
 在QEMU仓库的 docs 目录，还有一些txt的文档，这些不是rst格式，不会sphinx编译发布，这种直接vim打开就好，比如 pcie.txt 文档。
 
+QEMU对ARM系统仿真的支持
+-----------------------
+
+https://www.qemu.org/docs/master/system/target-arm.html
+
+ARM由于是开放授权的，有很多种硬件。上面链接就说明了当前QEMU所支持的仿真硬件。如果不是跟真实硬件所对应，只是为了跑linux，建议
+使用 vrit machine.  virt supports PCI, virtio, recent CPUs and large amounts of RAM.
+
+有时候，看源码 rst 反而更方便，这种在vim里快速浏览查找所支持的device，IP，总线等。
+每个ARM machine可以快速看 ``Supported devices`` 列表。比如：
+
+在 qemu/docs/system/arm 目录：
+
+    - I2C/SPI/PCI/PICe/GPIO/USB
+    - RTC/UART/NOR Flash/91C111 Ethernet Controller
+    - GIC/DDR/Timer/Watchdog timer/
+    - E1000E ethernet card on PCIe bus
+
+在 docs/system/ppc/powernv.rst 里给出了一个命令行使用PCIe网卡E1000E的方法，几乎开关的qemu各种类型的device都支持了，
+如果想仿真自己特有的machine，就很容易参考了。
+
 TCG的原理
 -----------
 
