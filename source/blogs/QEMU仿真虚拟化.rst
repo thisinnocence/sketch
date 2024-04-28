@@ -692,13 +692,30 @@ PCIe
 - `PCIE总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIE%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_ 
 - `认识鲲鹏920：一个服务器SoC/总线.rst#pcie总线 <https://gitee.com/Kenneth-Lee-2012/know_modern_server_from_kunpeng920_pub/blob/pub/source/%E8%AE%A4%E8%AF%86%E9%B2%B2%E9%B9%8F920%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%99%A8SoC/%E6%80%BB%E7%BA%BF.rst#pcie%E6%80%BB%E7%BA%BF>`_ 
 - `PCI+Express体系结构导读.pdf <https://github.com/vvvlan/misc/blob/master/PCI%2BExpress%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84%E5%AF%BC%E8%AF%BB.pdf>`_ 
+- https://docs.kernel.org/PCI/pci.html
+- https://stackoverflow.com/questions/45366918/difference-between-pci-and-pcie
+- https://stackoverflow.com/questions/12159739/linux-driver-development-difference-between-pci-and-pcie-driver
 
 PCI总线，Peripheral Component Interconnect，是Intel早年推出的一种外设总线，用于连接外部高速设备。这种总线后来逐步成为高速外设
 的一种标准。PCI是一种并行总线，速度有限。
 
-PCIe总线是PCI的发展，它改用了串行DerDes的物理层。PCIe 在软件层面上兼容目前的 PCI 技术和设备。PCIE可以级联，构成多样的组合和物理布局。
-PCIe总线和系统设备通向MMIO空间，所以PCIe设备和总线上的设备非常接近，其他总线设备可以直接访问PCIe设备的的MMIO空间，而PCIe设备也
-可以访问其他的总线空间，包括其他设备的MMIO空间或者总线控制器后面的内存。一些术语：
+PCIe总线是PCI的发展，它改用了串行DerDes的物理层。PCIe 在软件层面上兼容目前的 PCI 技术和设备。
+
+.. note:: 
+    Q: in a software perspective, can we use the same driver(Linux) for PCI and PCIe(+additional features)? 
+    Is the Bus access will be same? 
+
+    A: Yes. PCIe use the same old config registers as PCI (plus some extra config register space). 
+    From the Linux driver perspective, the CPU/OS access the same config registers in the PCI/PCIe end-point 
+    regardless of how the write/read access is carried out in the physical media i.e., 
+    parallel bus (PCI) vs serial link (PCIe). The OS/driver sees the same address space. As long as the definition
+    the address space looks the same, it is compatible. 
+
+    From a software standpoint, PCI and PCI Express devices are essentially the same. PCIe devices had the same 
+    configuration space, BARs, and (usually) support the same PCI INTx interrupts.
+
+PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设备通向MMIO空间，所以PCIe设备和总线上的设备非常接近，
+其他总线设备可以直接访问PCIe设备的的MMIO空间，而PCIe设备也可以访问其他的总线空间，包括其他设备的MMIO空间或者总线控制器后面的内存。
 
 .. csv-table:: pcie-term-definiton
 
@@ -754,6 +771,95 @@ PCIE总线体系把地址空间分成两个部分，第一个部分叫ECAM空间
 它的地址组成是“RC基地址+16位BDF+偏移”（BDF是Bus，Device，Function的简称，在Linux上lspci就能看见）。
 通过对这个空间寻址，就可以实现对PCIE总线系统的配置。
 
-Linux的doc里关于PCI驱动的开发说明：
+在 《PCI Express体系结构导读》书中的一些说明：
 
-https://docs.kernel.org/PCI/pci.html
+PCI总线
+
+    在处理器体系结构中，PCI 总线属于局部总线(Local Bus)。局部总线作为系统总线的延伸，主要功能是为了连接外部设备。
+    从软件层面上看，PCI Express 总线与 PCI 总线基本兼容；从硬件层面上看，PCI Express 总线在很大程度上继承了 PCI 总线的设计思路。
+
+    - PCI-to-PCI 桥简称为 PCI 桥
+    - PCIe-to-PCI 桥简称为 PCIe 桥
+    - Host-to-PCI 主桥简称为 HOST 主桥, 很多书也将 **HOST主桥** 称作 **PCI主桥** 或者 **PCI 总线控制器**
+
+    PCI 总线空间与处理器空间隔离。PCI 设备具有独立的地址空间，即 PCI 总线地址空间，该空间与存储器地址空间通过 HOST 主
+    桥（即 PCI 总线控制器）隔离。处理器需要通过 HOST 主桥才能访问 PCI 设备。而 PCI 设备需要通过 HOST 主桥才能访问
+    主存储器。
+
+    处理器访问 PCI 设备时，必须通过 HOST 主桥进行地址转换；而 PCI 设备访问主存储器时，也需要通过 HOST 主桥进行地址转换。
+    PCI 规范并没有对 HOST 主桥的设计进行约束。每一个处理器厂商使用的 HOST 主桥，其设计都不尽相同。在 PCI 总线中，HOST 主桥可以
+    直接推出一条 PCI 总线，这条总线也是该 HOST 主桥的所管理的第一条 PCI 总线，该总线还可以通过 PCI 桥扩展出一系列 PCI
+    总线，并以 HOST 主桥为根节点，形成 1 颗 PCI 总线树。在同一条 PCI 总线上的设备间可以直接通信。
+
+    PCI 设备使用的地址可以根据需要由系统软件动态分配。PCI 总线使用这种方式合理地解决了设备间的地址冲突，从而实现了“即插即用”功能。
+    每一个 PCI 设备都有独立的配置空间，在配置空间中含有该设备在 PCI 总线中使用的基地址，系统软件可以动态配置这个基地址，
+    从而保证每一个 PCI 设备使用的物理地址并不相同。PCI桥的配置空间中含有其下 PCI 子树所能使用的地址范围。
+
+Host主桥
+
+    HOST 主桥是一个很特别的桥片，其主要功能是隔离处理器系统的存储器域与处理器系统的 PCI总线域，管理 PCI 总线域，
+    并完成处理器与 PCI 设备间的数据交换。处理器与 PCI 设备间的数据交换主要由:
+
+    - “处理器访问 PCI 设备的地址空间”
+    - “PCI 设备使用 DMA 机制访问主存储器”
+
+    这两部分组成。
+
+PCI 设备
+
+    在 PCI 总线中有三类设备，PCI 主设备、PCI 从设备和桥设备。其中 PCI 从设备只能被动地接
+    收来自 HOST 主桥，或者其他 PCI 设备的读写请求；而 PCI 主设备可以通过总线仲裁获得 PCI
+    总线的使用权，主动地向其他 PCI 设备或者主存储器发起存储器读写请求。而桥设备的主要作
+    用是管理下游的 PCI 总线，并转发上下游总线之间的总线事务。
+
+    一个 PCI 设备可以即是主设备也是从设备，但是在同一个时刻，只能是一种。
+    PCI 总线规范将 PCI 主从设备统称为 PCI Agent 设备。常见的 PCI
+    网卡、显卡、声卡等设备都属于 PCI Agent 设备。
+
+    在 PCI 总线中，HOST 主桥（PCI 总线控制器）是一个特殊的 PCI 设备，该设备可以获取 PCI 总线的控制权访问 PCI
+    设备，也可以被 PCI 设备访问。PCI 规范也没有规定如何设计 HOST 主桥。
+
+    桥设备包括 PCI 桥、PCI-to-(E)ISA 桥和PCI-to-Cardbus 桥，PCI 桥的存在使PCI 总线极具扩展性。
+
+HOST处理器访问PCI设备
+
+    在 PCI 设备的配置空间中，共有 6 个 BAR 寄存器。每一个 BAR 寄存器都与 PCI 设备使用的一组 **PCI总线地址空间** 对应，
+    BAR 寄存器记录这组地址空间的基地址。
+
+    HOST 处理器访问 PCI 设备 I/O 地址空间的过程，与访问存储器地址空间略有不同。有些处理
+    器，如 x86 处理器，具有独立的 I/O 地址空间。x86 处理器可以将 PCI 设备使用的 I/O 地址映射
+    到存储器域的 I/O 地址空间中，之后处理器可以使用 IN，OUT 等指令对存储器域的 I/O 地址进
+    行访问，然后通过 HOST 主桥将存储器域的 I/O 地址转换为 PCI 总线域的 I/O 地址，最后使用
+    PCI 总线的 I/O 总线事务对 PCI 设备的 I/O 地址进行读写访问。在 x86 处理器中，存储器域的 I/O
+    地址与 PCI 总线域的 I/O 地址相同。
+
+    对于有些没有独立 I/O 地址空间的处理器，如 PowerPC 处理器（ARM也是)，需要在 HOST主桥(PCI总线控制器)初始化时，
+    将 PCI 设备使用的 I/O 地址空间映射为处理器的存储器地址空间。PowerPC 处理器对这段“存
+    储器域”的存储器空间进行读写访问时，HOST 主桥将存储器域的这段存储器地址转换为 PCI
+    总线域的 I/O 地址，然后通过 PCI 总线的 I/O 总线事务对 PCI 设备的 I/O 地址进行读写操作。
+
+PCI设备的DMA
+
+    PCI 设备与存储器直接进行数据交换的过程也被称为 DMA。与其他总线的 DMA 过程类似，PCI
+    设备进行 DMA 操作时，需要获得数据传送的目的地址和传送大小。支持 DMA 传递的 PCI 设
+    备可以在其 BAR 空间中设置两个寄存器，分别保存这个目标地址和传送大小。这两个寄存器也
+    是 PCI 设备 DMA 控制器的组成部件。
+
+PCI 设备配置空间的访问机制
+
+    PCI 总线规定访问配置空间的总线事务，即配置读写总线事务，使用 ID 号进行寻址。PCI 设
+    备的 ID 号由总线号(Bus Number)、设备号(Device Number)和功能号(Function Number)组成。
+
+    PCI 总线可以使用 PCI 桥扩展 PCI 总线，并形成一颗 PCI 总线树。在一颗 PCI 总线树上，
+    有几个 PCI 桥(包括 HOST 主桥)，就有几条 PCI总线。在一颗 PCI 总线树中，总线号由系统软件决定。
+    常与 HOST 主桥直接相连的 PCI 总线编号为 0，系统软件使用 DFS(Depth-First Search)算法扫描 PCI 总线树上的所有 PCI 总线，
+    并依次进行编号。
+
+    一条 PCI 总线的设备号由 PCI 设备的 IDSEL 信号与 PCI 总线地址线的连接关系确定，而功能
+    号与 PCI 设备的具体设计相关。在一个 PCI 设备中最多有 8 个功能设备，而且每一个功能设备
+    都有各自的 PCI 配置空间，而在绝大多数 PCI 设备中只有一个功能设备。
+
+QEMU代码的实现，也可以参考：
+
+| hw/arm/sbsa-ref.c 的实现(ARM SBSA Reference Platform emulation)
+| SBSA: Arm Server Base System Architecture
