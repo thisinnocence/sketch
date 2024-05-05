@@ -696,3 +696,40 @@ QEMU代码的实现，也可以参考：
 
 | hw/arm/sbsa-ref.c 的实现(ARM SBSA Reference Platform emulation)
 | SBSA: Arm Server Base System Architecture
+
+
+运行 u-boot
+---------------
+
+| 了解 u-boot:  https://docs.u-boot.org/en/latest/arch/arm64.html
+| QEMU-ARM:  https://docs.u-boot.org/en/latest/board/emulation/qemu-arm.html
+
+编译 u-boot
+
+.. code-block:: bash
+
+    git clone https://github.com/u-boot/u-boot
+    cd u-boot
+    git checkout v2024.04
+    make CROSS_COMPILE=aarch64-linux-gnu- qemu_arm64_defconfig
+    make CROSS_COMPILE=aarch64-linux-gnu- -j
+
+启动 u-boot, u-boot是开源的bootloader，是 Bare Metal 裸机程序，用QEMU最简单的启动方法如下 ::
+
+    qemu -M virt -nographic -cpu cortex-a57 -bios u-boot.bin
+
+    // 然后看 QEMU 的 info roms
+    (qemu) info roms
+    virt.flash0 size=0x102ba8 name="u-boot.bin"
+    /rom@etc/acpi/tables size=0x200000 name="etc/acpi/tables"
+    /rom@etc/table-loader size=0x010000 name="etc/table-loader"
+    /rom@etc/acpi/rsdp size=0x001000 name="etc/acpi/rsdp"
+    addr=0000000040000000 size=0x100000 mem=ram name="dtb"
+    (qemu) info mtree
+    0000000000000000-0000000003ffffff (prio 0, romd): virt.flash0  // 这个是 flash0
+    // 根据QEMU实现，这是一个 pflash,  Program Flash memory
+
+参考一个实验： https://stdrc.cc/post/2021/02/23/u-boot-qemu-virt
+
+可以把编译出的linux镜像，通过u-boot命令加一个u-boot头，然后放入或者说生成 flash.img 里，后面在用QEMU -drive指定这个img，然后
+就用 u-boot 这个 bios 把内核引导起来了，上面的博文还有个自制的极简的arm64内核，回头可以看看。
