@@ -714,7 +714,7 @@ QEMU代码的实现，也可以参考：
 
 启动 u-boot, u-boot是开源的bootloader，是 Bare Metal 裸机程序，用QEMU最简单的启动方法如下 ::
 
-    qemu -M virt -nographic -cpu cortex-a57 -bios u-boot.bin
+    qemu -M virt -nographic -cpu cortex-a57 -bios build/u-boot.bin
 
     // 然后看 QEMU 的 info roms
     (qemu) info roms
@@ -760,5 +760,32 @@ QEMU代码的实现，也可以参考：
     # bootm: boot application image from memory (help bootm)
     => bootm 0x04000000 - 0x06000000
 
-这篇博客中极简内核 helloworld：qemu-virt-hello 可以运行，参考的是交大教学OS的project，作者也是曾经的研究生助教。但是 u-boot 引
-导时出现了 ``Bad Linux ARM64 Image magic!`` , 待定位原因。
+这篇博客中极简内核 helloworld：qemu-virt-hello 可以运行，参考的是交大教学OS的project，作者也是曾经的研究生助教。
+
+TODO: 但是 u-boot 引导时出现了 ``Bad Linux ARM64 Image magic!`` , 待定位原因。
+
+QEMU加载bios流程  ::
+
+    // 也是用到了 loader.c 里的一个实现
+    #0  rom_add_file (file=0x555557a3de50 "/root/github/u-boot/build/u-boot.bin", fw_dir=0x0, addr=0, bootindex=-1, has_option_rom=false, mr=0x555557a3cd50, as=0x0) at ../hw/core/loader.c:1076
+    #1  0x00005555559a50f6 in load_image_mr (filename=0x555557a3de50 "/root/github/u-boot/build/u-boot.bin", mr=0x555557a3cd50) at ../hw/core/loader.c:158
+    #2  0x0000555555df8105 in virt_firmware_init (vms=0x55555794d400, sysmem=0x5555576ed000, secure_sysmem=0x5555576ed000) at ../hw/arm/virt.c:1272
+    #3  0x0000555555dfaa8d in machvirt_init (machine=0x55555794d400) at ../hw/arm/virt.c:2091
+    #4  0x00005555559b1f9e in machine_run_board_init (machine=0x55555794d400, mem_path=0x0, errp=0x7fffffffd920) at ../hw/core/machine.c:1509
+    #5  0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
+    #6  0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575aaf60 <error_fatal>) at ../system/vl.c:2704
+    #7  0x0000555555d18276 in qemu_init (argc=8, argv=0x7fffffffdc28) at ../system/vl.c:3753
+    #8  0x00005555558ede00 in main (argc=8, argv=0x7fffffffdc28) at ../system/main.c:47
+
+    // 命令行， 根据bios的解析方法，那么 -bios 和 -M virt,firmware=u-boot.bin 作用一样， 实测也确实一样
+    qemu_init
+        case QEMU_OPTION_bios:
+            qdict_put_str(machine_opts_dict, "firmware", optarg);
+            break;
+    而且，根据后面用到了 load_image_mr，这个是loader的实现，那么用 -device loader效果也一样，实测也是
+    即下面三种效果一样：
+    qemu -M virt -bios build/u-boot.bin -nographic -cpu cortex-a57
+    qemu -M virt,firmware=build/u-boot.bin -nographic -cpu cortex-a57
+    qemu -M virt -device loader,file=build/u-boot.bin -nographic -cpu cortex-a57
+
+TODO: 后面试一下引导标准linux.
