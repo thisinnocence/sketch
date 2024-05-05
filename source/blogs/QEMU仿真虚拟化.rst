@@ -78,8 +78,6 @@ QEMU仿真虚拟化
         ]
     }
 
-
-
 加载kernel, initrd, dtb
 ------------------------
 
@@ -697,9 +695,8 @@ QEMU代码的实现，也可以参考：
 | hw/arm/sbsa-ref.c 的实现(ARM SBSA Reference Platform emulation)
 | SBSA: Arm Server Base System Architecture
 
-
-运行 u-boot
----------------
+运行bootloader u-boot
+----------------------
 
 | 了解 u-boot:  https://docs.u-boot.org/en/latest/arch/arm64.html
 | QEMU-ARM:  https://docs.u-boot.org/en/latest/board/emulation/qemu-arm.html
@@ -711,7 +708,8 @@ QEMU代码的实现，也可以参考：
     git clone https://github.com/u-boot/u-boot
     cd u-boot
     git checkout v2024.04
-    make CROSS_COMPILE=aarch64-linux-gnu- qemu_arm64_defconfig
+    make CROSS_COMPILE=aarch64-linux-gnu- qemu_arm64_defconfig O=build
+    cd build
     make CROSS_COMPILE=aarch64-linux-gnu- -j
 
 启动 u-boot, u-boot是开源的bootloader，是 Bare Metal 裸机程序，用QEMU最简单的启动方法如下 ::
@@ -729,7 +727,38 @@ QEMU代码的实现，也可以参考：
     0000000000000000-0000000003ffffff (prio 0, romd): virt.flash0  // 这个是 flash0
     // 根据QEMU实现，这是一个 pflash,  Program Flash memory
 
-参考一个实验： https://stdrc.cc/post/2021/02/23/u-boot-qemu-virt
+参考一篇博客： https://stdrc.cc/post/2021/02/23/u-boot-qemu-virt
 
-可以把编译出的linux镜像，通过u-boot命令加一个u-boot头，然后放入或者说生成 flash.img 里，后面在用QEMU -drive指定这个img，然后
-就用 u-boot 这个 bios 把内核引导起来了，上面的博文还有个自制的极简的arm64内核，回头可以看看。
+把编译出的linux镜像，通过u-boot命令加一个u-boot头，然后放入或者说生成 flash.img 里，后面在用QEMU -drive指定这个img，然后
+就用 u-boot 这个 bios 把内核引导起来了，上面的博文还有个自制的极简的arm64内核，试一下 ::
+
+    apt install u-boot-tools
+    mkimage -A arm64 -C none -T kernel -a 0x40000000 -e 0x40000000 -n qemu-virt-hello -d build/kernel.bin uImage
+    # 把 uImage, virt.dtb 分别扩展到 32 M
+    fallocate -l 32M uImage
+    fallocate -l 32M virt.dtb
+    # 拼接
+    cat uImage virt.dtb > flash.img
+
+    # 运行
+    qemu-system-aarch64 -nographic \
+        -machine virt -cpu cortex-a57 -smp 1 -m 2G \
+        -bios u-boot.bin \
+        -drive if=pflash,format=raw,index=1,file=flash.img
+
+    # u-boot 的命令
+    ## 查看flash info, 由于前面在制作 flash.img 时简单的拼接了 uImage 和 virt.dtb
+    ## 因此现在 uImage 在 0x0400_0000 位置，virt.dtb 在 0x0600_0000 位置
+    => flinfo   // flash info
+
+    # 使用 fdt addr 0x06000000 和 fdt print / 可以检查设备树是否正确
+    # fdt: Flattened Device Tree（简称FDT）
+    => fdt addr 0x06000000
+    => fdt print /
+
+    # 使用 bootm 0x04000000 - 0x06000000 命令即可运行内核
+    # bootm: boot application image from memory (help bootm)
+    => bootm 0x04000000 - 0x06000000
+
+这篇博客中极简内核 helloworld：qemu-virt-hello 可以运行，参考的是交大教学OS的project，作者也是曾经的研究生助教。但是 u-boot 引
+导时出现了 ``Bad Linux ARM64 Image magic!`` , 待定位原因。
