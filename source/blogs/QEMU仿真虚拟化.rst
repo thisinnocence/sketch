@@ -475,13 +475,37 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
         0000000009000000-0000000009000fff (prio 0, i/o): pl011
         0000000040000000-000000013fffffff (prio 0, ram): ram
     (qemu)
+    // 看roms，可以看内置的loader所占用的地址，也方便定位是否发生了内存覆盖的问题
+    (qemu) info roms
+    addr=0000000040000000 size=0x000028 mem=ram name="bootloader"
+    addr=0000000040200000 size=0x29a1a00 mem=ram name="/root/github/linux/build/arch/arm64/boot/Image"
+    addr=0000000048000000 size=0x2000000 mem=ram name="initrd.ext4"
+    addr=000000004a000000 size=0x005622 mem=ram name="dtb"
 
 可以看出，如果不算Bootloader（用QEMU内置的），那么拉起一个最小的ARM64 Linux, 只需要上面几个设备就行了，非常少。
 比DTS里面描述的还少，DTS里描述串口的时候，还需要指定一个外设时钟 ``apb_pclk``, QEMU仿真中在创建没看到，估计在其他地方或者
 就不需要模拟了，后面再研究下。
 
 代码变少，也很方便看到，到底用到了啥，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
-的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。
+的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。启动OS后，
+可以通过下面的命令来看哪些中断增长了。  ::
+
+    # cat proc/interrupts
+               CPU0       CPU1
+      10:       791       2186     GICv3  30 Level     arch_timer
+      11:         0          0     GICv3  27 Level     kvm guest vtimer
+      13:        34          0     GICv3  33 Level     uart-pl011
+    IPI0:        16         25       Rescheduling interrupts
+    IPI1:       457        266       Function call interrupts
+    IPI2:         0          0       CPU stop interrupts
+    IPI3:         0          0       CPU stop (for crash dump) interrupts
+    IPI4:         0          0       Timer broadcast interrupts
+    IPI5:         0          0       IRQ work interrupts
+
+    连续敲击两次，可以看那些中断在增长，CPU0这个第二列就是中断个数统计。
+    关于中断号：
+    arch_timer  30    //  #define ARCH_TIMER_NS_EL1_IRQ  30   @hw/arm/bsa.h
+    uart-pl011  33    //  SPI interrupt:   [VIRT_UART] =  1   @hw/arm/mini-virt.c
 
 QEMU仿真的总线
 ---------------
