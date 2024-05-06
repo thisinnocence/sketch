@@ -17,7 +17,7 @@ QEMU仿真虚拟化
     Linux, https://www.kernel.org, https://github.com/torvalds/linux, v6.8.0
     BusyBox, https://busybox.net, https://github.com/mirror/busybox, 1.36.0
 
-编译QEMU, 为了方便调试，加入了 ``--enable-debug`` 选项，这个方便单步调试。
+编译QEMU, 为了方便调试，加入了 ``--enable-debug`` 选项，这个方便单步调试，但是会影响性能，所以release版本不要带。
 
 .. code-block:: bash
 
@@ -81,7 +81,7 @@ QEMU仿真虚拟化
 加载kernel, initrd, dtb
 ------------------------
 
-这里直接使用QEMU命令行传递内核和initrd，关键的流程步骤:
+这里直接使用QEMU命令行传递内核和initrd，用了QEMU内置的mini-Bootloader，关键的流程步骤:
 
 1. load kernel
 2. load initrd
@@ -199,9 +199,6 @@ ARM由于是开放授权的，有很多种硬件。上面链接就说明了当�
     - RTC/UART/NOR Flash/91C111 Ethernet Controller
     - GIC/DDR/Timer/Watchdog timer/
     - E1000E ethernet card on PCIe bus
-
-在 docs/system/ppc/powernv.rst 里给出了一个命令行使用PCIe网卡E1000E的方法，几乎开关的qemu各种类型的device都支持了，
-如果想仿真自己特有的machine，就很容易参考了。
 
 一个查所有device的命令： ``qemu -device help``
 
@@ -519,8 +516,8 @@ PCIe
 - `QEMU docs pcie.txt <https://github.com/qemu/qemu/blob/master/docs/pcie.txt>`_ 
 - `zhihu: qemu PCIe总线结构 <https://zhuanlan.zhihu.com/p/113467453>`_ 
 - `readthedoc: qemu PCIe总线结构 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/qemu_PCIe%E6%80%BB%E7%BA%BF%E7%BB%93%E6%9E%84.html>`_ 
-- `PCIE总线的地址问题 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIE%E6%80%BB%E7%BA%BF%E7%9A%84%E5%9C%B0%E5%9D%80%E9%97%AE%E9%A2%98.html>`_ 
-- `PCIE总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIE%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_ 
+- `PCIe总线的地址问题 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E5%9C%B0%E5%9D%80%E9%97%AE%E9%A2%98.html>`_ 
+- `PCIe总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_ 
 - `认识鲲鹏920：一个服务器SoC/总线.rst#pcie总线 <https://gitee.com/Kenneth-Lee-2012/know_modern_server_from_kunpeng920_pub/blob/pub/source/%E8%AE%A4%E8%AF%86%E9%B2%B2%E9%B9%8F920%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%99%A8SoC/%E6%80%BB%E7%BA%BF.rst#pcie%E6%80%BB%E7%BA%BF>`_ 
 - `PCI+Express体系结构导读.pdf <https://github.com/vvvlan/misc/blob/master/PCI%2BExpress%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84%E5%AF%BC%E8%AF%BB.pdf>`_ 
 - https://docs.kernel.org/PCI/pci.html
@@ -563,7 +560,8 @@ PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设
 .. image:: pic/pcie-arch-struct.png
     :scale: 70%
 
-QEMU可以通过这个命令可以看device的属性，看着PCIe网卡： ``qemu -device e1000e,?`` ::
+在 docs/system/ppc/powernv.rst 里给出了一个命令行使用PCIe网卡E1000E的方法。可以通过这个命令可以看device的属性，
+看PCIe网卡： ``qemu -device e1000e,?`` ::
 
     $ qemu -device e1000e,?
 
@@ -598,9 +596,9 @@ QEMU可以通过这个命令可以看device的属性，看着PCIe网卡： ``qem
 
 对于PCIe地址处理对于QEMU实现是相对比较关键的。先介绍几个术语：
 
-PCIE总线体系把地址空间分成两个部分，第一个部分叫ECAM空间，是PCIE的标准配置空间，提供标准的控制整个PCIE功能的基本语义，
+PCIe总线体系把地址空间分成两个部分，第一个部分叫ECAM空间，是PCIe的标准配置空间，提供标准的控制整个PCIe功能的基本语义，
 它的地址组成是“RC基地址+16位BDF+偏移”（BDF是Bus，Device，Function的简称，在Linux上lspci就能看见）。
-通过对这个空间寻址，就可以实现对PCIE总线系统的配置。
+通过对这个空间寻址，就可以实现对PCIe总线系统的配置。
 
 在 《PCI Express体系结构导读》书中的一些说明：
 
