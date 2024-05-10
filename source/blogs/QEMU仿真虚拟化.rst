@@ -560,6 +560,9 @@ PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设
 .. image:: pic/pcie-arch-struct.png
     :scale: 70%
 
+从软件的角度来说，对某个设备寻址，就是往系统总线里面写一个地址。对系统总线来说，如果这个地址在RC的范围内，就把这个读写请求发到RC上，
+RC怎么处理剩下的细节，那就是PCIe标准要解决的问题了。
+
 在 docs/system/ppc/powernv.rst 里给出了一个命令行使用PCIe网卡E1000E的方法。可以通过这个命令可以看device的属性，
 看PCIe网卡： ``qemu -device e1000e,?`` ::
 
@@ -594,11 +597,31 @@ PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设
 
 给一个 device 指定好bus属性的值pcie.0, 地址是0.
 
-对于PCIe地址处理对于QEMU实现是相对比较关键的。先介绍几个术语：
+对于PCIe地址处理对于QEMU实现是相对比较关键的。PCIe总线体系把地址空间分成两个部分:
 
-PCIe总线体系把地址空间分成两个部分，第一个部分叫ECAM空间，是PCIe的标准配置空间，提供标准的控制整个PCIe功能的基本语义，
+第一个部分叫ECAM空间，是PCIe的标准配置空间，提供标准的控制整个PCIe功能的基本语义，
 它的地址组成是“RC基地址+16位BDF+偏移”（BDF是Bus，Device，Function的简称，在Linux上lspci就能看见）。
 通过对这个空间寻址，就可以实现对PCIe总线系统的配置。
+
+第二个部分可简称BAR空间，这个空间是RC和系统总线设计者讨论决定的，在对ECAM进行配置的时候，软件和硬件进行协商，最后在某个BDF的
+ECAM空间的Base Address Register（BAR）中指向分配好的，给这个EP的一组IO空间。
+
+CPU发出一个物理地址，落入分配给RC的空间，这个地址就进入PCIE的调度体系。就可以从RC开始，变成PCIe自己的
+消息（TLP Transaction layer packet）。TLP主要依靠BDF（在TLP中称为RequesterID和CompleterID）来寻址，因为无论如何，
+一个地址请求，终究目的是发给一个设备的某个Function，然后寻址这个Function里面的某个偏移。
+
+如果CPU发出的地址落在ECAM的范围内，就变成配置消息，基于解码出来的BDF就可以发到对应的EP上了。调度系统也可以基于配置找到对应的BDF来发送。
+
+如果是BAR空间，这个东西如何分配给每个BDF的，RC肯定也是清楚的，同样可以转化为BDF，发送给对应的EP，这个过程没有问题。
+
+
+Address Translation
+
+    PCI Express TLP transactions use PCIe addresses. There is a mapping requirement
+    between a PCIe address and a local internal bus address and to accommodate this
+    address mapping, built-in hardware address translation mechanisms exist. 
+
+    PCIe recognizes four address spaces, Memory, I/O, Configuration, and Message.
 
 在 《PCI Express体系结构导读》书中的一些说明：
 
@@ -611,12 +634,12 @@ PCI总线
     - PCIe-to-PCI 桥简称为 PCIe 桥
     - Host-to-PCI 主桥简称为 HOST 主桥, 很多书也将 **HOST主桥** 称作 **PCI主桥** 或者 **PCI 总线控制器**
 
-    PCI 总线空间与处理器空间隔离。PCI 设备具有独立的地址空间，即 PCI 总线地址空间，该空间与存储器地址空间通过 HOST 主
-    桥（即 PCI 总线控制器）隔离。处理器需要通过 HOST 主桥才能访问 PCI 设备。而 PCI 设备需要通过 HOST 主桥才能访问
+    PCI 总线空间与 **处理器空间** 隔离。PCI 设备具有独立的地址空间，即 PCI 总线地址空间，该空间与存储器地址空间通过 HOST 主
+    桥（即 PCI 总线控制器）隔离。处理器需要通过 **HOST主桥** 才能访问 PCI 设备。而 PCI 设备需要通过 HOST 主桥才能访问
     主存储器。
 
-    处理器访问 PCI 设备时，必须通过 HOST 主桥进行地址转换；而 PCI 设备访问主存储器时，也需要通过 HOST 主桥进行地址转换。
-    PCI 规范并没有对 HOST 主桥的设计进行约束。每一个处理器厂商使用的 HOST 主桥，其设计都不尽相同。在 PCI 总线中，HOST 主桥可以
+    处理器访问 PCI 设备时，必须通过 HOST主桥进行地址转换；而 PCI设备访问主存储器时，也需要通过 HOST 主桥进行地址转换。
+    PCI 规范并没有对 HOST 主桥的设计进行约束。每一个处理器厂商使用的 HOST主桥，其设计都不尽相同。在 PCI 总线中，HOST主桥可以
     直接推出一条 PCI 总线，这条总线也是该 HOST 主桥的所管理的第一条 PCI 总线，该总线还可以通过 PCI 桥扩展出一系列 PCI
     总线，并以 HOST 主桥为根节点，形成 1 颗 PCI 总线树。在同一条 PCI 总线上的设备间可以直接通信。
 
@@ -655,6 +678,8 @@ HOST处理器访问PCI设备
     在 PCI 设备的配置空间中，共有 6 个 BAR 寄存器。每一个 BAR 寄存器都与 PCI 设备使用的一组 **PCI总线地址空间** 对应，
     BAR 寄存器记录这组地址空间的基地址。
 
+    值得注意的是，在 BAR 寄存器中存放的是 PCI 设备使用的“PCI 总线域”的物理地址，而不是“存储器域”的物理地址。
+
     HOST 处理器访问 PCI 设备 I/O 地址空间的过程，与访问存储器地址空间略有不同。有些处理
     器，如 x86 处理器，具有独立的 I/O 地址空间。x86 处理器可以将 PCI 设备使用的 I/O 地址映射
     到存储器域的 I/O 地址空间中，之后处理器可以使用 IN，OUT 等指令对存储器域的 I/O 地址进
@@ -692,6 +717,8 @@ QEMU代码的实现，也可以参考：
 
 | hw/arm/sbsa-ref.c 的实现(ARM SBSA Reference Platform emulation)
 | SBSA: Arm Server Base System Architecture
+
+
 
 运行bootloader u-boot
 ----------------------
