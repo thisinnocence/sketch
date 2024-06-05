@@ -507,8 +507,8 @@ QEMU仿真的总线
 
 QEMU在功能层面实现了很多总线的仿真，比如 SPI/I2C/PCIe 等。
 
-PCIe
-^^^^^
+PCIe总线
+^^^^^^^^^^^
 
 一些参考资料：
 
@@ -814,3 +814,132 @@ QEMU加载bios流程  ::
     qemu -M virt -device loader,file=build/u-boot.bin -nographic -cpu cortex-a57
 
 TODO: 后面试一下引导标准linux.
+
+QEMU的MemoryRegion机制
+------------------------
+
+研究一下TCG再翻译执行Guest汇编指令集的时候遇到访存指令(访问Memory)或者IO指令(访问IO)，如何关联到QEMU的MemoryRegion的。这里
+主要针对ARM架构来研究，IO和访存物理地址空间合一。
+
+针对前面的 v8.2.0分之的 mini-virt.c 的关键实现看，创建ram/mmio-dev时:
+
+.. code-block:: c
+
+    // @file: mini-virt.c
+    MemoryRegion *sysmem = get_system_memory()
+    create_ram(vms, sysmem)
+        // Initialize RAM memory region. Accesses into the region will modify memory directly.
+        memory_region_init_ram(&vms->ram, NULL, "ram", memmap[VIRT_MEM].size, &error_fatal);
+                memory_region_init_ram_nomigrate(mr, owner, name, size, &err);
+                        memory_region_init(mr, owner, name, size);
+
+        // Add a subregion to a container, 第一个mr是container
+        memory_region_add_subregion(sysmem, memmap[VIRT_MEM].base, &vms->ram);
+
+    create_uart
+        memory_region_add_subregion(sysmem, base, sysbus_mmio_get_region(s, 0));
+
+    // Initialize an I/O memory region, 一般配合 sysbus_init_mmio 一起用
+    void memory_region_init_io(MemoryRegion *mr, Object *owner,
+    |                      const MemoryRegionOps *ops,  // read/write callback
+    |                      void *opaque, const char *name, uint64_t size);
+    memory_region_init_io 
+    |   memory_region_init
+    sysbus_init_mmio(SysBusDevice *dev, MemoryRegion *memory);
+        n = dev->num_mmio++;  // 把这个mr地址赋值给父类的，后面统一管理
+        dev->mmio[n].memory = memory;
+
+    // 然后在 sysbus_mmio_map, 中可以统一映射 base-addr, 跟前面init的顺序意义对应起来
+    // 这个API也是加入到一个region下面去, 在create外设就是init完后经常用
+    // void sysbus_mmio_map(SysBusDevice *dev, int n, hwaddr addr);
+    sysbus_mmio_map(gicbusdev, 0, vms->memmap[VIRT_GIC_DIST].base);
+        sysbus_mmio_map_common(dev, n, addr, false, 0);
+            memory_region_add_subregion(get_system_memory(), addr, dev->mmio[n].memory);
+
+
+访存指令读写system_memory时callstack::
+
+  (gdb) bt
+  #0  iotlb_to_section (cpu=0x800fc00, index=0, attrs=...) at ../system/physmem.c:2437
+  #1  0x00005555561984c6 in io_prepare (out_offset=0x7fff63e78958, cpu=0x555557a4b030, xlat=140735296503809, attrs=..., addr=18446603338413113320, retaddr=140734873285897) at ../accel/tcg/cputlb.c:1335
+  #2  0x000055555619baaf in do_ld_mmio_beN (cpu=0x555557a4b030, full=0x7fff5c0677c0, ret_be=0, addr=18446603338413113320, size=4, mmu_idx=2, type=MMU_DATA_LOAD, ra=140734873285897) at ../accel/tcg/cputlb.c:2030
+  #3  0x000055555619c610 in do_ld_4 (cpu=0x555557a4b030, p=0x7fff63e78a20, mmu_idx=2, type=MMU_DATA_LOAD, memop=MO_32, ra=140734873285897) at ../accel/tcg/cputlb.c:2336
+  #4  0x000055555619c978 in do_ld4_mmu (cpu=0x555557a4b030, addr=18446603338413113320, oi=34, ra=140734873285897, access_type=MMU_DATA_LOAD) at ../accel/tcg/cputlb.c:2418
+  #5  0x000055555619e337 in helper_ldul_mmu (env=0x555557a4d7f0, addr=18446603338413113320, oi=34, retaddr=140734873285897) at ../accel/tcg/ldst_common.c.inc:33
+  #6  0x00007fff642135f8 in code_gen_buffer ()
+  #7  0x0000555556184213 in cpu_tb_exec (cpu=0x555557a4b030, itb=0x7fffa4213380, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:458
+
+  (gdb) p cpu->as->name
+  $9 = 0x555557a63490 "cpu-memory-0"
+  (gdb) p cpu->as->root
+  $10 = (MemoryRegion *) 0x555557748ee0
+  (gdb) p address_space_memory.name
+  $11 = 0x555557a38d80 "memory"
+  (gdb) p address_space_memory.root
+  $12 = (MemoryRegion *) 0x555557748ee0
+
+  // system/physmem.c --- 全局变量
+  MemoryRegion *system_memory;
+  AddressSpace address_space_memory;
+
+  TCG解释执行到访存指令，进入到下面的helper函数，查了下 chatGPT 为啥这么缩写，有道理：
+  helper_ldul_mmu 函数名中的 ldul 是 "Load Unsigned Long" 的缩写，表示该函数用于加载无符号长整型数据。
+  // 在 include/tcg/tcg-ldst.h 有一些的mmu相关的helper函数
+  // 在 tcg_out_ld_helper_args @@ tcg.c 里会有注册
+
+  helper_ldul_mmu
+      do_ld4_mmu(env_cpu(env), addr, oi, retaddr, MMU_DATA_LOAD); // ld4 是 "Load 4-byte"
+        do_ld_4(cpu, &l.page[0], l.mmu_idx, access_type, l.memop, ra);
+            int_ld_mmio_beN  // beN, 意思是big endian吗? guest和host都是小端，奇怪
+                io_prepare(&mr_offset, cpu, full->xlat_section, attrs, addr, ra);
+                    section = iotlb_to_section(cpu, xlat, attrs); // find mr
+                         CPUAddressSpace *cpuas = &cpu->cpu_ases[asidx];
+
+  #0  pl011_read (opaque=0xfffffffffffffe00, offset=36027463472, size=21845) at ../hw/char/pl011.c:147
+  #1  0x0000555556141b73 in memory_region_read_accessor (mr=0x555557d91a90, addr=4064, value=0x7fff636778e0, size=4, shift=0, mask=4294967295, attrs=...) at ../system/memory.c:445
+  #2  0x0000555556142181 in access_with_adjusted_size (addr=4064, value=0x7fff636778e0, size=4, access_size_min=4, access_size_max=4, access_fn=0x555556141b2c <memory_region_read_accessor>, mr=0x555557d91a90, attrs=...) at ../system/memory.c:573
+  #3  0x0000555556144e85 in memory_region_dispatch_read1 (mr=0x555557d91a90, addr=4064, pval=0x7fff636778e0, size=4, attrs=...) at ../system/memory.c:1426
+  #4  0x0000555556144fa3 in memory_region_dispatch_read (mr=0x555557d91a90, addr=4064, pval=0x7fff636778e0, op=MO_BEUL, attrs=...) at ../system/memory.c:1459
+  || 
+  #5  0x000055555619b97f in int_ld_mmio_beN (cpu=0x555557af5980, full=0x7fff54078140, ret_be=0, addr=18446603338413039584, size=4, mmu_idx=2, type=MMU_DATA_LOAD, ra=140734941518592, mr=0x555557d91a90, mr_offset=4064) at ../accel/tcg/cputlb.c:1999
+  #6  0x000055555619baff in do_ld_mmio_beN (cpu=0x555557af5980, full=0x7fff54078140, ret_be=0, addr=18446603338413039584, size=4, mmu_idx=2, type=MMU_DATA_LOAD, ra=140734941518592) at ../accel/tcg/cputlb.c:2034
+  #7  0x000055555619c610 in do_ld_4 (cpu=0x555557af5980, p=0x7fff63677a20, mmu_idx=2, type=MMU_DATA_LOAD, memop=226, ra=140734941518592) at ../accel/tcg/cputlb.c:2336
+  #8  0x000055555619c978 in do_ld4_mmu (cpu=0x555557af5980, addr=18446603338413039584, oi=3618, ra=140734941518592, access_type=MMU_DATA_LOAD) at ../accel/tcg/cputlb.c:2418
+  #9  0x000055555619e337 in helper_ldul_mmu (env=0x555557af8140, addr=18446603338413039584, oi=3618, retaddr=140734941518592) at ../accel/tcg/ldst_common.c.inc:33
+  #10 0x00007fff68325b50 in code_gen_buffer ()
+
+每个tcg thread，翻译执行guest汇编指令时，都会通过helper函数去访问自己 CPU ENV 的地址空间。CPU ENV怎么和AddressSpace 
+关联起来的呢，看下 mini-virt 创建 CPU obj的流程 ::
+
+    @file: mini-virt.c
+    create_cpu
+        Object *cpuobj = object_new(possible_cpus->cpus[i].type);
+        |   object_initialize_with_type
+        |       // qom机制
+        |       cpu_common_initfn // .instance_init
+        |           cpu_exec_initfn(cpu);
+        |               // DEFINE_PROP_LINK("memory", CPUState, memory, TYPE_MEMORY_REGION, MemoryRegion *)
+        |               cpu->memory = get_system_memory(); // 默认值，也定义了 property 赋值，很方便
+        |
+        CPUState *cs = CPU(cpuobj);
+        qdev_realize(DEVICE(cpuobj), NULL, &error_fatal);
+            // qom机制
+            arm_cpu_realizefn
+            |   cpu_address_space_init(cs, ARMASIdx_NS, "cpu-memory", mr: cs->memory); // cs-memory, type memroy_region
+            |       AddressSpace *as = g_new0(AddressSpace, 1);
+            |       as_name = g_strdup_printf("%s-%d", prefix, cpu->cpu_index);
+            |       address_space_init(as, mr, as_name);  // <-- 初始化 AddressSpace, 都是用 system_memory
+            qemu_init_vcpu(cs);
+                if (!cpu->as): // 如果没有address spaces，用默认
+                    cpu_address_space_init(cpu, 0, "cpu-memory", cpu->memory);
+
+    @fun: address_space_init
+    address_space_init(AddressSpace *as, MemoryRegion *root, const char *name)
+        as->root = root;
+        address_space_update_topology(as);
+        |   MemoryRegion *physmr = memory_region_get_flatview_root(as->root);
+        |   flatviews_init(); // init only once
+        |       flat_views = g_hash_table_new_full // hash-table
+        |   if (!g_hash_table_lookup(flat_views, physmr))
+        |       generate_memory_topology(physmr); // 渲染成不交叉的绝对范围
+        address_space_update_ioeventfds(as);
