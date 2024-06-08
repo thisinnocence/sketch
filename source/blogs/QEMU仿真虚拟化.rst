@@ -279,6 +279,66 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
     0x7f985d36c2d1:  48 8b 7f 18              movq     0x18(%rdi), %rdi
     0x7f985d36c2d5:  4d 89 2c 3c              movq     %r13, 0(%r12, %rdi)
 
+核启动的执行第一条Guest指令是怎么个流程呢? 首先是设置PC(Program Counter)寄存器位置，可以通过CPUState的PC成员看调用点 ::
+
+    @file: target/arm/cpu.h
+    struct CPUArchState {
+        uint64_t xregs[32];  /* Regs for A64 mode.  */
+        uint64_t pc;
+        // ...
+    }
+
+    @file: include/hw/core/cpu.h
+    arm_cpu_set_pc(CPUState *cs, vaddr value)
+    arm_cpu_class_init
+        cc->set_pc = arm_cpu_set_pc;
+    ||
+    cpu_set_pc(CPUState *cpu, vaddr addr)
+        cc->set_pc(cpu, addr);
+
+    @file: boot.c  // 使用qemu内置的boot，boot阶段就置位了PC
+    default_reset_secondary
+        cpu_set_pc(cs, info->smp_loader_start);
+    ||
+    do_cpu_reset(void *opaque)
+        if (cs == first_cpu)
+            cpu_set_pc(cs, info->loader_start);
+
+    <<---create machine完毕---->>
+    do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
+    qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
+    qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
+    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:1569)
+    qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
+    qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
+    qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
+    main(int argc, char ** argv) (\root\github\qemu\system\main.c:47)
+
+然后是TCG大循环开始执行翻译的第一条Guest OS指令 ::
+
+    b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
+    看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
+    
+    // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
+    #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
+    #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
+    #2  0x0000555555e89093 in arm_cpu_realizefn (dev=0x555557a4a030, errp=0x7fffffffd650) at ../target/arm/cpu.c:2387
+    #3  0x00005555561b5f29 in device_set_realized (obj=0x555557a4a030, value=true, errp=0x7fffffffd760) at ../hw/core/qdev.c:510
+    #4  0x00005555561c0071 in property_set_bool (obj=0x555557a4a030, v=0x555557a62390, name=0x5555566afdf1 "realized", opaque=0x5555576eb4a0, errp=0x7fffffffd760) at ../qom/object.c:2305
+    #5  0x00005555561bdf98 in object_property_set (obj=0x555557a4a030, name=0x5555566afdf1 "realized", v=0x555557a62390, errp=0x7fffffffd760) at ../qom/object.c:1435
+    #6  0x00005555561c2542 in object_property_set_qobject (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=0x555557a62370, errp=0x5555575a9f60 <error_fatal>) at ../qom/qom-qobject.c:28
+    #7  0x00005555561be312 in object_property_set_bool (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=true, errp=0x5555575a9f60 <error_fatal>) at ../qom/object.c:1504
+    #8  0x00005555561b56e9 in qdev_realize (dev=0x555557a4a030, bus=0x0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:292
+    #9  0x0000555555dfee79 in create_cpu (machine=0x555557918000) at ../hw/arm/mini-virt.c:88
+    #10 0x0000555555dff27c in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:146
+    #11 0x00005555559b1f9e in machine_run_board_init (machine=0x555557918000, mem_path=0x0, errp=0x7fffffffd960) at ../hw/core/machine.c:1509
+    #12 0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
+    #13 0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2704
+    #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
+    #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
+
+至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。 TODO: when run first guest addr??
+
 中断的仿真
 -----------
 
