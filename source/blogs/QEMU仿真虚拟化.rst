@@ -481,6 +481,60 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 比DTS里面描述的还少，DTS里描述串口的时候，还需要指定一个外设时钟 ``apb_pclk``, QEMU仿真中在创建没看到，估计在其他地方或者
 就不需要模拟了，后面再研究下。
 
+那么用qemu -bios参数指定的dtb，是如何确定加载的位置呢，追一下代码流程 ::
+
+    // @file: mini-virt.c
+    vms->bootinfo.loader_start = vms->memmap[VIRT_MEM].base; // 0x40000000 (1 GiB)
+
+    // load 内核image和initrd
+    arm_load_kernel  // @file: boot.c
+        arm_setup_direct_kernel_boot
+            primary_loader = bootloader_aarch64;
+            |   ARMInsnFixup bootloader_aarch64[] = {
+            |       { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
+            |       //...
+            |       { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
+            arm_load_elf(info, &elf_entry...)
+            |   load_elf_hdr(info->kernel_filename, &elf_header, &elf_is64, &err); // @file: loader.c;
+            loadaddr = info->loader_start + KERNEL_NOLOAD_ADDR; // + 0x2000000(32 KiB) = 0x42000000
+            load_uimage_as(info->kernel_filename, &entry, &loadaddr,
+            load_aarch64_image(filename, hwaddr mem_base, hwaddr *entry, AddressSpace *as)
+            |   load_image_gzipped_buffer // aarch64, it's the bootloader's job to uncompress kernel
+            |   g_file_get_contents(filename, (char **)&buffer, &len, NULL) // 没有压缩的内核
+            |   unpack_efi_zboot_image
+            |   *entry = mem_base + kernel_load_offset; // 0x40000000 + 0x200000
+            |       rom_add_blob_fixed_as(filename, buffer, size, *entry, as); // blob加载到address-space
+            |           rom_add_blob
+            |               rom = g_malloc0(sizeof(*rom));
+            |               memcpy(rom->data, blob, len);
+            | // put the initrd far enough into RAM...
+            info->initrd_start = info->loader_start + MIN(info->ram_size / 2, 128 * MiB);
+            info->initrd_start = MAX(info->initrd_start, image_high_addr);
+            info->initrd_start = TARGET_PAGE_ALIGN(info->initrd_start);
+            load_ramdisk_as
+            |   load_uboot_image // <-- initrd filename
+            |   load_image_targphys_as  // @file: loader.c
+            |       rom_add_file_fixed_as
+            |           rom_add_file
+            | // has dtb
+            align = 2 * MiB;
+            // Place the DTB after the initrd in memory with alignment
+            info->dtb_start = QEMU_ALIGN_UP(info->initrd_start + initrd_size, align);
+            |   // info->initrd_start = 0x48000000
+            |   // then result = 0x4a000000
+            arm_write_bootloader("bootloader", as, info->loader_start, primary_loader, fixupcontext);
+            |   rom_add_blob_fixed_as
+            ARM_CPU(cs)->env.boot_info = info;
+
+    // 最后load dtb
+    virt_machine_done
+        as = arm_boot_address_space(cpu, info);
+        arm_load_dtb(info->dtb_start, info, info->dtb_limit, as, ms); // info->dtb_start = 0x4a000000
+            load_device_tree
+            |   load_image_size(const char *filename, void *addr, size_t size)
+            rom_add_blob_fixed_as  // Put the DTB into the memory map as a ROM image
+                rom_add_blob
+
 代码变少，也很方便看到，到底用到了啥，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
 的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。启动OS后，
 可以通过下面的命令来看哪些中断增长了。  ::
