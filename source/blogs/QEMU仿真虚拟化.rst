@@ -535,6 +535,87 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
             rom_add_blob_fixed_as  // Put the DTB into the memory map as a ROM image
                 rom_add_blob
 
+针对这个 boot 和 load 流程，执行内置的bootloader代码时，执行到linux OS代码时，理应有个地方时把 dtb addr 设置到
+对应 cpu x0 reg里，然后才是tcg才运行启动guest指令的翻译执行。
+
+.. code-block:: c
+
+    // 每个CPU核的定义，有通用寄存器，关键系统寄存器，PC等
+    // file: target/arm/cpu.h
+    typedef struct CPUArchState {
+        /* Regs for current mode.  */
+        uint32_t regs[16];
+
+        /* 32/64 switch only happens when taking and returning from
+        * exceptions so the overlap semantics are taken care of then
+        * instead of having a complicated union.
+        */
+        /* Regs for A64 mode.  */
+        uint64_t xregs[32];
+        uint64_t pc;
+        // -----557 lines:---------------- 被vim自由折叠
+    } CPUARMState;
+
+    // qemu自带的aarch64 boot代码，硬编码的几个核心指令
+    // file: boot.c
+    static const ARMInsnFixup bootloader_aarch64[] = {
+        { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
+        { 0xaa1f03e1 }, /* mov x1, xzr */
+        { 0xaa1f03e2 }, /* mov x2, xzr */
+        { 0xaa1f03e3 }, /* mov x3, xzr */
+        { 0x58000084 }, /* ldr x4, entry ; Load the lower 32-bits of kernel entry */
+        { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
+        { 0, FIXUP_ARGPTR_LO }, /* arg: .word @DTB Lower 32-bits */ // <------ 这个就是DTB地址
+        { 0, FIXUP_ARGPTR_HI}, /* .word @DTB Higher 32-bits */
+        { 0, FIXUP_ENTRYPOINT_LO }, /* entry: .word @Kernel Entry Lower 32-bits */
+        { 0, FIXUP_ENTRYPOINT_HI }, /* .word @Kernel Entry Higher 32-bits */
+    };
+
+    // @file: boot.c
+    arm_setup_direct_kernel_boot
+        arm_load_elf(info, &elf_entry...)
+        entry = elf_entry;
+        fixupcontext[FIXUP_ENTRYPOINT_LO] = entry; // <-- 传递给这个Guest的地址，需要前面配合设置x0
+
+    // 《kernel的代码》
+    // @arch/arm64/kernel/head.S
+    // Kernel startup entry point
+    //    MMU = off, D-cache = off, I-cache = on or off
+    //    x0 = physical address to the FDT blob.  <--- i
+
+然后，用 tcg 内置的 gdbserver看下启动的首地址 ::
+
+    (gdb) target remote :1234
+    Remote debugging using :1234
+    0x0000000040000000 in ?? ()
+    (gdb) p $pc
+    $1 = (void (*)()) 0x40000000
+    (gdb) x/10i $pc
+    => 0x40000000:  ldr     x0, 0x40000018    //同上面硬编码的boot code (gpt解析不准： ldr x0, [pc, #0x18])
+       0x40000004:  mov     x1, xzr
+       0x40000008:  mov     x2, xzr
+       0x4000000c:  mov     x3, xzr
+       0x40000010:  ldr     x4, 0x40000020
+       0x40000014:  br      x4
+       0x40000018:  eor     w0, w0, w0 // 这个是DTB的参数地址，可以看QEMU对应代码的注释也 -- value是0x4a000000
+       0x4000001c:  .inst   0x00000000 ; undefined
+       0x40000020:  .inst   0x40200000 ; undefined
+    (gdb) ni
+    0x0000000040000004 in ?? ()
+    (gdb) p/x $x0
+    $2 = 0x4a000000 // 就是 info roms里的dtb加载地址
+    (gdb) x/wx 0x40000018
+    0x40000018:     0x4a000000
+
+对于 ``0x580000c0`` 这个汇编指令解码，可以参考 ARMv8-Reference-Manual.pdf 的 C6.2.102 LDR (literal)
+
+.. image:: pic/ldr_instruct.png
+
+根据 opc 解析出 ldr 类型，lable is: ((0x580000c0 & 0xfff) >> 5) * 4 = 0x18
+
+这样看下来，qemu内置的Bootloader实现加载DTB，并传递地址给内核入口，这段实现还是很巧妙的，需要对汇编指令然后bootload机制
+有系统的了解，代码还是比较清晰的。
+
 代码变少，也很方便看到，到底用到了啥，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
 的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。启动OS后，
 可以通过下面的命令来看哪些中断增长了。  ::
