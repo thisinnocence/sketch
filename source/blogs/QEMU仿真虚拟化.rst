@@ -279,105 +279,6 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
     0x7f985d36c2d1:  48 8b 7f 18              movq     0x18(%rdi), %rdi
     0x7f985d36c2d5:  4d 89 2c 3c              movq     %r13, 0(%r12, %rdi)
 
-核启动的执行第一条Guest指令是怎么个流程呢? 首先是设置PC(Program Counter)寄存器位置，可以通过CPUState的PC成员看调用点 ::
-
-    @file: target/arm/cpu.h
-    struct CPUArchState {
-        uint64_t xregs[32];  /* Regs for A64 mode.  */
-        uint64_t pc;
-        // ...
-    }
-
-    @file: include/hw/core/cpu.h
-    arm_cpu_set_pc(CPUState *cs, vaddr value)
-    arm_cpu_class_init
-        cc->set_pc = arm_cpu_set_pc;
-    ||
-    cpu_set_pc(CPUState *cpu, vaddr addr)
-        cc->set_pc(cpu, addr);
-
-    @file: boot.c  // 使用qemu内置的boot，boot阶段就置位了PC
-    default_reset_secondary
-        cpu_set_pc(cs, info->smp_loader_start);
-    ||
-    do_cpu_reset(void *opaque)
-        if (cs == first_cpu)
-            cpu_set_pc(cs, info->loader_start);
-
-    <<---create machine完毕---->>
-    do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
-    qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
-    qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
-    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:1569)
-    qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
-    qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
-    qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
-    main(int argc, char ** argv) (\root\github\qemu\system\main.c:47)
-
-然后是TCG大循环开始执行翻译的第一条Guest OS指令 ::
-
-    b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
-    看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
-    
-    // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
-    #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
-    #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
-    #2  0x0000555555e89093 in arm_cpu_realizefn (dev=0x555557a4a030, errp=0x7fffffffd650) at ../target/arm/cpu.c:2387
-    #3  0x00005555561b5f29 in device_set_realized (obj=0x555557a4a030, value=true, errp=0x7fffffffd760) at ../hw/core/qdev.c:510
-    #4  0x00005555561c0071 in property_set_bool (obj=0x555557a4a030, v=0x555557a62390, name=0x5555566afdf1 "realized", opaque=0x5555576eb4a0, errp=0x7fffffffd760) at ../qom/object.c:2305
-    #5  0x00005555561bdf98 in object_property_set (obj=0x555557a4a030, name=0x5555566afdf1 "realized", v=0x555557a62390, errp=0x7fffffffd760) at ../qom/object.c:1435
-    #6  0x00005555561c2542 in object_property_set_qobject (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=0x555557a62370, errp=0x5555575a9f60 <error_fatal>) at ../qom/qom-qobject.c:28
-    #7  0x00005555561be312 in object_property_set_bool (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=true, errp=0x5555575a9f60 <error_fatal>) at ../qom/object.c:1504
-    #8  0x00005555561b56e9 in qdev_realize (dev=0x555557a4a030, bus=0x0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:292
-    #9  0x0000555555dfee79 in create_cpu (machine=0x555557918000) at ../hw/arm/mini-virt.c:88
-    #10 0x0000555555dff27c in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:146
-    #11 0x00005555559b1f9e in machine_run_board_init (machine=0x555557918000, mem_path=0x0, errp=0x7fffffffd960) at ../hw/core/machine.c:1509
-    #12 0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
-    #13 0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2704
-    #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
-    #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
-
-至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。CPU执行第一调Guest指令时，一定已经是翻译成Host了，这个涉及了
-访存（第一条boot指令时加载内存里的值到，那么会触发helper的访存操作，最终会访问到对应的地址 ::
-
-    gdb --args qemu-system-aarch64 -nographic -readconfig mini-virt.cfg -plugin ~/github/qemu/build/contrib/plugins/libexeclog.so -d plugin
-
-    (gdb) b cpu_tb_exec
-    (gdb) r
-    Thread 3 "qemu-system-aar" hit Breakpoint 1, cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:448
-    448         CPUArchState *env = cpu_env(cpu);
-    (gdb) n
-    451         const void *tb_ptr = itb->tc.ptr;
-    (gdb)
-    453         if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
-    (gdb)
-    457         qemu_thread_jit_execute();
-    (gdb)
-    458         ret = tcg_qemu_tb_exec(env, tb_ptr); // 后面就是执行boot这个第一段TB的所涉及的指令，以及对应访存
-    (gdb)
-    0, 0x40000000, 0x580000c0, "ldr x0, #0x40000018", load, 0x40000018, RAM
-    0, 0x40000004, 0xaa1f03e1, "mov x1, xzr"
-    0, 0x40000008, 0xaa1f03e2, "mov x2, xzr"
-    0, 0x4000000c, 0xaa1f03e3, "mov x3, xzr"
-    0, 0x40000010, 0x58000084, "ldr x4, #0x40000020", load, 0x40000020, RAM
-    459         cpu->neg.can_do_io = true;
-    (gdb) bt
-    #0  cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:459
-    #1  0x0000555556184ee4 in cpu_loop_exec_tb (cpu=0x555557a4a730, tb=0x7fffa3e7e040, pc=1073741824, last_tb=0x7fff63e79060, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:920
-    #2  0x000055555618522a in cpu_exec_loop (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1041
-    #3  0x00005555561852f0 in cpu_exec_setjmp (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1058
-    #4  0x0000555556185386 in cpu_exec (cpu=0x555557a4a730) at ../accel/tcg/cpu-exec.c:1084
-    #5  0x00005555561ab526 in tcg_cpus_exec (cpu=0x555557a4a730) at ../accel/tcg/tcg-accel-ops.c:76
-    #6  0x00005555561abc28 in mttcg_cpu_thread_fn (arg=0x555557a4a730) at ../accel/tcg/tcg-accel-ops-mttcg.c:95
-
-| 上面插件的使用方法在QEMU的官方文档的说明  https://www.qemu.org/docs/master/devel/tcg-plugins.html#example-plugins
-| 结合着gdb qemu，就很容易找到最开始哪里执行Guest的第一条指令的，执行的是什么指令，这就可以很好的回答起那么的问题。
-
-.. note::
-
-    code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
-
-
 中断的仿真
 -----------
 
@@ -637,6 +538,10 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 针对这个 boot 和 load 流程，执行内置的bootloader代码时，执行到linux OS代码时，理应有个地方时把 dtb addr 设置到
 对应 cpu x0 reg里，然后才是tcg才运行启动guest指令的翻译执行。
 
+可见，如果没有bios，使用qemu内置的bootloader直接启动内核，那么 ``-kernel, -dtb, -initrd`` 都是qemu自己计算的位置，内置
+的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader`` 
+来制定加载对应地址，其他两个不行，可能需要改一下代码， TODO: 需要进一步确认。 
+
 .. code-block:: c
 
     // 每个CPU核的定义，有通用寄存器，关键系统寄存器，PC等
@@ -714,6 +619,116 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 
 这样看下来，qemu内置的Bootloader实现加载DTB，并传递地址给内核入口，这段实现还是很巧妙的，需要对汇编指令然后bootload机制
 有系统的了解，代码还是比较清晰的。
+
+核启动的执行第一条Guest指令是怎么个流程呢? 首先是设置PC(Program Counter)寄存器位置，可以通过CPUState的PC成员看调用点 ::
+
+    @file: target/arm/cpu.h
+    struct CPUArchState {
+        uint64_t xregs[32];  /* Regs for A64 mode.  */
+        uint64_t pc;
+        // ...
+    }
+
+    @file: include/hw/core/cpu.h
+    arm_cpu_set_pc(CPUState *cs, vaddr value)
+    arm_cpu_class_init
+        cc->set_pc = arm_cpu_set_pc;
+    ||
+    cpu_set_pc(CPUState *cpu, vaddr addr)
+        cc->set_pc(cpu, addr);
+
+    @file: boot.c  // 使用qemu内置的boot，boot阶段就置位了PC
+    default_reset_secondary
+        cpu_set_pc(cs, info->smp_loader_start);
+    ||
+    do_cpu_reset(void *opaque)
+        if (cs == first_cpu)
+            cpu_set_pc(cs, info->loader_start);
+
+    <<---create machine完毕---->>
+    do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
+    qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
+    qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
+    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:1569)
+    qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
+    qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
+    qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
+    main(int argc, char ** argv) (\root\github\qemu\system\main.c:47)
+
+    // 也是reset阶段，把所有roms的data写入对应系统的地址空间里面去的
+    #0  address_space_write_rom_internal (as=0x555557acc1c0, addr=1073741824, attrs=..., ptr=0x555557dac7d0, len=40, type=WRITE_DATA) at ../system/physmem.c:2936
+    #1  0x000055555615408f in address_space_write_rom (as=0x555557acc1c0, addr=1073741824, attrs=..., buf=0x555557dac7d0, len=40) at ../system/physmem.c:2956
+    #2  0x00005555559aa9bb in rom_reset (unused=0x0) at ../hw/core/loader.c:1282
+    #3  0x00005555561b6ded in qemu_devices_reset (reason=SHUTDOWN_CAUSE_NONE) at ../hw/core/reset.c:84
+    #4  0x0000555555d0e8ea in qemu_system_reset (reason=SHUTDOWN_CAUSE_NONE) at ../system/runstate.c:494
+    #5  0x00005555559b2107 in qdev_machine_creation_done () at ../hw/core/machine.c:1569
+    #6  0x0000555555d15947 in qemu_machine_creation_done () at ../system/vl.c:2677
+    #7  0x0000555555d15a47 in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2706
+    #8  0x0000555555d18276 in qemu_init (argc=8, argv=0x7fffffffdc48) at ../system/vl.c:3753
+    #9  0x00005555558ede00 in main (argc=8, argv=0x7fffffffdc48) at ../system/main.c:47
+
+然后是TCG大循环开始执行翻译的第一条Guest OS指令 ::
+
+    b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
+    看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
+    
+    // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
+    #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
+    #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
+    #2  0x0000555555e89093 in arm_cpu_realizefn (dev=0x555557a4a030, errp=0x7fffffffd650) at ../target/arm/cpu.c:2387
+    #3  0x00005555561b5f29 in device_set_realized (obj=0x555557a4a030, value=true, errp=0x7fffffffd760) at ../hw/core/qdev.c:510
+    #4  0x00005555561c0071 in property_set_bool (obj=0x555557a4a030, v=0x555557a62390, name=0x5555566afdf1 "realized", opaque=0x5555576eb4a0, errp=0x7fffffffd760) at ../qom/object.c:2305
+    #5  0x00005555561bdf98 in object_property_set (obj=0x555557a4a030, name=0x5555566afdf1 "realized", v=0x555557a62390, errp=0x7fffffffd760) at ../qom/object.c:1435
+    #6  0x00005555561c2542 in object_property_set_qobject (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=0x555557a62370, errp=0x5555575a9f60 <error_fatal>) at ../qom/qom-qobject.c:28
+    #7  0x00005555561be312 in object_property_set_bool (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=true, errp=0x5555575a9f60 <error_fatal>) at ../qom/object.c:1504
+    #8  0x00005555561b56e9 in qdev_realize (dev=0x555557a4a030, bus=0x0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:292
+    #9  0x0000555555dfee79 in create_cpu (machine=0x555557918000) at ../hw/arm/mini-virt.c:88
+    #10 0x0000555555dff27c in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:146
+    #11 0x00005555559b1f9e in machine_run_board_init (machine=0x555557918000, mem_path=0x0, errp=0x7fffffffd960) at ../hw/core/machine.c:1509
+    #12 0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
+    #13 0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2704
+    #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
+    #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
+
+至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。CPU执行第一调Guest指令时，一定已经是翻译成Host了，这个涉及了
+访存（第一条boot指令时加载内存里的值到，那么会触发helper的访存操作，最终会访问到对应的地址 ::
+
+    gdb --args qemu-system-aarch64 -nographic -readconfig mini-virt.cfg -plugin ~/github/qemu/build/contrib/plugins/libexeclog.so -d plugin
+
+    (gdb) b cpu_tb_exec
+    (gdb) r
+    Thread 3 "qemu-system-aar" hit Breakpoint 1, cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:448
+    448         CPUArchState *env = cpu_env(cpu);
+    (gdb) n
+    451         const void *tb_ptr = itb->tc.ptr;
+    (gdb)
+    453         if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
+    (gdb)
+    457         qemu_thread_jit_execute();
+    (gdb)
+    458         ret = tcg_qemu_tb_exec(env, tb_ptr); // 后面就是执行boot这个第一段TB的所涉及的指令，以及对应访存
+    (gdb)
+    0, 0x40000000, 0x580000c0, "ldr x0, #0x40000018", load, 0x40000018, RAM
+    0, 0x40000004, 0xaa1f03e1, "mov x1, xzr"
+    0, 0x40000008, 0xaa1f03e2, "mov x2, xzr"
+    0, 0x4000000c, 0xaa1f03e3, "mov x3, xzr"
+    0, 0x40000010, 0x58000084, "ldr x4, #0x40000020", load, 0x40000020, RAM
+    459         cpu->neg.can_do_io = true;
+    (gdb) bt
+    #0  cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:459
+    #1  0x0000555556184ee4 in cpu_loop_exec_tb (cpu=0x555557a4a730, tb=0x7fffa3e7e040, pc=1073741824, last_tb=0x7fff63e79060, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:920
+    #2  0x000055555618522a in cpu_exec_loop (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1041
+    #3  0x00005555561852f0 in cpu_exec_setjmp (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1058
+    #4  0x0000555556185386 in cpu_exec (cpu=0x555557a4a730) at ../accel/tcg/cpu-exec.c:1084
+    #5  0x00005555561ab526 in tcg_cpus_exec (cpu=0x555557a4a730) at ../accel/tcg/tcg-accel-ops.c:76
+    #6  0x00005555561abc28 in mttcg_cpu_thread_fn (arg=0x555557a4a730) at ../accel/tcg/tcg-accel-ops-mttcg.c:95
+
+| 上面插件的使用方法在QEMU的官方文档的说明  https://www.qemu.org/docs/master/devel/tcg-plugins.html#example-plugins
+| 结合着gdb qemu，就很容易找到最开始哪里执行Guest的第一条指令的，执行的是什么指令，这就可以很好的回答起那么的问题。
+
+.. note::
+
+    code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
 
 再看下起来后的中断，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
 的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。启动OS后，
