@@ -337,7 +337,46 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
     #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
     #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
 
-至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。 TODO: when run first guest addr??
+至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。CPU执行第一调Guest指令时，一定已经是翻译成Host了，这个涉及了
+访存（第一条boot指令时加载内存里的值到，那么会触发helper的访存操作，最终会访问到对应的地址 ::
+
+    gdb --args qemu-system-aarch64 -nographic -readconfig mini-virt.cfg -plugin ~/github/qemu/build/contrib/plugins/libexeclog.so -d plugin
+
+    (gdb) b cpu_tb_exec
+    (gdb) r
+    Thread 3 "qemu-system-aar" hit Breakpoint 1, cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:448
+    448         CPUArchState *env = cpu_env(cpu);
+    (gdb) n
+    451         const void *tb_ptr = itb->tc.ptr;
+    (gdb)
+    453         if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
+    (gdb)
+    457         qemu_thread_jit_execute();
+    (gdb)
+    458         ret = tcg_qemu_tb_exec(env, tb_ptr); // 后面就是执行boot这个第一段TB的所涉及的指令，以及对应访存
+    (gdb)
+    0, 0x40000000, 0x580000c0, "ldr x0, #0x40000018", load, 0x40000018, RAM
+    0, 0x40000004, 0xaa1f03e1, "mov x1, xzr"
+    0, 0x40000008, 0xaa1f03e2, "mov x2, xzr"
+    0, 0x4000000c, 0xaa1f03e3, "mov x3, xzr"
+    0, 0x40000010, 0x58000084, "ldr x4, #0x40000020", load, 0x40000020, RAM
+    459         cpu->neg.can_do_io = true;
+    (gdb) bt
+    #0  cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:459
+    #1  0x0000555556184ee4 in cpu_loop_exec_tb (cpu=0x555557a4a730, tb=0x7fffa3e7e040, pc=1073741824, last_tb=0x7fff63e79060, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:920
+    #2  0x000055555618522a in cpu_exec_loop (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1041
+    #3  0x00005555561852f0 in cpu_exec_setjmp (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1058
+    #4  0x0000555556185386 in cpu_exec (cpu=0x555557a4a730) at ../accel/tcg/cpu-exec.c:1084
+    #5  0x00005555561ab526 in tcg_cpus_exec (cpu=0x555557a4a730) at ../accel/tcg/tcg-accel-ops.c:76
+    #6  0x00005555561abc28 in mttcg_cpu_thread_fn (arg=0x555557a4a730) at ../accel/tcg/tcg-accel-ops-mttcg.c:95
+
+| 上面插件的使用方法在QEMU的官方文档的说明  https://www.qemu.org/docs/master/devel/tcg-plugins.html#example-plugins
+| 结合着gdb qemu，就很容易找到最开始哪里执行Guest的第一条指令的，执行的是什么指令，这就可以很好的回答起那么的问题。
+
+.. note::
+
+    code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
+
 
 中断的仿真
 -----------
