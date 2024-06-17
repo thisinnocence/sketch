@@ -13,6 +13,9 @@ Linux操作系统
 
 下载Linux源码后，使用menuconfig勾选RAM disks为 ``build-in`` 支持，并调整大小为: 65536 kb， 方便后面用QEMU拉起。
 
+.. note:: 
+    后续的代码主要针对： v6.8.0
+
 编译ARM64内核镜像方法如下：
 
 .. code-block:: bash
@@ -532,3 +535,32 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
   use-after-free bugs.
 
 还有很多的定位手段，可以看上面文档链接，或者内核源码目录的 Documentation/dev-tools 下的文档。
+
+ARM64 Linux 的启动入口
+------------------------
+
+针对 arm64 linux kernel， 入口在
+
+.. code-block:: asm
+
+    // @file: arch/arm64/kernel/head.S
+    /*
+     * Kernel startup entry point.
+     * ---------------------------
+     *
+     * The requirements are:
+     *   MMU = off, D-cache = off, I-cache = on or off,
+     *   x0 = physical address to the FDT blob.
+     *
+     * Note that the callee-saved registers are used for storing variables
+     * that are useful before the MMU is enabled. The allocations are described
+     * in the entry routines.
+     */
+        __HEAD
+            /*
+                * DO NOT MODIFY. Image header expected by Linux boot-loaders.
+                */
+            efi_signature_nop			// special NOP to identity as PE/COFF executable
+            b	primary_entry			// branch to kernel start, magic
+    
+    // 这部无法断点，只能单步ni跟踪执行流，或者以来qemu plugin的tcg execlog打印了。
