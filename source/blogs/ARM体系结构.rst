@@ -576,6 +576,31 @@ MSR:
 常见的aarch64 system reg
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+ARM手册好多，很多想了解的总是分布在各个地方，必须看了很多后，才能有整体性的理解。
+
+从 A1 Introduction to the ARMv8 Architecture - A1.3 ARMv8 architectural concepts 章节描述：
+
+System registers provide **control and status information** of **architected features**.
+
+In AArch64 state, most register names include the lowest Exception level that can access the register as
+a suffix to the register name ::
+
+  <register_name>_ELx, where x is 0, 1, 2, or 3.
+
+这个手册包括了
+
+- General system control registers.
+- Debug registers.
+- Generic Timer registers.
+- Optionally, Performance Monitor registers.
+
+还有其他的sysreg在其他手册，比如
+
+- Trace System registers -- Embedded Trace Macrocell Architecture Specification
+- Scalable Vector Extension System registers -- The Scalable Vector Extension (SVE) for ARMv8-A
+- Statistical Profiling Extension System registers -- The Statistical Profiling Extension for ARMv8-A.
+- Reliability, Availability, and Serviceability System registers -- ARM® Reliability, Availability, and Serviceability (RAS) Specification
+
 让ChatGPT-4o给总结了下常见的一些 aarch64 system-reg, 大致看了没问题，ChatGPT最这种标准知识总结的一般还是不错的。
 而且还可以让gpt按照指定的格式总结给出来，挺方便的还.
 
