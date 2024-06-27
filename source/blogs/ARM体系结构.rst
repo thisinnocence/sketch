@@ -552,3 +552,89 @@ SMMU在内存中保存翻译流程的数据结构。 ``SMMU_(*_)STRTAB_BASE`` �
 
     | ``L1STD_addr = STRTAB_BASE.ADDR + StreamID[n:x] * sizeof(L1STD)``
     | ``STE_addr = L1STD.L2Ptr + StreamID[(x - 1):0] * sizeof(STE)``
+
+系统寄存器
+------------
+
+MRS和MSR指令
+^^^^^^^^^^^^^^
+
+参考： https://developer.arm.com/documentation/ddi0487/latest/
+
+MRS: MRS Move System register to general-purpose register.
+
+ARM MRS/MSR 的操作顺序逻辑通常是 move dst from src. (R-通用寄存器，S-系统寄存器)
+
+| MRS <Xt>, (<systemreg>|S<op0>_<op1>_<Cn>_<Cm>_<op2>)
+| X[t] = AArch64.SysRegRead(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2);
+
+MSR:
+
+  Move general-purpose register to System register 
+  Move immediate to PE state field
+
+常见的aarch64 system reg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+让ChatGPT-4o给总结了下常见的一些 aarch64 system-reg, 大致看了没问题，ChatGPT最这种标准知识总结的一般还是不错的。
+而且还可以让gpt按照指定的格式总结给出来，挺方便的还.
+
+.. csv-table::
+
+  寄存器名称,描述,功能
+  "Current Program Status Register (CPSR)","当前程序状态寄存器","保存当前处理器状态，包括条件码、异常屏蔽位、当前处理模式"
+  "Saved Program Status Register (SPSR)","保存的程序状态寄存器","当异常发生时，保存被打断的任务的 CPSR 值，以便恢复。"
+  "Exception Link Register (ELR_ELn)","异常链接寄存器","保存异常返回地址。ELn 表示不同的异常级别 (n = 1, 2, 3)。"
+  "Stack Pointer (SP_ELn)","栈指针","用于当前异常级别的栈指针。"
+  "Vector Base Address Register (VBAR_ELn)","向量基地址寄存器","存储异常向量表的基地址。"
+  "CurrentEL","当前异常级别寄存器","指示当前的异常级别。"
+  "DAIF","中断屏蔽寄存器","控制异常屏蔽位 (Debug, SError, IRQ, FIQ)。"
+  "MPIDR_EL1","多处理器 ID 寄存器","标识多核系统中处理器的 ID。"
+  "TPIDR_EL0/TPIDR_EL1","线程 ID 寄存器","用于存储用户态/内核态线程 ID。"
+  "CNTVCT_EL0","虚拟计数器寄存器","提供当前的虚拟计数器值。"
+  "CNTFRQ_EL0","计数器频率寄存器","提供计数器的频率。"
+  "CNTKCTL_EL1","计数器控制寄存器","控制访问计数器寄存器的权限。"
+  "MAIR_EL1","内存属性归属寄存器","定义内存区域的属性。"
+  "TTBR0_EL1/TTBR1_EL1","转换表基地址寄存器","提供第一级转换表的基地址。"
+  "TCR_EL1","转换控制寄存器","控制地址转换表的行为和格式。"
+  "SCTLR_EL1","系统控制寄存器","控制系统的基本运行模式和特性。"
+  "ID_AA64PFR0_EL1","AArch64 特性寄存器 0","描述 AArch64 处理器的特性。"
+  "ID_AA64DFR0_EL1","AArch64 调试特性寄存器 0","描述 AArch64 调试特性。"
+  "ID_AA64MMFR0_EL1","AArch64 内存模型特性寄存器 0","描述 AArch64 内存模型特性。"
+  "ID_AA64ISAR0_EL1","AArch64 指令集属性寄存器 0","描述 AArch64 指令集属性。"
+  "CPACR_EL1","协处理器访问控制寄存器","控制对协处理器的访问权限。"
+  "TTBR0_EL1","变换表基地址寄存器 0","提供第一级转换表的基地址。"
+  "TTBR1_EL1","变换表基地址寄存器 1","提供第一级转换表的基地址。"
+  "TCR_EL1","变换控制寄存器","控制地址变换表的行为和格式。"
+  "ESR_EL1","异常综合寄存器","保存异常类型及其细节。"
+  "FAR_EL1","错误地址寄存器","保存发生错误时的虚拟地址。"
+  "AFSR0_EL1","异常故障状态寄存器 0","保存异常相关的错误状态信息。"
+  "AFSR1_EL1","异常故障状态寄存器 1","保存异常相关的错误状态信息。"
+  "AMAIR_EL1","内存属性归属寄存器","定义内存区域的属性。"
+  "CNTVOFF_EL2","虚拟计数器偏移寄存器","用于虚拟化中的时间管理。"
+  "CNTKCTL_EL1","计数器控制寄存器","控制计时器的行为。"
+  "VTTBR_EL2","虚拟化翻译表基址寄存器","存储虚拟机的页表基地址。"
+  "VMPIDR_EL2","虚拟化多处理器 ID 寄存器","标识虚拟机中的处理器 ID。"
+  "HCR_EL2","Hypervisor 配置寄存器","配置虚拟化特性。"
+  "MDCR_EL2","监控调试控制寄存器","控制调试特性。"
+  "SPSR_EL2","保存的程序状态寄存器","保存当前程序状态。"
+  "SP_EL2","栈指针寄存器","用于 EL2 的栈指针。"
+  "ELR_EL2","异常链接寄存器","保存异常返回地址。"
+  "VBAR_EL2","向量基地址寄存器","存储异常向量表的基地址。"
+
+MPIDR寄存器
+^^^^^^^^^^^^^^
+
+https://developer.arm.com/documentation/ddi0601/2024-03/AArch64-Registers/MPIDR-EL1--Multiprocessor-Affinity-Register?lang=en
+
+MPIDR_EL1(Multiprocessor Affinity Register)的作用：
+
+.. note::
+
+    | In a multiprocessor system, provides an additional PE identification mechanism. 一般为了调度使用。
+    | 叫亲和性就是因为可能经常和绑定任务thread有关，所以这么叫。
+
+    | Aff0, bits [7:0]
+    | Affinity level 0. The value of the MPIDR.{Aff2, Aff1, Aff0} or 
+    |   MPIDR_EL1.{Aff3, Aff2, Aff1, Aff0} set of fields of each PE must be unique within the system as a whole.
+    | This field has an IMPLEMENTATION DEFINED value.

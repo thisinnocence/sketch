@@ -138,6 +138,11 @@ vscode的settings.json中加入下面的配置即可：
 | https://docutils.sourceforge.io/docs/ref/rst/directives.html#csv-table-1
 | 遇到一个单元格内的内容很长需要换行是，我们把内容放到引号里即可，就如上面链接里的例子一样。
 
+网格table:
+
+https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#tables
+
+
 交叉引用
 -------------------
 

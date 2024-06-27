@@ -62,18 +62,4 @@ ChatGPT的解释 ::
       4000002c:	17ffffff 	b	40000028 <hang>
       40000030:	40005008 	.inst	0x40005008 ; undefined
 
-首先是选择住核启动：
-
-https://developer.arm.com/documentation/ddi0601/2024-03/AArch64-Registers/MPIDR-EL1--Multiprocessor-Affinity-Register?lang=en
-
-MPIDR_EL1(Multiprocessor Affinity Register)的作用：
-
-.. note::
-
-    | In a multiprocessor system, provides an additional PE identification mechanism. (most for schedule)
-    | 叫亲和性就是因为可能经常和绑定任务thread有关，所以这么叫。
-
-    | Aff0, bits [7:0]
-    | Affinity level 0. The value of the MPIDR.{Aff2, Aff1, Aff0} or 
-    |   MPIDR_EL1.{Aff3, Aff2, Aff1, Aff0} set of fields of each PE must be unique within the system as a whole.
-    | This field has an IMPLEMENTATION DEFINED value.
+根据 mpidr_el1 选择主核来启动，其他的挂起。
