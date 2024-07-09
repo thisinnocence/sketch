@@ -663,3 +663,13 @@ MPIDR_EL1(Multiprocessor Affinity Register)的作用：
     | Affinity level 0. The value of the MPIDR.{Aff2, Aff1, Aff0} or 
     |   MPIDR_EL1.{Aff3, Aff2, Aff1, Aff0} set of fields of each PE must be unique within the system as a whole.
     | This field has an IMPLEMENTATION DEFINED value.
+
+一个ARM soc示意图
+-----------------------
+
+https://en.m.wikipedia.org/wiki/File:ARMSoCBlockDiagram.svg#file
+
+.. image:: pic/arm-soc-block.png
+  :scale: 60%
+
+图是SVG格式的，有源码，可以被浏览器渲染。
