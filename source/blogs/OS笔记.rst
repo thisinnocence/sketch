@@ -63,3 +63,11 @@ ChatGPT的解释 ::
       40000030:	40005008 	.inst	0x40005008 ; undefined
 
 根据 mpidr_el1 选择主核来启动，其他的挂起。
+
+ARM bare metal 编程
+----------------------
+
+体系结构强相关的编程，bare metal 裸机程序很有帮助，帮助聚焦体系结构编程使能。fork 了一个很好的练习 project：
+
+- 裸机hello world程序: https://github.com/thisinnocence/aarch64-bare-metal-qemu
+- 裸机带着GIC中断的程序: https://github.com/thisinnocence/armv8-bare-metal
