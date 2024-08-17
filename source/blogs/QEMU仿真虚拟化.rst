@@ -279,38 +279,6 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
     0x7f985d36c2d1:  48 8b 7f 18              movq     0x18(%rdi), %rdi
     0x7f985d36c2d5:  4d 89 2c 3c              movq     %r13, 0(%r12, %rdi)
 
-中断的仿真
------------
-
-QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理 ::
-
-    (gdb) bt
-    #0  cpu_exit (cpu=0x5555563bf3fb <qemu_cond_broadcast+71>) at ../hw/core/cpu-common.c:85
-    #1  0x00005555561aa4fe in mttcg_kick_vcpu_thread (cpu=0x555557b3d370) at ../accel/tcg/tcg-accel-ops-mttcg.c:130
-    #2  0x0000555555d00121 in qemu_cpu_kick (cpu=0x555557b3d370) at ../system/cpus.c:462
-    #3  0x00005555561a9d9c in tcg_handle_interrupt (cpu=0x555557b3d370, mask=2) at ../accel/tcg/tcg-accel-ops.c:100
-    <||>
-    #4  0x0000555555cffb21 in cpu_interrupt (cpu=0x555557b3d370, mask=2) at ../system/cpus.c:256
-    #5  0x0000555555e82e75 in arm_cpu_set_irq (opaque=0x555557b3d370, irq=0, level=1) at ../target/arm/cpu.c:954
-    #6  0x00005555561b72ad in qemu_set_irq (irq=0x555557b25420, level=1) at ../hw/core/irq.c:44
-    #7  0x0000555555a72fd3 in gic_update_internal (s=0x555557c859f0, virt=false) at ../hw/intc/arm_gic.c:222
-    #8  0x0000555555a73048 in gic_update (s=0x555557c859f0) at ../hw/intc/arm_gic.c:229
-    #9  0x0000555555a73902 in gic_set_irq (opaque=0x555557c859f0, irq=27, level=1) at ../hw/intc/arm_gic.c:419
-    #10 0x00005555561b72ad in qemu_set_irq (irq=0x555557c9eb40, level=1) at ../hw/core/irq.c:44
-    <||>
-    #11 0x0000555555e93f8c in gt_update_irq (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2615
-    #12 0x0000555555e941ca in gt_recalc_timer (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2690
-    #13 0x0000555555e94f8b in arm_gt_vtimer_cb (opaque=0x555557b3d370) at ../target/arm/helper.c:3083
-    #14 0x00005555563defc4 in timerlist_run_timers (timer_list=0x5555576e9c80) at ../util/qemu-timer.c:576
-    #15 0x00005555563df070 in qemu_clock_run_timers (type=QEMU_CLOCK_VIRTUAL) at ../util/qemu-timer.c:590
-    #16 0x00005555563df356 in qemu_clock_run_all_timers () at ../util/qemu-timer.c:672
-    #17 0x00005555563da2b8 in main_loop_wait (nonblocking=0) at ../util/main-loop.c:603
-    #18 0x0000555555d0e37e in qemu_main_loop () at ../system/runstate.c:782
-    #19 0x00005555561af751 in qemu_default_main () at ../system/main.c:37
-    #20 0x00005555561af790 in main (argc=6, argv=0x7fffffffdf18) at ../system/main.c:48
-
-定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
-
 串口pl011的仿真
 ----------------
 
@@ -480,6 +448,9 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 可以看出，如果不算Bootloader（用QEMU内置的），那么拉起一个最小的ARM64 Linux, 只需要上面几个设备就行了，非常少。
 比DTS里面描述的还少，DTS里描述串口的时候，还需要指定一个外设时钟 ``apb_pclk``, QEMU仿真中在创建没看到，估计在其他地方或者
 就不需要模拟了，后面再研究下。
+
+QEMU内置的Bootloader
+^^^^^^^^^^^^^^^^^^^^^^^
 
 那么用qemu -bios参数指定的dtb，是如何确定加载的位置呢，追一下代码流程 ::
 
@@ -750,6 +721,161 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
     关于中断号：
     arch_timer  30    //  #define ARCH_TIMER_NS_EL1_IRQ  30   @hw/arm/bsa.h
     uart-pl011  33    //  SPI interrupt:   [VIRT_UART] =  1   @hw/arm/mini-virt.c
+
+中断的仿真
+^^^^^^^^^^
+
+QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，下面是timer中断的上报callstack ::
+
+    (gdb) bt
+    #0  cpu_exit (cpu=0x5555563bf3fb <qemu_cond_broadcast+71>) at ../hw/core/cpu-common.c:85
+    #1  0x00005555561aa4fe in mttcg_kick_vcpu_thread (cpu=0x555557b3d370) at ../accel/tcg/tcg-accel-ops-mttcg.c:130
+    #2  0x0000555555d00121 in qemu_cpu_kick (cpu=0x555557b3d370) at ../system/cpus.c:462
+    #3  0x00005555561a9d9c in tcg_handle_interrupt (cpu=0x555557b3d370, mask=2) at ../accel/tcg/tcg-accel-ops.c:100
+    <||>
+    #4  0x0000555555cffb21 in cpu_interrupt (cpu=0x555557b3d370, mask=2) at ../system/cpus.c:256
+    #5  0x0000555555e82e75 in arm_cpu_set_irq (opaque=0x555557b3d370, irq=0, level=1) at ../target/arm/cpu.c:954
+    #6  0x00005555561b72ad in qemu_set_irq (irq=0x555557b25420, level=1) at ../hw/core/irq.c:44
+    #7  0x0000555555a72fd3 in gic_update_internal (s=0x555557c859f0, virt=false) at ../hw/intc/arm_gic.c:222
+    #8  0x0000555555a73048 in gic_update (s=0x555557c859f0) at ../hw/intc/arm_gic.c:229
+    #9  0x0000555555a73902 in gic_set_irq (opaque=0x555557c859f0, irq=27, level=1) at ../hw/intc/arm_gic.c:419
+    #10 0x00005555561b72ad in qemu_set_irq (irq=0x555557c9eb40, level=1) at ../hw/core/irq.c:44
+    <||>
+    #11 0x0000555555e93f8c in gt_update_irq (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2615
+    #12 0x0000555555e941ca in gt_recalc_timer (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2690
+    #13 0x0000555555e94f8b in arm_gt_vtimer_cb (opaque=0x555557b3d370) at ../target/arm/helper.c:3083
+    #14 0x00005555563defc4 in timerlist_run_timers (timer_list=0x5555576e9c80) at ../util/qemu-timer.c:576
+    #15 0x00005555563df070 in qemu_clock_run_timers (type=QEMU_CLOCK_VIRTUAL) at ../util/qemu-timer.c:590
+    #16 0x00005555563df356 in qemu_clock_run_all_timers () at ../util/qemu-timer.c:672
+    #17 0x00005555563da2b8 in main_loop_wait (nonblocking=0) at ../util/main-loop.c:603
+    #18 0x0000555555d0e37e in qemu_main_loop () at ../system/runstate.c:782
+
+定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
+
+看下这个 mini-virt 实现中，gic相关的创建使用：
+
+create_gic 中，通过property指定gic版本，cpu核数，中断个数。然后 GICR 部分，这部分在ARM手册里是每个核一个GICR，这里实现的逻辑是
+根据地址规划，看一下可以支持的GICR的个数，也通过property设置给gic的redist-region-count ::
+
+    /*
+    * The redistributor in GICv3 has two 64KB frames per CPU; in
+    * GICv4 it has four 64KB frames per CPU.
+    */
+    #define GICV3_REDIST_SIZE 0x20000  // == 2*64KB
+    #define GICV4_REDIST_SIZE 0x40000  // == 4*64KB
+
+然后看一下GIC和CPU的连接：
+
+.. code-block:: c
+
+    #define NUM_IRQS 256  // Number of external interrupt lines to configure the GIC with
+    SysBusDevice *gicbusdev = SYS_BUS_DEVICE(vms->gic);
+    // 中断的总数，针对1个core，32是每个core私有独占，其他的是所有core共享
+    qdev_prop_set_uint32(vms->gic, "num-irq", NUM_IRQS + 32); // 0~31 is SGI/PPI
+    for (int i = 0; i < smp_cpus; i++) {
+        DeviceState *cpudev = DEVICE(qemu_get_cpu(i));
+        int intidbase = NUM_IRQS + i * GIC_INTERNAL; // GIC_INTERNAL == 32
+        // ARCH_TIMER_NS_EL1_IRQ 30 (Non-Secure EL1 arch-timer)
+        // 连接到一个device的output GPIO line，当assert这个line，对应的qemu_irq callback会被调用
+        //      第二个参数：Number of the anonymous output GPIO line，必须在范围内
+        //      第三个参数：pin: qemu_irq to connect the output line to(一个结构体，内部有回调函数)
+        qdev_connect_gpio_out(cpudev, 0, qdev_get_gpio_in(vms->gic, intidbase + ARCH_TIMER_NS_EL1_IRQ));
+            qdev_connect_gpio_out_named(dev, NULL, n, input_pin);
+                object_property_set_link(OBJECT(dev), propname, OBJECT(input_pin), &error_abort);
+                // @propname: "unnamed-gpio-out[0]"
+                // @input_pin->handler: <gicv3_set_irq>
+        <||>
+        // #define ARM_CPU_IRQ 0, ARMCPU object's four inbound GPIO lines
+        //      有4个：ARM_CPU_FIQ 1, ARM_CPU_VIRQ 2, ARM_CPU_VFIQ 3
+        // sysbus_connect_irq: 
+        sysbus_connect_irq(gicbusdev, i, qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
+            // 这里gic转成了父类 sysbusdev, 这里比较隐秘的用父类初始化了 gpio out, 看后面callstack
+            SysBusDeviceClass *sbd = SYS_BUS_DEVICE_GET_CLASS(dev);
+            //  Connect one of a device's named output GPIO lines
+            //  arg2: Name of the output GPIO array;  这里 #define SYSBUS_DEVICE_GPIO_IRQ "sysbus-irq"
+            //  arg3: Number of the anonymous output GPIO line
+            //  arg4: qemu_irq to connect the output line to
+            qdev_connect_gpio_out_named(DEVICE(dev), SYSBUS_DEVICE_GPIO_IRQ, n, irq); // dev <-- gicbusdev
+                    object_property_set_link(OBJECT(dev), propname, OBJECT(input_pin), &error_abort);
+                        // @propname: "sysbus-irq[0]"
+                        // @input->hander: <arm_cpu_set_irq>
+    }
+
+
+
+ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自设备对中断的实现。
+
+对于CPU的连接线 :: 
+
+    // @cpu.c
+    arm_cpu_initfn
+        // create an array of anonymous input GPIO lines
+        //    arg2：Function to call when GPIO line value is set
+        //    arg3: Number of GPIO lines to create
+        qdev_init_gpio_in(DEVICE(cpu), arm_cpu_set_irq, 4);
+        |
+        arm_cpu_set_irq
+        |   [ARM_CPU_IRQ] = CPU_INTERRUPT_HARD // mask[] , #define CPU_INTERRUPT_HARD  0x0002
+        |   cpu_interrupt(cs, mask[irq]);
+        |       // then tcg loop will proc interrupt
+        |
+        // generic timer
+        // create an array of anonymous output GPIO lines
+        //  The device implementation can then raise and lower the GPIO line by calling qemu_set_irq()
+        //      If anything is connected to the other end of the GPIO this will cause the handler function 
+        //      for that input GPIO to be called.
+        // GTIMER_PHYS 0; GTIMER_VIRT 1; GTIMER_HYP 2; GTIMER_SEC 3; GTIMER_HYPVIRT 4;
+        qdev_init_gpio_out(DEVICE(cpu), cpu->gt_timer_outputs, ARRAY_SIZE(cpu->gt_timer_outputs));
+            qdev_init_gpio_out_named(dev, pins, NULL, n);
+                gpio_list->num_out += n; // 这里有个总计数，方便connect的时候连接上去
+
+对于 gic 初始化连接线 ::
+
+    // // gic 初始化gpio_in
+    #0  qdev_init_gpio_in_named (dev=0x555557d28670, handler=0x555555a7caee <gicv3_set_irq>, name=0x0, n=320) at /root/github/qemu/include/hw/qdev-core.h:836
+    #1  0x00005555559a4158 in qdev_init_gpio_in (dev=0x555557d28670, handler=0x555555a7caee <gicv3_set_irq>, n=320) at ../hw/core/gpio.c:71
+    #2  0x0000555555a7ab29 in gicv3_init_irqs_and_mmio (s=0x555557d28670, handler=0x555555a7caee <gicv3_set_irq>, ops=0x55555738dea0 <gic_ops>) at ../hw/intc/arm_gicv3_common.c:288
+    #3  0x0000555555a7cd01 in arm_gic_realize (dev=0x555557d28670, errp=0x7fffffffd5d0) at ../hw/intc/arm_gicv3.c:401
+    || property proc
+    #11 0x00005555559b8965 in sysbus_realize_and_unref (dev=0x555557d28670, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/sysbus.c:261
+    #12 0x0000555555dfec83 in create_gic (vms=0x555557918000, mem=0x555557747ee0) at ../hw/arm/mini-virt.c:65
+    #13 0x0000555555dff2a2 in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:148
+
+    // gic 初始化gpio_out
+    #0  qdev_init_gpio_out_named (dev=0x555557d28650, pins=0x555557d2d6c0, name=0x5555564e8301 "sysbus-irq", n=1) at ../hw/core/gpio.c:94
+    #1  0x00005555559b854f in sysbus_init_irq (dev=0x555557d28650, p=0x555557d2d6c0) at ../hw/core/sysbus.c:181
+    #2  0x0000555555a7ab5f in gicv3_init_irqs_and_mmio (s=0x555557d28650, handler=0x555555a7caee <gicv3_set_irq>, ops=0x55555738dea0 <gic_ops>) at ../hw/intc/arm_gicv3_common.c:291
+    #3  0x0000555555a7cd01 in arm_gic_realize (dev=0x555557d28650, errp=0x7fffffffd5d0) at ../hw/intc/arm_gicv3.c:401
+    || // property process
+    #10 0x00005555561b571a in qdev_realize_and_unref (dev=0x555557d28650, bus=0x555557a371c0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:299
+    #11 0x00005555559b8965 in sysbus_realize_and_unref (dev=0x555557d28650, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/sysbus.c:261
+    #12 0x0000555555dfec83 in create_gic (vms=0x555557918000, mem=0x555557747ee0) at ../hw/arm/mini-virt.c:65
+    #13 0x0000555555dff2a2 in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:148
+
+    arm_gic_realize //  @file: arm_gicv3.c
+        gicv3_init_irqs_and_mmio (s=0x555557d28670, handler= <gicv3_set_irq>, ops= <gic_ops>) // arm_gicv3_common.c
+            // For the GIC, also expose incoming GPIO lines for PPIs for each CPU.
+            // GPIO array layout is thus: [0..N-1] spi; [N..N+31] PPIs for CPU 0; [N+32..N+63] PPIs for CPU 1; ...
+            i = s->num_irq - GIC_INTERNAL + GIC_INTERNAL * s->num_cpu; // 总数
+            qdev_init_gpio_in(DEVICE(s), handler, i);
+            |   // create an array of input GPIO lines
+            |   qdev_init_gpio_in_named(dev, handler, NULL, n)
+            |       qdev_init_gpio_in_named_with_opaque
+            |           // type就是 qemu_irq， 就是中断pin，里面有hander回调
+            |           gpio_list->in = qemu_extend_irqs(gpio_list->in, gpio_list->num_in, handler, opaque, n);
+            |           if (!name) name = "unnamed-gpio-in";
+            |           object_property_add_child
+            for (i = 0; i < s->num_cpu; i++)
+            |-->sysbus_init_irq(sbd, &s->cpu[i].parent_irq);
+                    qdev_init_gpio_out_named(DEVICE(dev), p, SYSBUS_DEVICE_GPIO_IRQ, 1);
+
+所以, qdev_init_gpio_in 核心就是把回调函数和gpio关联起来：
+
+    - 对于gic，qemu给每个中断包括ppi都会分配一个gpio，这machine就是 gicv3_set_irq;
+    - 对于cpu，这里值arm的，qemu分配了4个(IRQ/FIQ/VIRQ/VFIQ)，这里machine就是 arm_cpu_set_irq;
+
+而，qdev_connect_gpio_out_named 核心就是连接到某设备的GPIO lines。 当设备asserts that output GPIO line, 
+the qemu_irq's callback is invoked.
 
 QEMU仿真的总线
 ---------------
