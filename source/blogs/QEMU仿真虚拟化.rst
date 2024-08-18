@@ -725,7 +725,7 @@ QEMU内置的Bootloader
 中断的仿真
 ^^^^^^^^^^
 
-QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，下面是timer中断的上报callstack ::
+QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，比如下面是timer中断的上报一个callstack ::
 
     (gdb) bt
     #0  cpu_exit (cpu=0x5555563bf3fb <qemu_cond_broadcast+71>) at ../hw/core/cpu-common.c:85
@@ -752,7 +752,7 @@ QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Excep
 
 定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
 
-看下这个 mini-virt 实现中，gic相关的创建使用：
+看下这个 mini-virt machine 实现中，gic相关的创建使用：
 
 create_gic 中，通过property指定gic版本，cpu核数，中断个数。然后 GICR 部分，这部分在ARM手册里是每个核一个GICR，这里实现的逻辑是
 根据地址规划，看一下可以支持的GICR的个数，也通过property设置给gic的redist-region-count ::
@@ -764,7 +764,7 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
     #define GICV3_REDIST_SIZE 0x20000  // == 2*64KB
     #define GICV4_REDIST_SIZE 0x40000  // == 4*64KB
 
-然后看一下GIC和CPU的连接：
+然后看一下GIC和CPU的连接 ：
 
 .. code-block:: c
 
@@ -802,7 +802,6 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
     }
 
 
-
 ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自设备对中断的实现。
 
 对于CPU的连接线 :: 
@@ -827,6 +826,9 @@ ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自�
         // GTIMER_PHYS 0; GTIMER_VIRT 1; GTIMER_HYP 2; GTIMER_SEC 3; GTIMER_HYPVIRT 4;
         qdev_init_gpio_out(DEVICE(cpu), cpu->gt_timer_outputs, ARRAY_SIZE(cpu->gt_timer_outputs));
             qdev_init_gpio_out_named(dev, pins, NULL, n);
+                memset(pins, 0, sizeof(*pins) * n); // gpio_out pins在外部内存申请好了，这里设置0
+                // 关联一个命名属性，从而方便后续 connect irq时，通过属性的名字，赋值 qemu_irq 的值
+                object_property_add_link(OBJECT(dev), propname, TYPE_IRQ, (Object **)&pins[i]
                 gpio_list->num_out += n; // 这里有个总计数，方便connect的时候连接上去
 
 对于 gic 初始化连接线 ::
@@ -875,7 +877,52 @@ ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自�
     - 对于cpu，这里值arm的，qemu分配了4个(IRQ/FIQ/VIRQ/VFIQ)，这里machine就是 arm_cpu_set_irq;
 
 而，qdev_connect_gpio_out_named 核心就是连接到某设备的GPIO lines。 当设备asserts that output GPIO line, 
-the qemu_irq's callback is invoked.
+the qemu_irq's callback is invoked. 针对这个arch-timer中断流程 ::
+
+    // qemu_irq 是一个结构体指针类型, 初始 cpu->gt_timer_outputs[0] 的值是 0, 赋值是在下面流程, 可以用 gdb watch 来验证：
+    #0  object_set_link_property (obj=0x555557a4b030, v=0x555557d91dd0, name=0x555557d2e830 "unnamed-gpio-out[0]", opaque=0x5555576edd50, errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1920
+    #1  0x00005555561bdfb7 in object_property_set (obj=0x555557a4b030, name=0x555557d2e830 "unnamed-gpio-out[0]", v=0x555557d91dd0, errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1435
+    #2  0x00005555561c2561 in object_property_set_qobject (obj=0x555557a4b030, name=0x555557d2e830 "unnamed-gpio-out[0]", value=0x555557d56860, errp=0x5555575aaf58 <error_abort>) at ../qom/qom-qobject.c:28
+    #3  0x00005555561be051 in object_property_set_str (obj=0x555557a4b030, name=0x555557d2e830 "unnamed-gpio-out[0]", value=0x555557d30400 "/machine/unattached/device[2]/unnamed-gpio-in[286]", errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1443
+    #4  0x00005555561be1ea in object_property_set_link (obj=0x555557a4b030, name=0x555557d2e830 "unnamed-gpio-out[0]", value=0x555557d43990, errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1479
+    #5  0x00005555559a4407 in qdev_connect_gpio_out_named (dev=0x555557a4b030, name=0x0, n=0, input_pin=0x555557d43990) at ../hw/core/gpio.c:128
+    #6  0x00005555559a45cc in qdev_connect_gpio_out (dev=0x555557a4b030, n=0, input_pin=0x555557d43990) at ../hw/core/gpio.c:171
+    #7  0x0000555555dfed23 in create_gic (vms=0x555557919000, mem=0x555557748ee0) at ../hw/arm/mini-virt.c:72
+    // 在 arm_cpu_initfn 中找到地址进行watch
+    (gdb) p cpu->gt_timer_outputs[0] // == 0
+    (gdb) p &cpu->gt_timer_outputs[0] // 找到地址watch
+    $5 = (qemu_irq *) 0x555557a60ba8
+    (gdb) watch *0x555557a60ba8
+    (gdb) c
+    hit Hardware watchpoint 2: *0x555557a60ba8 // 此时的调用栈就是上面的callstack
+    (gdb) x/xg 0x555557a60ba8
+    0x555557a60ba8: 0x555557d43990 // <-- 就是第5层栈的 input_pin
+    (gdb) p input_pin->handler
+    $13 = (qemu_irq_handler) 0x555555a7caee <gicv3_set_irq>
+
+    (gdb) bt // 抓了一次callstack，从tcg thread调过来的
+    #0  gicv3_set_irq (opaque=0x555557a4d7f0, irq=2, level=1676118400) at ../hw/intc/arm_gicv3.c:325
+    #1  0x00005555561b8abb in qemu_set_irq (irq=0x555557d441e0, level=0) at ../hw/core/irq.c:44
+    #2  0x0000555555e957ec in gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    ||
+    #3  0x0000555555e95dfc in gt_ctl_write (env=0x555557a4d7f0, ri=0x555557adce20, timeridx=0, value=7) at ../target/arm/helper.c:2795
+    #4  0x0000555555e9611a in gt_phys_redir_ctl_write (env=0x555557a4d7f0, ri=0x555557adce20, value=7) at ../target/arm/helper.c:2890
+    #5  0x0000555555f889ed in helper_set_cp_reg64 (env=0x555557a4d7f0, rip=0x555557adce20, value=7) at ../target/arm/tcg/op_helper.c:836
+    #6  0x00007fff6434f6ba in code_gen_buffer ()
+
+总结一下中断的核心API作用, 都在 include/hw/qdev-core.h 文件里，有详细的注释，不过看懂这个最好对硬件GIC/GPIO等有基本了解：
+
+    - qdev_init_gpio_in_named, 初始化 gpio_in, 会赋值 hander 回调函数；
+    - qdev_init_gpio_out_named, 初始化 gpio_out, 会把 qemu_irq pin 赋值为空指针，并且关联一个命名属性；
+    - qdev_connect_gpio_out_named，中断连接, 把 gpio_in 的 qemu_irq pin 赋给 gpio_out 里的 qemu_irq pin；
+
+这样针对一个 gpio_out, 在业务需要的时候调用通用的中断触发函数 qemu_set_irq, 就调到了这个 gpio_out connect 的
+gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很巧妙，接口定义在语义上很好的模拟了硬件中断管脚的连接。
+
+很多其他的API基本都是对上面的封装，比如：
+    
+    - qdev_init_gpio_in、qdev_init_gpio_out 相当于name改成了NULL；
+    - sysbus_connect_irq 则是把特定的device转换为父类sysbusdev后，然后接着调用的 qdev_init_gpio_out_named；
 
 QEMU仿真的总线
 ---------------
