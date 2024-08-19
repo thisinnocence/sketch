@@ -801,6 +801,10 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
                         // @input->hander: <arm_cpu_set_irq>
     }
 
+大概得连接如下图：
+
+.. image:: pic/qemu-gic-minivirt.png
+    :scale: 65%
 
 ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自设备对中断的实现。
 
@@ -900,7 +904,7 @@ the qemu_irq's callback is invoked. 针对这个arch-timer中断流程 ::
     (gdb) p input_pin->handler
     $13 = (qemu_irq_handler) 0x555555a7caee <gicv3_set_irq>
 
-    (gdb) bt // 抓了一次callstack，从tcg thread调过来的
+    (gdb) bt // 抓了一次callstack，从tcg thread调过来的, 但是最终没有调到 cpu_interrupt
     #0  gicv3_set_irq (opaque=0x555557a4d7f0, irq=2, level=1676118400) at ../hw/intc/arm_gicv3.c:325
     #1  0x00005555561b8abb in qemu_set_irq (irq=0x555557d441e0, level=0) at ../hw/core/irq.c:44
     #2  0x0000555555e957ec in gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
@@ -923,6 +927,68 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
     
     - qdev_init_gpio_in、qdev_init_gpio_out 相当于name改成了NULL；
     - sysbus_connect_irq 则是把特定的device转换为父类sysbusdev后，然后接着调用的 qdev_init_gpio_out_named；
+
+.. note:: 
+
+    那么最终什么时候，ARCH_TIMER_NS_EL1_IRQ 30 这个中断触发到了 cpu_interrupt 呢？通过gdb发现，还是在main_loop定时器抓到了，
+    之前的tcg线程可能是一个检查吧？maybe
+
+测试的方法，采用gdb条件断点配合commands控制命令 ::
+
+    (gdb) i b
+    Num     Type           Disp Enb Address            What
+    2       breakpoint     keep y   0x0000555555d00868 in cpu_interrupt at ../system/cpus.c:254
+            breakpoint already hit 1 time
+    3       breakpoint     keep y   0x0000555555e957c9 in gt_update_irq at ../target/arm/helper.c:2615
+            stop only if timeridx==0
+    (gdb) commands 3
+    Type commands for breakpoint(s) 3, one per line.
+    End with a line saying just "end".
+    >en 2
+    >c
+    >end
+    (gdb) dis 2
+    (gdb) c
+    Continuing.
+    
+    Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
+    
+    Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
+    
+    Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
+    [Switching to Thread 0x7fffe89bf3c0 (LWP 12151)]
+    
+    Thread 1 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
+    
+    Thread 1 "qemu-system-aar" hit Breakpoint 2, cpu_interrupt (cpu=0x555557a4d7f0, mask=30) at ../system/cpus.c:254
+    254     {
+    (gdb) bt
+    #0  cpu_interrupt (cpu=0x555557a4d7f0, mask=30) at ../system/cpus.c:254
+    #1  0x0000555555e846aa in arm_cpu_set_irq (opaque=0x555557a4b030, irq=0, level=1) at ../target/arm/cpu.c:954
+    #2  0x00005555561b8abb in qemu_set_irq (irq=0x555557a42bb0, level=1) at ../hw/core/irq.c:44
+    #3  0x00005555560c6b69 in gicv3_cpuif_update (cs=0x555557c8c8c0) at ../hw/intc/arm_gicv3_cpuif.c:980
+    #4  0x0000555555a7c714 in gicv3_redist_update (cs=0x555557c8c8c0) at ../hw/intc/arm_gicv3.c:204
+    #5  0x0000555555a8abb3 in gicv3_redist_set_irq (cs=0x555557c8c8c0, irq=30, level=1) at ../hw/intc/arm_gicv3_redist.c:1131
+    #6  0x0000555555a7cbf5 in gicv3_set_irq (opaque=0x555557c878a0, irq=30, level=1) at ../hw/intc/arm_gicv3.c:349
+    #7  0x00005555561b8abb in qemu_set_irq (irq=0x555557ca11c0, level=1) at ../hw/core/irq.c:44
+    #8  0x0000555555e957ec in gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
+    #9  0x0000555555e95a2a in gt_recalc_timer (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2690
+    #10 0x0000555555e967bf in arm_gt_ptimer_cb (opaque=0x555557a4b030) at ../target/arm/helper.c:3076
+    #11 0x00005555563e07d2 in timerlist_run_timers (timer_list=0x5555576ecf90) at ../util/qemu-timer.c:576
+    #12 0x00005555563e087e in qemu_clock_run_timers (type=QEMU_CLOCK_VIRTUAL) at ../util/qemu-timer.c:590
+    #13 0x00005555563e0b64 in qemu_clock_run_all_timers () at ../util/qemu-timer.c:672
+    #14 0x00005555563dbac6 in main_loop_wait (nonblocking=0) at ../util/main-loop.c:603
+    #15 0x0000555555d0f107 in qemu_main_loop () at ../system/runstate.c:782
+    #16 0x00005555558eddca in qemu_default_main () at ../system/main.c:37
+    #17 0x00005555558ede09 in main (argc=4, argv=0x7fffffffdf18) at ../system/main.c:48
+
+    可以看出，这次中断触发到CPU，是定时器机制触发的。
+
+在最小系统 mini-virt 中，我们用到这个 arch-timer 的中断，还有 uart 就可以。
 
 QEMU仿真的总线
 ---------------
