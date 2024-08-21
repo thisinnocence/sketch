@@ -725,7 +725,7 @@ QEMU内置的Bootloader
 中断的仿真
 ^^^^^^^^^^
 
-QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，比如下面是timer中断的上报一个callstack ::
+QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，比如下面中断的一个callstack ::
 
     (gdb) bt
     #0  cpu_exit (cpu=0x5555563bf3fb <qemu_cond_broadcast+71>) at ../hw/core/cpu-common.c:85
@@ -736,26 +736,25 @@ QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Excep
     #4  0x0000555555cffb21 in cpu_interrupt (cpu=0x555557b3d370, mask=2) at ../system/cpus.c:256
     #5  0x0000555555e82e75 in arm_cpu_set_irq (opaque=0x555557b3d370, irq=0, level=1) at ../target/arm/cpu.c:954
     #6  0x00005555561b72ad in qemu_set_irq (irq=0x555557b25420, level=1) at ../hw/core/irq.c:44
-    #7  0x0000555555a72fd3 in gic_update_internal (s=0x555557c859f0, virt=false) at ../hw/intc/arm_gic.c:222
-    #8  0x0000555555a73048 in gic_update (s=0x555557c859f0) at ../hw/intc/arm_gic.c:229
-    #9  0x0000555555a73902 in gic_set_irq (opaque=0x555557c859f0, irq=27, level=1) at ../hw/intc/arm_gic.c:419
-    #10 0x00005555561b72ad in qemu_set_irq (irq=0x555557c9eb40, level=1) at ../hw/core/irq.c:44
-    <||>
-    #11 0x0000555555e93f8c in gt_update_irq (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2615
-    #12 0x0000555555e941ca in gt_recalc_timer (cpu=0x555557b3d370, timeridx=1) at ../target/arm/helper.c:2690
-    #13 0x0000555555e94f8b in arm_gt_vtimer_cb (opaque=0x555557b3d370) at ../target/arm/helper.c:3083
-    #14 0x00005555563defc4 in timerlist_run_timers (timer_list=0x5555576e9c80) at ../util/qemu-timer.c:576
-    #15 0x00005555563df070 in qemu_clock_run_timers (type=QEMU_CLOCK_VIRTUAL) at ../util/qemu-timer.c:590
-    #16 0x00005555563df356 in qemu_clock_run_all_timers () at ../util/qemu-timer.c:672
-    #17 0x00005555563da2b8 in main_loop_wait (nonblocking=0) at ../util/main-loop.c:603
-    #18 0x0000555555d0e37e in qemu_main_loop () at ../system/runstate.c:782
 
-定时中断从io-thread报上去，然后执行到cpu_exit，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
+中断报上来后，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
 
 看下这个 mini-virt machine 实现中，gic相关的创建使用：
 
 create_gic 中，通过property指定gic版本，cpu核数，中断个数。然后 GICR 部分，这部分在ARM手册里是每个核一个GICR，这里实现的逻辑是
-根据地址规划，看一下可以支持的GICR的个数，也通过property设置给gic的redist-region-count ::
+根据地址规划，看一下可以支持的GICR的个数，也通过property设置给gic的redist-region-count 
+
+.. note:: 
+
+    https://patchew.org/QEMU/20210930150842.3810-1-peter.maydell@linaro.org/20210930150842.3810-4-peter.maydell@linaro.org/
+
+    Our GICv3 QOM interface includes an array property
+    redist-region-count which allows board models to specify that the
+    registributor registers are not in a single contiguous range, but
+    split into multiple pieces.  We implemented this for KVM, but
+    currently the TCG GICv3 model insists that there is only one region.
+
+::
 
     /*
     * The redistributor in GICv3 has two 64KB frames per CPU; in
@@ -763,6 +762,28 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
     */
     #define GICV3_REDIST_SIZE 0x20000  // == 2*64KB
     #define GICV4_REDIST_SIZE 0x40000  // == 4*64KB
+
+    这个通过property数组机制设置redist-region-count的比较精妙。首先是一个链表，然后链表在设置给array的时候，会重新申请一个
+    array的数组，因为后面已经知道了大小了，赋值给array后，再把这个临时的链表给释放掉，watch了这个属性的值，callstack如下：
+
+    #0  set_prop_array (obj=0x555557d298d0, v=0x555557d2e750, name=0x55555663b431 "redist-region-count", opaque=0x5555573c9210 <arm_gicv3_common_properties+528>, errp=0x5555575aaf58 <error_abort>) at ../hw/core/qdev-properties.c:675
+    #1  0x00005555561b21f1 in field_prop_set (obj=0x555557d298d0, v=0x555557d2e750, name=0x55555663b431 "redist-region-count", opaque=0x5555573c9210 <arm_gicv3_common_properties+528>, errp=0x5555575aaf58 <error_abort>) at ../hw/core/qdev-properties.c:88
+    #2  0x00005555561bdfe4 in object_property_set (obj=0x555557d298d0, name=0x55555663b431 "redist-region-count", v=0x555557d2e750, errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1435
+    #3  0x00005555561c258e in object_property_set_qobject (obj=0x555557d298d0, name=0x55555663b431 "redist-region-count", value=0x555557d176a0, errp=0x5555575aaf58 <error_abort>) at ../qom/qom-qobject.c:28
+    #4  0x00005555561b3f01 in qdev_prop_set_array (dev=0x555557d298d0, name=0x55555663b431 "redist-region-count", values=0x555557d176a0) at ../hw/core/qdev-properties.c:854
+    #5  0x0000555555dfeca5 in create_gic (vms=0x555557919000, mem=0x555557748ee0) at ../hw/arm/mini-virt.c:62
+    #6  0x0000555555dff2ee in mach_virt_init (machine=0x555557919000) at ../hw/arm/mini-virt.c:148
+
+    可以看 set_prop_array 的实现，有这个拷贝的总做，这个最终的目的都是为了支持多GICR的region.
+
+    @type: struct GICv3State
+        MemoryRegion iomem_dist; /* Distributor */
+        GICv3RedistRegion *redist_regions; /* Redistributor Regions */
+        uint32_t *redist_region_count; /* redistributor count within each region */
+        uint32_t nb_redist_regions; /* number of redist regions */
+    @type: struct GICv3RedistRegion
+        // The redistributor pages might be split into more than one region
+        // on some machine types if there are many CPUs.
 
 然后看一下GIC和CPU的连接 ：
 
