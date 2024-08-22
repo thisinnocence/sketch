@@ -201,7 +201,7 @@ ARM architected timer(arch_timer)
 
 主要参考：
 
-| https://developer.arm.com/documentation/102379/0103/The-processor-timers
+| https://developer.arm.com/documentation/102379/0104/What-is-the-Generic-Timer-?lang=en
 | https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/arch_timer.txt
 
 The Generic Timer includes a ``System Counter`` and set of **per-core timers**.
@@ -210,11 +210,16 @@ The ``System Counter`` is an always-on device, which provides a fixed frequency 
 system count. The system count value is broadcast to all the cores in the system, giving the cores
 a common view of the passage of time. 
 
+.. note:: 
+  The Generic Timer only measures the passage of time. It does not report the time or date.
+  Usually, an SoC would also contain a Real-Time Clock (RTC) for time and date.
+
 These timers provide functionality which is used for things like the operating system **scheduler tick**. 
 
-Software can configure timers to generate interrupts or events in set points in the future.
-Software can also use the system count to add timestamps, because the system count gives a common
-reference point for all cores.
+Each core has a set of timers. These timers are comparators, which compare against the broadcast system count that is
+provided by the System Counter. Software can configure timers to **generate interrupts or events** in set points in the
+future. Software can also use the system count to add timestamps, because the system count gives a common reference
+point for all cores.
 
 | 针对Server Base System Architecture (SBSA)的推荐中断ID配置：
 | (csv转表格vscode的插件真的好用^_^)
