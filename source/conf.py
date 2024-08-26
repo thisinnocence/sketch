@@ -34,11 +34,13 @@ language = 'zh_CN'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 # https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html
-html_theme = 'sphinx_rtd_theme'
+#html_theme = 'sphinx_rtd_theme'
 # html_theme_path = [sphinx_rtd_theme.get_html_theme_path()] # 这行会引起左侧导航树bug，一定要注释掉
-html_theme_options = {
-    'navigation_depth': 5,
-}
+# html_theme_options = {
+#     'navigation_depth': 5,
+# }
+
+html_theme = 'furo'
 
 html_static_path = ['_static']
 pygments_style = 'sphinx'
