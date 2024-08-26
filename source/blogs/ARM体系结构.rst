@@ -196,7 +196,7 @@ GIC的组成和中断的分类：
 
 结合QEMU和Linux的源码实现，可以更好的理解其实现细节。
 
-ARM architected timer(arch_timer)
+ARM architected timer
 ------------------------------------
 
 主要参考：
@@ -566,17 +566,13 @@ MRS和MSR指令
 
 参考： https://developer.arm.com/documentation/ddi0487/latest/
 
-MRS: MRS Move System register to general-purpose register.
+- MRS: MRS Move System register to general-purpose register.
+- MSR: Move general-purpose register to System register. Move immediate to PE state field
 
-ARM MRS/MSR 的操作顺序逻辑通常是 move dst from src. (R-通用寄存器，S-系统寄存器)
+MRS/MSR的操作顺序逻辑通常是 move to dst from src. (R-通用寄存器，S-系统寄存器)
 
 | MRS <Xt>, (<systemreg>|S<op0>_<op1>_<Cn>_<Cm>_<op2>)
 | X[t] = AArch64.SysRegRead(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2);
-
-MSR:
-
-  Move general-purpose register to System register 
-  Move immediate to PE state field
 
 常见的aarch64 system reg
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
