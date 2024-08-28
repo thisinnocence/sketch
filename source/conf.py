@@ -22,8 +22,12 @@ sys.path.append(os.path.abspath("./_extensions"))
 # https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 extensions = [
     'myst_parser',
-    'chinese_space'
+    'chinese_space',
+    'sphinx.ext.todo',
 ]
+
+# Display todos by setting to True
+todo_include_todos = True
 
 templates_path = ['_templates']
 exclude_patterns = []

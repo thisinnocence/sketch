@@ -452,6 +452,12 @@ machine init done后，通过notify来，然后改完后就好了。看内核这
 QEMU内置的Bootloader
 -----------------------
 
+QEMU不需要BIOS，也可以把内核给启动起来，靠的就是内置的bootloader。把内核、DTB、根文件系统等加载到特定物理地址(ROM/RAM)中，然后
+QEMU自身也有内置的极简的boot代码，也放入对应的物理地址，作为首条指令进行启动。
+
+ARM64的boot和load总流程
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 那么用qemu -bios参数指定的dtb，是如何确定加载的位置呢，追一下代码流程 ::
 
     // @file: mini-virt.c
@@ -511,7 +517,10 @@ QEMU内置的Bootloader
 
 可见，如果没有bios，使用qemu内置的bootloader直接启动内核，那么 ``-kernel, -dtb, -initrd`` 都是qemu自己计算的位置，内置
 的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader`` 
-来制定加载对应地址，其他两个不行，可能需要改一下代码， TODO: 需要进一步确认。 
+来制定加载对应地址，其他两个不行，需要改一下代码。
+
+QEMU的内置ARM64 boot实现
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c
 
@@ -552,7 +561,7 @@ QEMU内置的Bootloader
         entry = elf_entry;
         fixupcontext[FIXUP_ENTRYPOINT_LO] = entry; // <-- 传递给这个Guest的地址，需要前面配合设置x0
 
-    // 《kernel的代码》
+    // linux kernel
     // @arch/arm64/kernel/head.S
     // Kernel startup entry point
     //    MMU = off, D-cache = off, I-cache = on or off
@@ -616,11 +625,11 @@ QEMU内置的Bootloader
         if (cs == first_cpu)
             cpu_set_pc(cs, info->loader_start);
 
-    <<---create machine完毕---->>
+    <<---create machine finished---->>
     do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
     qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
     qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
-    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:1569)
+    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:156ed
     qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
     qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
     qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
@@ -701,7 +710,14 @@ QEMU内置的Bootloader
 
     code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
 
-再看下起来后的中断，比如用到的timer，只用到1个arch timer中断，其他的其实没有用到，至少在启动这个最小
+
+中断的仿真
+----------
+
+查看Guest的中断统计
+^^^^^^^^^^^^^^^^^^^^^
+
+前面的mini-virt启动，只用到arch timer和uart中断，其他的其实没有用到，至少在启动这个最小
 的内核Guest的时候。而且，代码精简后，也更加方便清楚每一行的功能是干嘛的，方便系统性的了解。启动OS后，
 可以通过下面的命令来看哪些中断增长了。  ::
 
@@ -722,8 +738,8 @@ QEMU内置的Bootloader
     arch_timer  30    //  #define ARCH_TIMER_NS_EL1_IRQ  30   @hw/arm/bsa.h
     uart-pl011  33    //  SPI interrupt:   [VIRT_UART] =  1   @hw/arm/mini-virt.c
 
-中断的仿真
-----------
+中断上报给CPU的实现
+^^^^^^^^^^^^^^^^^^^^^
 
 QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Exception后，就去执行对应处理，比如下面中断的一个callstack ::
 
@@ -737,12 +753,14 @@ QEMU在tcg大循环不停的翻译执行Guest的指令，然后遇到了IO/Excep
     #5  0x0000555555e82e75 in arm_cpu_set_irq (opaque=0x555557b3d370, irq=0, level=1) at ../target/arm/cpu.c:954
     #6  0x00005555561b72ad in qemu_set_irq (irq=0x555557b25420, level=1) at ../hw/core/irq.c:44
 
-中断报上来后，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。
+中断报上来后，在tcg里面设置一个标记，大循环中检测到后，pc指针设置到中断向量表的位置去执行中断。在 mini-virt 这个machine中的
+create_gic函数里，通过QOM property机制指定gic版本，cpu核数，中断个数。
 
-看下这个 mini-virt machine 实现中，gic相关的创建使用：
+GICR的关键属性设置
+^^^^^^^^^^^^^^^^^^
 
-create_gic 中，通过property指定gic版本，cpu核数，中断个数。然后 GICR 部分，这部分在ARM手册里是每个核一个GICR，这里实现的逻辑是
-根据地址规划，看一下可以支持的GICR的个数，也通过property设置给gic的redist-region-count 
+根据 ..:ref:`int_id_type` ARM官方GIC说明，每个核一个GICR，而且每个GICR也需要足够的MMIO空间，最终的GICR个数根据特定逻辑算出来
+后通过property设置给gic的redist-region-count属性。
 
 .. note:: 
 
@@ -754,7 +772,7 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
     split into multiple pieces.  We implemented this for KVM, but
     currently the TCG GICv3 model insists that there is only one region.
 
-::
+关于GICR的一些属性设置 ::
 
     /*
     * The redistributor in GICv3 has two 64KB frames per CPU; in
@@ -785,7 +803,10 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
         // The redistributor pages might be split into more than one region
         // on some machine types if there are many CPUs.
 
-然后看一下GIC和CPU的连接 ：
+GIC和CPU的中断pin连接
+^^^^^^^^^^^^^^^^^^^^^
+
+在machine的初始化创建函数中，create完毕cpu和gic后，就需要把相关的中断pin给连接起来，保证中断的正常上报了，代码流程:
 
 .. code-block:: c
 
@@ -822,7 +843,7 @@ create_gic 中，通过property指定gic版本，cpu核数，中断个数。然�
                         // @input->hander: <arm_cpu_set_irq>
     }
 
-大概得连接如下图：
+大概的中断连接拓扑如下图：
 
 .. image:: pic/qemu-gic-minivirt.png
     :scale: 65%
@@ -901,8 +922,8 @@ ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自�
     - 对于gic，qemu给每个中断包括ppi都会分配一个gpio，这machine就是 gicv3_set_irq;
     - 对于cpu，这里值arm的，qemu分配了4个(IRQ/FIQ/VIRQ/VFIQ)，这里machine就是 arm_cpu_set_irq;
 
-而，qdev_connect_gpio_out_named 核心就是连接到某设备的GPIO lines。 当设备asserts that output GPIO line, 
-the qemu_irq's callback is invoked. 针对这个arch-timer中断流程 ::
+而 qdev_connect_gpio_out_named 核心就是连接到某设备的GPIO lines. 当设备asserts that output GPIO line, the qemu_irq's
+callback is invoked. 针对这个arch-timer中断流程 ::
 
     // qemu_irq 是一个结构体指针类型, 初始 cpu->gt_timer_outputs[0] 的值是 0, 赋值是在下面流程, 可以用 gdb watch 来验证：
     #0  object_set_link_property (obj=0x555557a4b030, v=0x555557d91dd0, name=0x555557d2e830 "unnamed-gpio-out[0]", opaque=0x5555576edd50, errp=0x5555575aaf58 <error_abort>) at ../qom/object.c:1920
@@ -946,13 +967,16 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
 
 很多其他的API基本都是对上面的封装，比如：
     
-    - qdev_init_gpio_in、qdev_init_gpio_out 相当于name改成了NULL；
+    - qdev_init_gpio_in 想较于 qdev_init_gpio_in_named 是把name设置成了NULL；
+    - qdev_init_gpio_out 想较于 qdev_init_gpio_out_named 是把name设置成了NULL;
     - sysbus_connect_irq 则是把特定的device转换为父类sysbusdev后，然后接着调用的 qdev_init_gpio_out_named；
+
+下面分析下arch-timer中断的上报流程：
 
 .. note:: 
 
-    那么最终什么时候，ARCH_TIMER_NS_EL1_IRQ 30 这个中断触发到了 cpu_interrupt 呢？通过gdb发现，还是在main_loop定时器抓到了，
-    之前的tcg线程可能是一个检查吧？maybe
+    什么时候 ARCH_TIMER_NS_EL1_IRQ 30 这个中断上报调用到 cpu_interrupt 呢？通过gdb发现，还是在main_loop定时器抓到了，
+    之前的tcg线程应该是一个检查，读写相关arch-timer的系统寄存器也会触发这个 qemu_set_irq 的相关处理，但不一定报给核；
 
 测试的方法，采用gdb条件断点配合commands控制命令 ::
 
@@ -1007,17 +1031,16 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
     #16 0x00005555558eddca in qemu_default_main () at ../system/main.c:37
     #17 0x00005555558ede09 in main (argc=4, argv=0x7fffffffdf18) at ../system/main.c:48
 
-    可以看出，这次中断触发到CPU，是定时器机制触发的。
-
-在最小系统 mini-virt 中，我们用到这个 arch-timer 的中断，还有 uart 就可以。
+    可以看出，这次arch-timer中断触发，并最终报到CPU，是定时器机制触发的。
 
 运行bootloader u-boot
 ----------------------
 
-| 了解 u-boot:  https://docs.u-boot.org/en/latest/arch/arm64.html
-| QEMU-ARM:  https://docs.u-boot.org/en/latest/board/emulation/qemu-arm.html
+| 了解 u-boot: https://docs.u-boot.org/en/latest/arch/arm64.html
+| QEMU-ARM: https://docs.u-boot.org/en/latest/board/emulation/qemu-arm.html
 
-编译 u-boot
+编译u-boot
+^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -1028,7 +1051,10 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
     cd build
     make CROSS_COMPILE=aarch64-linux-gnu- -j
 
-启动 u-boot, u-boot是开源的bootloader，是 Bare Metal 裸机程序，用QEMU最简单的启动方法如下 ::
+启动u-boot
+^^^^^^^^^^^
+
+u-boot是开源的bootloader，是 Bare Metal 裸机程序，用QEMU最简单的启动方法如下 ::
 
     qemu -M virt -nographic -cpu cortex-a57 -bios build/u-boot.bin
 
@@ -1044,6 +1070,9 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
     // 根据QEMU实现，这是一个 pflash,  Program Flash memory
 
 参考一篇博客： https://stdrc.cc/post/2021/02/23/u-boot-qemu-virt
+
+使用u-boot引导OS
+^^^^^^^^^^^^^^^^^^^
 
 把编译出的linux镜像，通过u-boot命令加一个u-boot头，然后放入或者说生成 flash.img 里，后面在用QEMU -drive指定这个img，然后
 就用 u-boot 这个 bios 把内核引导起来了，上面的博文还有个自制的极简的arm64内核，试一下 ::
@@ -1078,7 +1107,8 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
 
 这篇博客中极简内核 helloworld：qemu-virt-hello 可以运行，参考的是交大教学OS的project，作者也是曾经的研究生助教。
 
-TODO: 但是 u-boot 引导时出现了 ``Bad Linux ARM64 Image magic!`` , 待定位原因。
+.. todo::
+    但是 u-boot 引导时出现了 ``Bad Linux ARM64 Image magic!`` , 待定位原因。
 
 QEMU加载bios流程  ::
 
@@ -1104,7 +1134,9 @@ QEMU加载bios流程  ::
     qemu -M virt,firmware=build/u-boot.bin -nographic -cpu cortex-a57
     qemu -M virt -device loader,file=build/u-boot.bin -nographic -cpu cortex-a57
 
-TODO: 后面试一下引导标准linux.
+.. todo::
+
+    后面试一下引导标准linux.
 
 QEMU的MemoryRegion机制
 ------------------------
