@@ -196,12 +196,12 @@ GIC的组成和中断的分类：
 
 结合QEMU和Linux的源码实现，可以更好的理解其实现细节。
 
-ARM architected timer
-------------------------------------
+ARM arch_timer
+-----------------
 
 主要参考：
 
-| https://developer.arm.com/documentation/102379/0104/What-is-the-Generic-Timer-?lang=en
+| https://developer.arm.com/documentation/102379/0104/
 | https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/arch_timer.txt
 
 The Generic Timer includes a ``System Counter`` and set of **per-core timers**.
