@@ -6,6 +6,8 @@
 ARM体系结构
 ===========
 
+本文主要介绍ARM64体系结构。
+
 ARMv8异常等级和安全态
 ------------------------
 
@@ -14,9 +16,8 @@ ARMv8-A 有两种 security states, Secure and Non-secure. The Non-secure state �
 .. image:: pic/Exception-level.png
     :scale: 50%
 
-
-AArch64 Exception Handling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Exception Handling
+^^^^^^^^^^^^^^^^^^^^
 
 异常会中断正常执行流程，并且需要特权程序进行异常处理，从而确保系统正常运行。Exception包括：
 
@@ -54,10 +55,8 @@ Exception and Interrupt
 
   异常和中断的区别:
 
-  - An exception is an event (other than branch or jump instructions) that causes the normal sequential execution
-    of instructions to be modified.
-  - An interrupt is an exception that is not caused directly by program execution. Usually, hardware external to the 
-    processor core signals an interrupt, such as a button being pressed.
+  - exception是一种event，这种event(除了分支和跳转指令)导致正常的指令执行流被修改。
+  - interrupt是exception的一种，并不由程序执行直接触发，通常是硬件触发报给CPU核，比如一个按键中断。 
 
   ARM把exception分为同步和异步两组:
 
@@ -71,7 +70,7 @@ GIC中断控制器
 
 主要参考ARM官方文档:  https://developer.arm.com/documentation/ihi0069/h/?lang=en
 
-GIC的组成和中断的分类：
+GIC的各模块组成：
 
 .. image:: pic/gic-compose.png
     :scale: 60%
@@ -106,7 +105,14 @@ GIC的组成和中断的分类：
      - LPIs
      - The upper boundary is IMPLEMENTATION DEFINED
 
-然后中断的上报流程可以看，不包括LPI（都是消息中断)：
+中断的上报
+
+参考： https://developer.arm.com/documentation/102909/0100/The-Generic-Interrupt-Controller
+
+.. image:: pic/int-report.png
+  :scale: 37%
+
+然后中断的上报流程可以看，不包括LPI（LPI都是消息中断)：
 
 .. image:: pic/gic_step.png
     :scale: 50%
@@ -119,23 +125,22 @@ GIC的组成和中断的分类：
 | 下面从软件使能GIC视角讲了一些原理和用法:
 | https://developer.arm.com/documentation/den0024/a/AArch64-Exception-Handling/The-Generic-Interrupt-Controller
 
-**Distributor**
+Distributor(GICD_*)
+^^^^^^^^^^^^^^^^^^^
 
-  To which all interrupt sources in the system are connected. The Distributor determines the highest priority 
-  pending interrupt that can be delivered to a core and forwards that to the CPU interface of the core.
+系统中所有的中断源都会连接到Distributor. Distributor决定了哪个最高优先级的pending interrupt能够上报给一个核，
+并且转发那个中断到那个核的 **CPU interface**。并且，Distributor提供了寄存器来上报不同中断ID的状态。主要作用:
 
-  The Distributor provides registers which report the current state of the different interrupt IDs..
+- Interrupt prioritization and distribution of **SPIs**.
+- Enable and disable SPIs
+- Set the priority level of each SPI
+- Route information for each SPI
+- Set each SPI to be level-sensitive or edge-triggered
+- Generate message-signaled SPIs
+- Control the active and pending state of SPIs
+- Determine the programmer’s model that is used in each Security state: affinity routing or legacy.
 
-**CPU interface**
-
-  Through which a core receives an interrupt. The CPU interface hosts registers to
-  mask, identify and control states of interrupts forwarded to that core. 
-
-  The core executes the exception handler in response. The handler must query the interrupt ID
-  from a CPU interface register and begin servicing the interrupt source. When finished, the
-  handler must write to a CPU interface register to report the end of processing.
-
-**Interrupt state**
+中断的状态转换
 
   - Inactive -> Pending
       When the interrupt is asserted by the peripheral.
@@ -144,55 +149,82 @@ GIC的组成和中断的分类：
   - Active -> Inactive
       When the handle has finished dealing with the interrupt
 
-**Configure and Initialization**
+Redistributors(GICR_*)
+^^^^^^^^^^^^^^^^^^^^^^^
 
-  The GIC is accessed as a memory-mapped peripheral. All cores can access the common
-  Distributor, but the CPU interface is banked, that is, each core uses the same address to access
-  its own private CPU interface. It is not possible for a core to access the CPU interface of another
-  core.
+- Enable and disable **SGIs and PPIs**
+- Set the priority level of SGIs and PPIs
+- Set each PPI to be level-sensitive or edge-triggered
+- Assign each SGI and PPI to an interrupt group
+- Control the state of SGIs and PPIs
+- Control the base address for the data structures in memory that support
+  the associated interrupt properties and pending state for LPIs
+- Provide power management support for the connected PE
 
-  The Distributor hosts a number of registers that you can use to configure the properties of
-  individual interrupts.
+CPU interface(ICC_*_ELn)
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  The Distributor also provides priority masking by which interrupts below a certain priority are
-  prevented from reaching the core. The distributor uses this when determining whether a pending
-  interrupt can be forwarded to a particular core.
+每个核通过 **CPU interface** 来接收中断。CPU interface提供了寄存器来 mask, identify and control states of interrupts 
+forwarded to that core. 
 
-  The CPU interfaces on each core helps with fine-tuning interrupt control and handling on that core.
+每个核执行exception handler作为响应. The handler must **query the interrupt ID** from a CPU interface register and 
+begin servicing the interrupt source. When finished, the handler must write to a CPU interface register 
+to **report the end of processing**.
 
-  Both the Distributor and the CPU interfaces are disabled at reset. The GIC must be initialized
-  after reset before it can deliver interrupts to the core.
+- Provide general control and configuration to enable interrupt
+- Acknowledge an interrupt
+- Perform a priority drop and deactivation of interrupts
+- Set an interrupt priority mask for the PE
+- Define the preemption policy for the PE
+- Determine the highest priority pending interrupt for the PE
 
-  In the Distributor, software must configure the priority, target, security and enable individual
-  interrupts.
+Configure and initialize
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  Before interrupts are expected in the core, software prepares the core to take interrupts by setting
-  a valid interrupt vector in the vector table, and clearing interrupt mask bits in PSTATE, and setting
-  the routing controls. For an interrupt to reach the core, the individual interrupt, Distributor and CPU interface 
-  must all be enabled. The interrupt also needs to be of sufficient priority, that is, higher than the core's
-  priority mask.
+GIC可以作为一个memory-mapped peripheral(MMIO外设)来访问. 所有核共享同一个Distributor, 但是CPU interface is banked, 
+即每个核都用 **same address** 访问它自己私有的CPU interface. 每个核都不能访问其他核的CPU interface.
 
-**Interrupt handling**
+Distributor提供了对应的寄存器来配置每个不同中断的属性。Distributor还提供了priority masking优先级掩码，一个中断如果低于了特定的
+优先级掩码配置，那么就不能上报到核. Distributor使用这个来决定一个pending interrupt是否可以报给特定的核。
 
-  When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
-  vector table and begins execution.
+CPU interfaces帮助其对应的核来fine-tuning(微调)中断的control and handling.
 
-  The top-level interrupt handler reads the Interrupt Acknowledge Register from the CPU Interface block to 
-  obtain the interrupt ID. As well as returning the interrupt ID, the read causes the interrupt to be marked 
-  as active in the Distributor. 
+Distributor 和 CPU interfaces在reset时都是disabled的. The GIC在reset后必须被initialized，才能正常工作和上报中断。
+In the Distributor, software must configure the priority, target, security and enable individual interrupts.
 
-  When the device-specific handler finishes execution, the top-level handler writes the same
-  interrupt ID to the End of Interrupt (EoI) register in the CPU Interface.
+Before interrupts are expected in the core, software prepares the core to take interrupts by setting
+a valid **interrupt vector** in the vector table, and clearing interrupt mask bits in PSTATE, and setting
+the routing controls. For an interrupt to reach the core, the individual interrupt, Distributor and CPU interface 
+must all be enabled. The interrupt also needs to be of sufficient priority, that is, higher than the core's
+priority mask.
 
-  It is possible for there to be more than one interrupt waiting to be serviced on the same core, but
-  the CPU Interface can signal only one interrupt at a time. The top-level interrupt handler could
-  repeat the above sequence until it reads the special interrupt ID value 1023, indicating that there
-  are no more interrupts pending at this core. This special interrupt ID is called the spurious
-  interrupt ID.
+下面是不同类型中断对应的相关配置寄存器:
 
-  The spurious interrupt ID is a reserved value, and cannot be assigned to any device in the
-  system. When the top-level handler has read the spurious interrupt ID it can complete its
-  execution, and prepare the core to resume the task it was doing before taking the interrupt.
+.. image:: pic/gic-config.png
+  :scale: 50%
+
+Interrupt handling
+^^^^^^^^^^^^^^^^^^
+
+When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
+vector table and begins execution.
+
+The top-level interrupt handler reads the Interrupt Acknowledge Register from the CPU Interface block to 
+obtain the interrupt ID. As well as returning the interrupt ID, the read causes the interrupt to be marked 
+as active in the Distributor. 
+
+When the device-specific handler finishes execution, the top-level handler writes the same
+interrupt ID to the End of Interrupt (EoI) register in the CPU Interface.
+
+It is possible for there to be more than one interrupt waiting to be serviced on the same core, but
+the CPU Interface can signal only one interrupt at a time. The top-level interrupt handler could
+repeat the above sequence until it reads the special interrupt ID value 1023, indicating that there
+are no more interrupts pending at this core. This special interrupt ID is called the spurious
+interrupt ID.
+
+The spurious interrupt ID is a reserved value, and cannot be assigned to any device in the
+system. When the top-level handler has read the spurious interrupt ID it can complete its
+execution, and prepare the core to resume the task it was doing before taking the interrupt.
 
 结合QEMU和Linux的源码实现，可以更好的理解其实现细节。
 
