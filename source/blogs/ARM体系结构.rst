@@ -209,18 +209,23 @@ Interrupt handling
 When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
 vector table and begins execution.
 
-The top-level interrupt handler reads the Interrupt Acknowledge Register from the CPU Interface block to 
-obtain the interrupt ID. As well as returning the interrupt ID, the read causes the interrupt to be marked 
-as active in the Distributor. 
+The top-level interrupt handler reads the IAR(Interrupt Acknowledge Register) from the **CPU Interface** block to 
+obtain the **interrupt ID**. As well as returning the interrupt ID, the read causes the interrupt to be marked 
+as active in the **Distributor**. 
 
-When the device-specific handler finishes execution, the top-level handler writes the same
-interrupt ID to the End of Interrupt (EoI) register in the CPU Interface.
+When the device-specific handler finishes execution, the top-level handler writes the same interrupt ID to the
+EoI(End of Interrupt) register in the **CPU Interface**.
 
 It is possible for there to be more than one interrupt waiting to be serviced on the same core, but
-the CPU Interface can signal only one interrupt at a time. The top-level interrupt handler could
+the **CPU Interface** can signal only one interrupt at a time. The top-level interrupt handler could
 repeat the above sequence until it reads the special interrupt ID value 1023, indicating that there
 are no more interrupts pending at this core. This special interrupt ID is called the spurious
-interrupt ID.
+interrupt ID(1023).
+
+.. note:: 
+  **1023 - Spurious interrupt**. There are no enabled INTIDs in the pending state, or all INTIDs in that pending
+  are of **insufficient priority** to be taken. When polling the IARs, this value indicates that there are
+  no interrupts to available to acknowledge.
 
 The spurious interrupt ID is a reserved value, and cannot be assigned to any device in the
 system. When the top-level handler has read the spurious interrupt ID it can complete its
