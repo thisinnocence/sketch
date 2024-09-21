@@ -15,7 +15,7 @@ verilog入门资料
 Verilog HDL（简称 Verilog ）是一种硬件描述语言，用于数字电路的系统设计。搜了一些资料：
 
 - https://www.runoob.com/w3cnote/verilog-tutorial.html
-- `夏宇闻-Verilog经典教程pdf <https://github.com/wtcat/DeveloperDoc/blob/master/%E5%A4%8F%E5%AE%87%E9%97%BB-Verilog%E7%BB%8F%E5%85%B8%E6%95%99%E7%A8%8B.pdf>`_ 
+- https://github.com/wtcat/DeveloperDoc/tree/master/HDL
 - `Verilog HDL教程（共172页pdf电子书下载） <https://bbs.elecfans.com/jishu_1610362_1_1.html>`_ 
 - https://www.asic-world.com/verilog/intro1.html
 - https://www.chipverify.com/tutorials/verilog
