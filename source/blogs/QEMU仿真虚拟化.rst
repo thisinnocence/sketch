@@ -759,7 +759,7 @@ create_gic函数里，通过QOM property机制指定gic版本，cpu核数，中�
 GICR的关键属性设置
 ^^^^^^^^^^^^^^^^^^
 
-根据 ..:ref:`int_id_type` ARM官方GIC说明，每个核一个GICR，而且每个GICR也需要足够的MMIO空间，最终的GICR个数根据特定逻辑算出来
+根据 :ref:`int_id_type` ARM官方GIC说明，每个核一个GICR，而且每个GICR也需要足够的MMIO空间，最终的GICR个数根据特定逻辑算出来
 后通过property设置给gic的redist-region-count属性。
 
 .. note:: 
