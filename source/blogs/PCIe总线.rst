@@ -192,7 +192,6 @@ Address Translation
 
     PCIe recognizes four address spaces, Memory, I/O, Configuration, and Message.
 
-
 参考
 -----
 

@@ -6,7 +6,7 @@
 OS笔记
 ===========
 
-因为Linux太过复杂，为了方便了解一下基本原理，还有 aarch64 体系结构编程，这里针对一下教学或者简单的OS学习一下。
+因为Linux太过复杂，为了方便了解一下基本原理，还有 aarch64 体系结构编程，这里教学类的简单的OS学习一下。
 
 启动
 -----
@@ -19,10 +19,10 @@ ChatGPT的解释 ::
     mrs  x1, mpidr_el1          // 获取多处理器ID寄存器的值到x1
     and  x1, x1, #3             // 检查处理器ID的最低两位, <=> x1 & 0b11
     cmp  x1, #0                 // 比较处理器ID是否为0
-    bne  hang                   // 如果不是0，跳转到hang标签
+    bne  hang                   // 如果不是0，跳转到 hang
 
   primary:
-    bl  arm64_elX_to_el1        // 跳转到arm64_elX_to_el1函数
+    bl  arm64_elX_to_el1        // 跳转到 arm64_elX_to_el1
 
     // set exception vector
     adr  x0, exception_vector   // 获取异常向量表的地址
@@ -38,7 +38,7 @@ ChatGPT的解释 ::
 
   hang:
     wfi                         // 等待中断
-    b  hang                     // 跳转回hang标签
+    b  hang                     // 跳转回 hang
   END_FUNC(_start)
 
 在编译的中间文件 kernel/kernel.asm 中可以看到 ::
@@ -62,12 +62,12 @@ ChatGPT的解释 ::
       4000002c:	17ffffff 	b	40000028 <hang>
       40000030:	40005008 	.inst	0x40005008 ; undefined
 
-根据 mpidr_el1 选择主核来启动，其他的挂起。
+根据 mpidr_el1 选择主核来启动，其他的核挂起。
 
 ARM bare metal 编程
 ----------------------
 
-体系结构强相关的编程，bare metal 裸机程序很有帮助，帮助聚焦体系结构编程使能。fork 了一个很好的练习 project：
+体系结构强相关的编程，bare metal 裸机编程很有帮助，聚焦体系结构。可以 fork 下面的 project 学习:
 
-- 裸机hello world程序: https://github.com/thisinnocence/aarch64-bare-metal-qemu
+- 裸机hello world程序 : https://github.com/thisinnocence/aarch64-bare-metal-qemu
 - 裸机带着GIC中断的程序: https://github.com/thisinnocence/armv8-bare-metal
