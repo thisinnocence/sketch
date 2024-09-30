@@ -137,12 +137,8 @@ OpenAI大佬的一些经典Twitter言论
 
 系统性的博客，可以针对性的总结几个专栏，如：Linux、ARM、QEMU，后就是高性能网络编程，web编程，AI LLM，新兴的一些语言Rust等。
 
-| 看了一篇博客： https://notes.caijiqhx.top/ucas/virtualization/dma_and_iommu
-| 对应的工程是： https://github.com/caijiqhx/Notes
-| 看起来用的是： https://www.mkdocs.org
-
-mkdocs也是python工程，可以从md生成静态网站，支持的格式是markdown，看起来也不错。还是用 rst ，这个更适合写结构性的文档，样式
-也更加的丰富。
+有的静态博客用的是 https://www.mkdocs.org ，mkdocs也是python工程，可以从md生成静态网站，支持的格式是markdown，
+看起来也不错。不过决定最终还是用 rst 格式，这个更适合写结构性的文档，样式也更加的丰富。
 
 如何保持心流
 --------------
@@ -298,7 +294,6 @@ OpenAI Sora研发团队
 =============
 
 看了几个帖子，之前高位买房，房价大跌后带来了很大的负债。
-
 
 在2024年的中国一线城市，我感觉最优的策略是：在自己收入范围内买个无经济压力的房子，因为房子绑定了户口等，而且有个自己的房子，
 住起来也舒服，可以买各种需要的，也不会有紧急时期找不到房子的情况发生。然后，配合租房子，没有高负债压力，也更加灵活便宜，
