@@ -1,0 +1,33 @@
+.. Michael Wu 版权所有
+
+:Authors: Michael Wu
+:Version: 1.1
+
+2024-Q4
+************************
+
+1002 理财
+==========
+
+指数基金
+---------
+
+https://www.zhihu.com/question/378778601/answer/2541674011
+
+    指数型基金不专门投资 **债券** 和 **个股** ，属于跟踪指数变化的基金。
+
+https://xueqiu.com/edu/invest-edu/education/begin/1894299685/83785337
+
+
+    交易所开放式指数基金(ETF Exchange-traded fund)又被称为交易所交易基金，是在交易所上市交易的、基金份 额可变的一种开放式基金。
+    ETF 一般采用被动式投资策略跟踪某一标的市场指数，因此具有 指数基金的特点。ETF 结合了封闭式基金与开放式基金的运作特点;
+    投资者既可以像封闭式2基金那样在交易所二级市场买卖，又可以像开放式基金那样申购、赎回。不同的是，它的申购是用一篮子股票
+    换取 ETF 份额，赎回时则是换回一篮子股票而不是现金。这种交易制度使 该类基金存在一级和二级市场之间的套利机制，
+    可有效防止类似封闭式基金的大幅折价。此 外，ETF 还具有交易费用低廉、投资组合透明、实时交易的特点。
+
+https://en.wikipedia.org/wiki/Exchange-traded_fund
+
+    An exchange-traded fund (ETF) is a type of investment fund that is also an exchange-traded product, i.e., 
+    it is traded on stock exchanges.ETFs own financial assets such as stocks, bonds, currencies, debts, 
+    futures contracts, and/or commodities such as gold bars. Many ETFs provide some level of diversification 
+    compared to owning an individual stock.
