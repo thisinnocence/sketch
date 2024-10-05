@@ -65,26 +65,29 @@ https://devguide.python.org/documentation/markup/#sections
 
 https://docs.restructuredtext.net/articles/snippets
 
-=================== ==============
-Keyword             Description
-=================== ==============
-``code``            Code block
-``image``           Image
-``link``            Link
-``attention``       Attention
-``note``            Note
-``warning``         Warning
-``error``           Error
-``hint``            Hint
-``important``       Important
-``caution``         Caution
-``tip``             Tip
-``rubric``          Rubric (footnote)
-``doc``             Doc reference
-``ref``             Label reference
-``label``           Label
-``literalinclude``  Literal include
-=================== ==============
+.. table:: 
+    :align: left
+
+    =================== ==============
+    Keyword             Description
+    =================== ==============
+    ``code``            Code block
+    ``image``           Image
+    ``link``            Link
+    ``attention``       Attention
+    ``note``            Note
+    ``warning``         Warning
+    ``error``           Error
+    ``hint``            Hint
+    ``important``       Important
+    ``caution``         Caution
+    ``tip``             Tip
+    ``rubric``          Rubric (footnote)
+    ``doc``             Doc reference
+    ``ref``             Label reference
+    ``label``           Label
+    ``literalinclude``  Literal include
+    =================== ==============
 
 快速编辑表格
 ^^^^^^^^^^^^^^

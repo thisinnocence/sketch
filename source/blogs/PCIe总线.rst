@@ -31,6 +31,7 @@ PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设
 其他总线设备可以直接访问PCIe设备的的MMIO空间，而PCIe设备也可以访问其他的总线空间，包括其他设备的MMIO空间或者总线控制器后面的内存。
 
 .. csv-table:: pcie-term-definiton
+    :align: left
 
     Term,definition
     EP,End point

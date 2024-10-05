@@ -12,6 +12,7 @@ QEMU仿真虚拟化
 使用当前（2024.3）的最新版本即可:
 
 .. csv-table::
+    :align: left
 
     QEMU, https://www.qemu.org, https://github.com/qemu, v8.2.0
     Linux, https://www.kernel.org, https://github.com/torvalds/linux, v6.8.0
