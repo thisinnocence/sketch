@@ -31,3 +31,24 @@ https://en.wikipedia.org/wiki/Exchange-traded_fund
     it is traded on stock exchanges.ETFs own financial assets such as stocks, bonds, currencies, debts, 
     futures contracts, and/or commodities such as gold bars. Many ETFs provide some level of diversification 
     compared to owning an individual stock.
+
+1005 沪深300计算方法
+---------------------
+
+`沪深 300 指数编制方案 - 2023 年 9 月 <https://csi-web-dev.oss-cn-shanghai-finance-1-pub.aliyuncs.com/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf>`_ 
+
+沪深 300 指数由沪深市场中规模大、 流动性好的最具代表性的 300 只证券组成， 于 2005 年 4 月 8 日正式发布， 以反映沪深市场上
+市公司证券的整体表现。
+
+沪深 300 指数以“点”为单位， 精确到小数点后 3 位。沪深 300 指数以 2004 年 12 月 31 日为基日， 基点为 1000 点。
+
+
+.. math::
+
+  \text{沪深300指数} = \frac{\sum (\text{证券价格} \times \text{调整股本数})}{\text{基期市值}} \times 1000
+
+这一波大涨，记录一下指数的涨幅
+
+.. image:: pic/hushen_300_1005.png
+
+这一轮的刺激理论是超过2015,2021的，那么从这个角度，现在这个指数基金短期看，还有很大涨幅空间。
