@@ -234,3 +234,10 @@ index.rst 的问题，就是 conf.py 的问题，最后一点点的改配置，�
     pygments_style = 'sphinx'
 
 这样默认块主题就是sphinx默认的样式。
+
+公式的写法
+--------------
+
+参考： https://www.osgeo.cn/sphinx-note/rest-math2.html
+
+有很多公式的写法，很好参考。
