@@ -465,7 +465,7 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
 然后在build目录执行  ::
 
     cd build
-    ./scripts/clang-tools/gen_compile_commands.py
+    ../scripts/clang-tools/gen_compile_commands.py
 
 打开vscode的工程，clangd会尝试建立索引，如果没有可以手工重启一下clangd server: ``ctrl+shift+p`` , 然后输入 ``clangd`` 找到重启
 命令回车。 clangd插件会索引大概5min，然后就可以基本精确跳转了。不得不说，有了clangd-lsp支持，比传统的tags/cscope精确
