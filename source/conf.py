@@ -21,7 +21,6 @@ sys.path.append(os.path.abspath("./_extensions"))
 
 # https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 extensions = [
-    'myst_parser',
     'chinese_space',
     'sphinx.ext.todo',
 ]
