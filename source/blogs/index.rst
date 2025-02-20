@@ -15,3 +15,4 @@
    IC芯片设计
    OS笔记
    PCIe总线
+   QEMU TCG
