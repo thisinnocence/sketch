@@ -606,8 +606,8 @@ MRS和MSR指令
 
 参考： https://developer.arm.com/documentation/ddi0487/latest/
 
-- MRS: MRS Move System register to general-purpose register.
-- MSR: Move general-purpose register to System register. Move immediate to PE state field
+- MRS: Move to general-purpose Register from system register.
+- MSR: Move to System-register from general-purpose register.
 
 MRS/MSR的操作顺序逻辑通常是 move to dst from src. (R-通用寄存器，S-系统寄存器)
 
