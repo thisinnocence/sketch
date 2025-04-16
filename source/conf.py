@@ -25,6 +25,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',  # math
     'myst_parser',  # markdown
+    'sphinx_copybutton',
 ]
 
 # myst_parser options for markdown

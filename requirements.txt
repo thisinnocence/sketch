@@ -3,3 +3,4 @@ sphinx
 sphinx_rtd_theme
 furo
 myst_parser
+sphinx_copybutton
