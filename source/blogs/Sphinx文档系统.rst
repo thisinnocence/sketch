@@ -241,3 +241,16 @@ index.rst 的问题，就是 conf.py 的问题，最后一点点的改配置，�
 参考： https://www.osgeo.cn/sphinx-note/rest-math2.html
 
 有很多公式的写法，很好参考。
+
+支持markdown
+---------------
+
+可以添加 myst_parser 插件，支持markdown语法。同时vscode配置一下插件，防止 toc 误报：
+
+.. code-block:: js
+
+    {
+        "restructuredtext.confPath": "${workspaceFolder}/conf.py", // 确保插件读取 Sphinx 配置
+        "restructuredtext.languageServer.enabled": true,           // 启用语言服务器
+        "restructuredtext.supportedFileSuffixes": [".rst", ".md"]  // 显式声明支持的扩展名
+    }
