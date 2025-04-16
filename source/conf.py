@@ -23,6 +23,17 @@ sys.path.append(os.path.abspath("./_extensions"))
 extensions = [
     'chinese_space',
     'sphinx.ext.todo',
+    'sphinx.ext.mathjax',  # math
+    'myst_parser',  # markdown
+]
+
+# myst_parser options for markdown
+myst_enable_extensions = [
+    "dollarmath",    # 支持 $...$ 行内数学公式
+    "amsmath",       # 支持 LaTeX 公式环境（如 \begin{align}）
+    "colon_fence",   # 支持 ::: 语法定义代码块
+    "html_image",    # 支持 HTML 图片标签
+    # 其他扩展...
 ]
 
 # Display todos by setting to True
