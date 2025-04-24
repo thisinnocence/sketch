@@ -9,11 +9,11 @@ JavaScript笔记
 JavaScript教程
 -------------------
 
-- `现代 JavaScript 教程 <https://zh.javascript.info/>`_ 
+- `现代 JavaScript 教程 <https://zh.javascript.info/>`_
 - `ECMAScript 6 教程 <https://wangdoc.com/es6/intro>`_
 - `TypeScript 语言简介 <https://wangdoc.com/typescript/intro>`_
-- `七天学会NodeJS <https://nqdeng.github.io/7-days-nodejs/>`_ 
-- `HTML 语言简介 <https://wangdoc.com/html/intro>`_ 
+- `七天学会NodeJS <https://nqdeng.github.io/7-days-nodejs/>`_
+- `HTML 语言简介 <https://wangdoc.com/html/intro>`_
 
 JavaScript笔记
 ---------------

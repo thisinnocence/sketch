@@ -10,7 +10,7 @@ Why sphinx
 -------------
 
 说一下为什么选择sphinx，一个好的笔记平台能够更好让人养成写作思考的习惯。经过一段时间
-在项目中的使用，发现sphinx能够很好的做到这点，让人聚焦内容。还有很多其他优势: 
+在项目中的使用，发现sphinx能够很好的做到这点，让人聚焦内容。还有很多其他优势:
 
 1. 文档能够很方便通过Git项目进行托管，方便持续演进更新。
 2. 支持渲染成各种想要的样式进行公开发布，有github、readthedoc等免费的发布平台。
@@ -65,7 +65,7 @@ https://devguide.python.org/documentation/markup/#sections
 
 https://docs.restructuredtext.net/articles/snippets
 
-.. table:: 
+.. table::
     :align: left
 
     =================== ==============
@@ -98,7 +98,7 @@ https://tatsuyanakamori.github.io/vscode-reStructuredText/en/sec02_functions/tab
 
 - 自动转逗号分隔符格式为表格
 - 根据 ``3x4`` 快速转换表格
-  
+
 还有一些很方便的方法详细看上面链接。
 
 快速插入图片
@@ -131,7 +131,7 @@ vscode的settings.json中加入下面的配置即可：
         "pasteImage.prefix": ".. image:: ",
     }
 
-.. tip:: 
+.. tip::
     使用 ``windows + v`` 可以看windows的剪切板里有什么图片
 
 
@@ -225,7 +225,7 @@ sphinx_rtd_theme Q&A
 很多资料，也看了生成的网页HTML源码，都没有解决。但是网上的其他工程都没有问题，那就可以得出结论一定是自己配置的问题，不是
 index.rst 的问题，就是 conf.py 的问题，最后一点点的改配置，然后再去生成，终于结局了问题。导致问题的关键配置是
 
-.. attention:: 
+.. attention::
     | 在 conf.py 文件，下面这一行加了后就会有bug，需要删除！
     | html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 

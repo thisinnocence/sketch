@@ -97,8 +97,8 @@ https://www.zhihu.com/question/694696726
     | 投资最重要的三件事：第一，保住本金；第二，保住本金；第三，时刻牢记前两条。---沃伦.巴菲特。
     | 这个时候再看看巴菲特老爷子的名言，可能大家的感触会更深一些吧！
 
-.. note:: 
-    
+.. note::
+
     跟北大一搞AI的哥们交流，如果是在忍不了亏，那就快点跑，20%就跑吧。根据的就是上面的逻辑。
     不过其实还是一个系统性的，毕竟理财还是要系统性的学习一下的，否则上来很多观点直接就给你带跑了。
 
@@ -111,13 +111,13 @@ https://www.zhihu.com/question/694696726
 沪深300定义
 ^^^^^^^^^^^
 
-`沪深300的维基百科 <https://zh.wikipedia.org/wiki/%E6%B2%AA%E6%B7%B1300k>`_ 
+`沪深300的维基百科 <https://zh.wikipedia.org/wiki/%E6%B2%AA%E6%B7%B1300k>`_
 
     沪深300指数（英语：CSI 300，上海证券交易所代码：000300，深圳证券交易所代码：399300），在上海和深圳证券市场中选取300支市值大，
     流通性好的A股以自由流通股本市值加权的方式，由中证指数公司编制并发布的成份股指数。沪深300指数以2004年12月31日为基日，
     基点为1000点，2005年4月8日正式发布。
 
-`沪深300指数 (000300)的官网链接 <https://www.csindex.com.cn/zh-CN/indices/index-detail/H30077#/indices/family/detail?indexCode=000300>`_ 
+`沪深300指数 (000300)的官网链接 <https://www.csindex.com.cn/zh-CN/indices/index-detail/H30077#/indices/family/detail?indexCode=000300>`_
 
 .. figure:: pic/csi-300-2024.png
     :alt: 沪深300官网截图20240930
@@ -141,15 +141,15 @@ https://xueqiu.com/edu/invest-edu/education/begin/1894299685/83785337
 
 https://en.wikipedia.org/wiki/Exchange-traded_fund
 
-    An exchange-traded fund (ETF) is a type of investment fund that is also an exchange-traded product, i.e., 
-    it is traded on stock exchanges.ETFs own financial assets such as stocks, bonds, currencies, debts, 
-    futures contracts, and/or commodities such as gold bars. Many ETFs provide some level of diversification 
+    An exchange-traded fund (ETF) is a type of investment fund that is also an exchange-traded product, i.e.,
+    it is traded on stock exchanges.ETFs own financial assets such as stocks, bonds, currencies, debts,
+    futures contracts, and/or commodities such as gold bars. Many ETFs provide some level of diversification
     compared to owning an individual stock.
 
 沪深300计算方法
 ^^^^^^^^^^^^^^^^^
 
-`沪深 300 指数编制方案 - 2023 年 9 月 <https://csi-web-dev.oss-cn-shanghai-finance-1-pub.aliyuncs.com/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf>`_ 
+`沪深 300 指数编制方案 - 2023 年 9 月 <https://csi-web-dev.oss-cn-shanghai-finance-1-pub.aliyuncs.com/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf>`_
 
 沪深 300 指数以“点”为单位， 精确到小数点后 3 位。沪深 300 指数以 2004 年 12 月 31 日为基日， 基点为 1000 点。
 
@@ -164,7 +164,7 @@ https://en.wikipedia.org/wiki/Exchange-traded_fund
 
 .. image:: pic/hushen_300_1005.png
 
-.. todo:: 
+.. todo::
 
     感觉，这一轮的刺激理论是超过2015,2021的，那么从这个角度，现在这个指数基金短期看，还有很大涨幅空间。
     但是我的理财知识还过于匮乏，后面学习后，回头重新看下这个结论。
@@ -172,7 +172,7 @@ https://en.wikipedia.org/wiki/Exchange-traded_fund
 上证指数（大盘）
 ----------------
 
-一般说的 **大盘** 就是上证指数： `上海证券交易所综合股价指数 <https://zh.wikipedia.org/zh-cn/%E4%B8%8A%E6%B5%B7%E8%AF%81%E5%88%B8%E4%BA%A4%E6%98%93%E6%89%80%E7%BB%BC%E5%90%88%E8%82%A1%E4%BB%B7%E6%8C%87%E6%95%B0>`_ 
+一般说的 **大盘** 就是上证指数： `上海证券交易所综合股价指数 <https://zh.wikipedia.org/zh-cn/%E4%B8%8A%E6%B5%B7%E8%AF%81%E5%88%B8%E4%BA%A4%E6%98%93%E6%89%80%E7%BB%BC%E5%90%88%E8%82%A1%E4%BB%B7%E6%8C%87%E6%95%B0>`_
 
 上海证券交易所综合股价指数（简称 **上证指数** 、上证综指、上证综合、沪综指或 **沪指** ，英语：SSE Composite Index），
 上海证券交易所主要的综合股价指数，为一种市值加权指数，是反应挂牌股票总体走势的统计指标。
@@ -193,7 +193,7 @@ https://www.sse.com.cn/market/sseindex/indexlist/indexdetails/indexmethods/c1/00
 | 成分股的市值：这是指上证指数成分股（包括A股和B股）的总市值，即每个成分股的股票价格乘以其流通股本。
 | 基期市值：基期市值是指指数基准日当天所有成分股的总市值。上证指数的基准日是1990年12月19日，当时基期点位设为100点。
 
-历史的走势，还是用谷歌的财经 
+历史的走势，还是用谷歌的财经
 
 .. figure:: pic/huzhi-20240930.png
     :width: 80%
@@ -224,16 +224,16 @@ A股与美股
 标准普尔500指数： Standard & Poor's 500 (简称S&P 500, 标普500), 自1957年起记录美国股市表现，涵盖500只普通股，
 是最受关注的股票指数之一。该指数覆盖了美国约80%的公开上市公司总市值，截至2024年1月，其总市值超过43兆美元。
 
-2、标普和纳指的区别： 
+2、标普和纳指的区别：
 
 https://www.zhihu.com/question/449379527/answer/3542593391
 
-| 标普500包含500只市值较大的上市公司股票，这些公司覆盖了多个行业，是对美国大型股市场的一个广泛衡量。--- 对标中国的沪深300指数。 
+| 标普500包含500只市值较大的上市公司股票，这些公司覆盖了多个行业，是对美国大型股市场的一个广泛衡量。--- 对标中国的沪深300指数。
 | 纳斯达克100则包含100只在纳斯达克交易所上市的最大和非金融类公司股票，偏重科技股。--- 对标中国的创业板指数
 
 | 纳斯达克：由于其上市公司多为成长型企业，因此具有较高的风险和潜在回报。
 |   在经济繁荣时期，纳斯达克指数往往能取得显著的涨幅；
-|   但在经济衰退时期，其波动性也可能较大。 
+|   但在经济衰退时期，其波动性也可能较大。
 | 标普500：由于其成分股涵盖了多个行业，因此风险相对分散。
 |   这使得标普500指数在市场波动时具有相对的稳定性，适合长期投资者关注。
 
@@ -281,7 +281,7 @@ https://www.zhihu.com/question/449379527/answer/3542593391
     | 这样的话，一场牛市走完倒亏21.2万！
     | 很多散户基本上都是这样亏钱的！
 
-.. note:: 
+.. note::
     这个有点反直觉，之前有过买基金的经历，但是从来没研究过。所以，完全不清楚，基金别后到底是什么，没有个宏观的粗略认识是低还是高，
     并且习惯性的追涨杀跌，看见涨，心里开心然后捂着期待更高，没有个预期到底涨多少卖，然后看见下跌就忍不住赶紧卖。这就是纯粹的基础
     认识都没有的操作。
@@ -297,12 +297,12 @@ https://etf.sse.com.cn/fund/learning/knowledge/c/5704297.shtml
   股票ETF的投资标的是在证券交易所上市交易的股票，投资目标是紧密跟踪相应的股票指数，并将跟踪误差和跟踪偏离度控制在一定范围内。
   股票ETF兼具基金和股票的优点，为投资者提供了一个方便快捷、灵活及费用低廉的投资渠道。投资者以一笔交易就可直接投资一揽子股票，
   比投资单一股票风险要小，也不会发生“赚了指数赔了钱”的情况。
-  
+
   由于股票ETF走势与股市同步，投资者不需研究个股，只要判断涨跌趋势即可，因此，股票ETF是一种较轻松的投资工具。
   以跟踪沪深300指数的ETF为例，由于该ETF的价格走势与沪深300指数基本一致，所以买卖一只ETF，就等于同时交易300只绩优的股票。
-  
+
   股票ETF按不同类型可分为 **宽基ETF** 、 **行业ETF** 和 **主题ETF**。
-  
+
   宽基ETF是我们通常意义上所说的跟踪宽基指数即规模指数的ETF产品，其所代表的不同类型的规模指数反映了A股市场中不同规模特征股票的
   整体表现。比如我们常见的 上证50、 **沪深300**、中证500 等ETF，都属于宽基ETF。
 
@@ -310,7 +310,7 @@ https://etf.sse.com.cn/fund/learning/knowledge/c/5704297.shtml
   整体平均收益。与投资宽基ETF相比，行业ETF能高效准确地追踪行业的整体表现，实现宽基ETF不能实现的一些投资目标。比如，
   通过行业ETF方便地投资于自己看好的特定行业板块、捕捉阶段性交易机会、运用行业轮动策略紧跟热点等等。与投资个股相比，行业ETF可便捷实现
   对某一选定行业的全面布局，分散个股投资风险，更为有效地分享该行业的整体收益。
-  
+
   还有一类跟踪某特定投资主题的主题ETF。常见投资主题如环保、医疗、传媒等，此类ETF跟踪的指数往往覆盖了该主题对应的上下游上市公司。
   作为宽基ETF和行业ETF的有力补充，主题ETF为投资者提供了一个高效便捷且交易成本低廉的、可以捕捉热点投资主题的交易工具。
 
@@ -319,7 +319,7 @@ https://caifuhao.eastmoney.com/news/20230517100311044028380
   - 上证50：上证50指数由沪市A股中规模大、流动性好的最具代表性的50只股票组成，是大盘股的代表指数。
   - 沪深300：包含A股规模最大的第1-300只股票，同样是大盘股的代表指数。
   - 中证500：包含A股规模最大的第301-800只股票，是中小盘股的代表指数。
-  - 中证1000：包含A股规模最大的第801-1800只股票，是小盘股的代表指数。 
+  - 中证1000：包含A股规模最大的第801-1800只股票，是小盘股的代表指数。
 
   从2013年至今四大指数相对走势可以看到，四大指数在过去十年中，阶段性的最高收益和累计收益（2013/1/4--2023/5/5）均为中证1000指数
   最高，这与指数成长性和弹性等属性密不可分。
@@ -403,19 +403,19 @@ https://xueqiu.com/9391624441/306948573
   | 那么，选择核心宽基，便是给了自己留了更大的容错空间。
 
   如何选择ETF产品？
-  
+
   指数基金或ETF在选择产品，请注意产品规模，请选择整体规模1亿或以上的产品，场外产品计算规模时，可以合并A、C类；
   如果是场内ETF产品，有两种选择，一种是1.5亿-5亿的产品，有一定的打新超额；另外一种则是选择规模靠前的产品，能提供更好的流动性；
-  
+
     A、C类份额的区别在于费率结构，A类适合长期持有，C类适合短期持有。
     打新超额是通过打新股获得的额外收益，通常中小规模的ETF更容易获得这种超额收益。
 
     “打新”指的是打新股，即通过新股申购的方式参与一级市场新股发行。在某些市场，尤其是A股市场，
     新股中签后股价往往大幅上涨，因此新股申购成为一种较为热门的投资方式。
-  
+
 设定符合实际的收益预期
 
-.. note:: 
+.. note::
     站在指数基金的角度，设定 **8%-12%** 年化收益预期，是一个相对合理的目标。如果希望获得更高的收益率，
     一看天分，二看性格，三看积累。
 
@@ -443,7 +443,7 @@ chatGPT，果然给出了很方便的 matlab 代码，我本地PC装了开源的
 
     ... // 这里是近1个月的沪指的值，每行一个，直接复制过来的
 
-    使用最小二乘法，给出 y 和 x 之间的函数关系，y = ax + b, 求出来 a, b; 
+    使用最小二乘法，给出 y 和 x 之间的函数关系，y = ax + b, 求出来 a, b;
     给出来 matlab 的计算代码 .m 文件代码，画出来图吗，让我知道这个直线和实际点的误差。
 
 

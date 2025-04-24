@@ -13,7 +13,7 @@ Linux操作系统
 
 下载Linux源码后，使用menuconfig勾选RAM disks为 ``build-in`` 支持，并调整大小为: 65536 kb， 方便后面用QEMU拉起。
 
-.. note:: 
+.. note::
     后续的代码主要针对： v6.8.0
 
 编译ARM64内核镜像方法如下：
@@ -27,23 +27,23 @@ Linux操作系统
           (65536) Default RAM disk size (kbytes)
 
     make CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 O=build -j32
-    file build/arch/arm64/boot/Image 
+    file build/arch/arm64/boot/Image
 
 ARM Linux常见的内核镜像格式：
 
 - Image: the generic Linux kernel binary image file.
 - zImage: a compressed version of the Linux kernel image that is **self-extracting** .
-- uImage: an image file that has a **U-Boot** wrapper (installed by the mkimage utility) that includes the OS type and 
+- uImage: an image file that has a **U-Boot** wrapper (installed by the mkimage utility) that includes the OS type and
   loader information.
 
 .. note::
-    Since a zImage file is self-extracting (i.e. needs no external decompressors), the wrapper would indicate that 
+    Since a zImage file is self-extracting (i.e. needs no external decompressors), the wrapper would indicate that
     this kernel is "not compressed" even though it actually is.
 
     uImage维护者认为：
 
-    Actually it's pretty stupid to use a zImage inside an uImage. It is much better to use normal (uncompressed) 
-    kernel image, compress it using just gzip, and use this as poayload for mkimage. 
+    Actually it's pretty stupid to use a zImage inside an uImage. It is much better to use normal (uncompressed)
+    kernel image, compress it using just gzip, and use this as poayload for mkimage.
     This way U-Boot does the uncompresiong instead of including yet another uncompressor with each kernel image.
 
     https://docs.yoctoproject.org/pipermail/yocto/2013-October/016778.html
@@ -60,7 +60,7 @@ ARM Linux常见的内核镜像格式：
 
 .. code-block:: bash
 
-    make CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 menuconfig -j32 
+    make CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 menuconfig -j32
         Settings
         [*] Build static binary (no shared libs)
 
@@ -126,7 +126,7 @@ DTS基础知识
 关于ARM Linux的DTS，历史渊源是Linus非常不满意ARM硬件细节硬编码到代码里，把代码弄的一团乱，然后社区才引入了DTS这个机制。这个
 机制用来描述一个硬件平台的硬件资源，起源于 OpenFirmware (OF)。社区当时讨论的方案是：
 
-.. note:: 
+.. note::
 
     - ARM的核心代码仍然保存在arch/arm目录下
     - ARM SoC core architecture code保存在arch/arm目录下
@@ -142,7 +142,7 @@ DTS基础知识
 3. 设备的拓扑结构以及特性
 
 在系统启动阶段，bootloader会加载内核并将控制权转交给内核，此外， 还需要把上述的三个参数信息传递给kernel，以便kernel可以有较大的灵活性。
-可以看这篇文章： https://e-mailky.github.io/2019-01-14-dts-1 
+可以看这篇文章： https://e-mailky.github.io/2019-01-14-dts-1
 
 Device Tree由一系列被命名的结点（node）和属性（property）组成，而结点本身可包含 **子结点** 。所谓属性， 其实就是成对出现的name和value。
 在Device Tree中，可描述的信息包括（原先这些信息大多被hard code到kernel中）：
@@ -159,7 +159,7 @@ Device Tree由一系列被命名的结点（node）和属性（property）组成
 出Linux内核中的platform_device、i2c_client、spi_device等设备，而这些设备用到的内存、IRQ等资源， 也被传递给了内核，
 内核会将这些资源绑定给展开的相应的设备。
 
-.. note:: 
+.. note::
     是否Device Tree要描述系统中的所有硬件信息？答案是否定的。基本上，那些可以动态探测到的设备是不需要描述的， 例如USB device。
     不过对于SOC上的usb hostcontroller，它是无法动态识别的，需要在device tree中描述。
 
@@ -176,7 +176,7 @@ device tree的基本单元是node。这些node被组织成树状结构，除了r
 
 每个node用节点名字（node name）标识，节点名字的格式是 ``node-name@unit-address`` 。
 
-.. note:: 
+.. note::
     如果该node没有reg属性（后面会描述这个property）， 那么该节点名字中必须不能包括@和unit-address。
     unit-address的具体格式是和设备挂在那个bus上相关。例如对于cpu，其unit-address就是从0开始编址，以此加一。
 
@@ -319,7 +319,7 @@ QEMU virt machine dts解析
 
 需要注意的是，address/length可以是1个或这个2个u32(dts规范称之位cell)的值，根据下面两个属性确定:
 
-.. note:: 
+.. note::
 
     | #address-cells 和 #size-cells 属性可在层次结构中具有子节点的任何设备节点中使用，用于描述如何寻址子设备节点。
     | #address-cells 和 #size-cells 属性不会从设备树的祖先节点继承。它们应该被明确地定义, 即先看当前，再看父节点。
@@ -335,7 +335,7 @@ QEMU virt machine dts解析
 | Property: interrupts
 | Value type: <prop-encoded-array> encoded as arbitrary number of interrupt specifiers
 
-interrupt属性的value是一个数组, 格式说明要看绑定的interrupt domain root. Interrupts可以被 
+interrupt属性的value是一个数组, 格式说明要看绑定的interrupt domain root. Interrupts可以被
 interrupts-extended property 覆盖，通常只有1个被使用。
 
 对于 pl011, 有3个字段(cells), 有下面资料：
@@ -378,7 +378,7 @@ https://github.com/torvalds/linux/blob/master/Documentation/devicetree/bindings/
     - 0 for SPI interrupts
     - 1 for PPI
 
-  The 2nd cell contains the interrupt number for the interrupt type. 
+  The 2nd cell contains the interrupt number for the interrupt type.
 
     - | SPI interrupts are in the range [0-987].  (显然对于硬件手册里的中断号，我们配置DTS减去32)
       | 硬件定义的中断编号可参考 :ref:`int_id_type`
@@ -433,7 +433,7 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
     [machine]
         gic-version = "3"
 
-如果不适用LPI消息中断，那么ITS也不是必须的。然后我们拉起内核时，使用命令行把上面的dtb传给qemu即可。在 virt.cfg 中加入, 
+如果不适用LPI消息中断，那么ITS也不是必须的。然后我们拉起内核时，使用命令行把上面的dtb传给qemu即可。在 virt.cfg 中加入,
 记得指定好gic的版本 ::
 
     [machine]
@@ -562,5 +562,5 @@ ARM64 Linux 的启动入口
                 */
             efi_signature_nop			// special NOP to identity as PE/COFF executable
             b	primary_entry			// branch to kernel start, magic
-    
+
     // 这部无法断点，只能单步ni跟踪执行流，或者以来qemu plugin的tcg execlog打印了。

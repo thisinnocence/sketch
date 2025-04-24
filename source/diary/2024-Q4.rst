@@ -9,7 +9,7 @@
 1006 理财学习
 =============
 
-后面理财先放到『思考』类别下。 :doc:`/think/理财投资` 
+后面理财先放到『思考』类别下。 :doc:`/think/理财投资`
 
 1102 写作
 =============
@@ -19,7 +19,7 @@
 paul graham谈写作
 --------------------
 
-| 一个关于写作的推文：https://x.com/howie_serious/status/1851844002628407692 
+| 一个关于写作的推文：https://x.com/howie_serious/status/1851844002628407692
 | 是对这篇文章的评价：https://mp.weixin.qq.com/s/xt88sYrD3f1Qbgemd5taiQ
 
 paul graham 的这篇文章，虽然很短，但是很重要（值得多次诵读，甚至背诵的那种。我翻译过程中，原文读了5678遍，
@@ -30,27 +30,27 @@ paul graham 的这篇文章，虽然很短，但是很重要（值得多次诵�
 文字垃圾（有很多人教你这么做，说什么打造个人IP，别信，没用）。
 
 
-.. note:: 
+.. note::
     对于 80% 以上的人， **真正的写作更多是发生在学习场景** 、工作场景中的文字书写，是写笔记，在自己的笔记工具、自己的
-    知识管理系统里。因为， **写作的本质是思考。而学习的本质也是思考。学习与思考之间，有一个共同的桥梁：写作。** 
-    
+    知识管理系统里。因为， **写作的本质是思考。而学习的本质也是思考。学习与思考之间，有一个共同的桥梁：写作。**
+
     **通过写作，大量的写笔记，写费曼笔记，配合适当的文章输出，我们才能抵达清晰的思考，有效的学习。**
 
 这个也体会比较深，可能是由于人的大脑内存比较小的缘故，深入的思考需要沿着逻辑链循序渐进就需要用语言描述下来，表述
 成语言，也会触发对应思考。可能这个在平时工作的学习中更加的关键。
 
-.. note:: 
+.. note::
     突然想起了高中老师同学都层说过的，做题很关键，但是把课本上的例题学习透彻，拿出一张白纸把知识网络写出来，真
     整理解透彻，更加关键。实操练习很关键，但是代替不了这种写作，自己输出理解和总结。
 
 摘抄部分作者的经典原文:
 
-    The reason so many people have trouble writing is that it's fundamentally difficult. To write well 
+    The reason so many people have trouble writing is that it's fundamentally difficult. To write well
     you have to think clearly, and thinking clearly is hard.
 
     And yet writing pervades many jobs, and the more prestigious the job, the more writing it tends to require.
 
-    In fact there's a kind of thinking that can only be done by writing. You can't make this point better 
+    In fact there's a kind of thinking that can only be done by writing. You can't make this point better
     than Leslie Lamport did:
 
     | **If you're thinking without writing, you only think you're thinking.**

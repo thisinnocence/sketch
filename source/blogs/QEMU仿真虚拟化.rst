@@ -207,7 +207,7 @@ TCG的原理
 -----------
 
 | QEMU仿真的核心机制是DBT(Dynamic Binary Translate), 在TCG模块不停的翻译Guest的指令为Host的指令。
-| see: `QEMU - Binary Translation <https://www.slideshare.net/RampantJeff/qemu-binary-translation>`_ 
+| see: `QEMU - Binary Translation <https://www.slideshare.net/RampantJeff/qemu-binary-translation>`_
 
 把Guest的汇编指令翻译为Host的汇编指令，有个论文做的统计是大概是原来指令数的10多倍。那么为什么会多执行了这么多？很简单，比如
 下面的情况：
@@ -219,7 +219,7 @@ TCG的原理
 
 这片文章讲的很不错: `QEMU tcg源码分析与unicorn原理 <https://bbs.kanxue.com/thread-277163.htm>`_ ，讲了下面几个点：
 
-.. note:: 
+.. note::
 
     1. 普通算术逻辑运算指令如何更新Host体系结构相关寄存器
     2. 内存读写如何处理
@@ -229,7 +229,7 @@ TCG的原理
     6. 指令执行出现了同步异常如何处理(如系统调用)
     7. 硬件中断如何处理
 
-QEMU会 ``mmap`` 一段空间，放到 ``code_gen_buffer`` 这个指针指向的位置，加入执行权限，然后来存放TCG对Guest指令进行翻译后的指令, 
+QEMU会 ``mmap`` 一段空间，放到 ``code_gen_buffer`` 这个指针指向的位置，加入执行权限，然后来存放TCG对Guest指令进行翻译后的指令,
 可以看 ``/qemu/tcg/region.c`` 相关的实现。
 
 这些情况必须正确处理了，才能够做到一个真正的仿真。TCG是按照TB(Translate Block)进行一块一块的翻译。遇到函数调用类似 ``callq`` 等
@@ -247,11 +247,11 @@ TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以
 
 还可以使用 ``-d help`` 看支持的选项，把tcg翻译前后的指令打印出来，先安装 ``apt install libcapstone-dev`` 支持反汇编。
 还是用前面的环境配置，用下面一行命令拉起  ::
-    
+
     qemu-system-aarch64 -nographic -cpu cortex-a57 -readconfig virt.cfg -d in_asm,out_asm -D a.log
 
     运行后的日志就被打印到 a.log 里了，大概如下，可以明显看出，一条guest会有很多host指令 ：
-    IN: 
+    IN:
     0xffff8000083ca030:  910163e0  add      x0, sp, #0x58
     0xffff8000083ca034:  f9002fe3  str      x3, [sp, #0x58]
     0xffff8000083ca038:  b90063e4  str      w4, [sp, #0x60]
@@ -367,7 +367,7 @@ Data Register, UARTDR 的偏移是0，屏幕打印就是这个寄存器的值。
         interrupts = <0x00 0x01 0x04>;
         reg = <0x00 0x9000000 0x00 0x1000>;
         compatible = "arm,pl011\0arm,primecell";
-    }; 
+    };
 
 这里面QEMU做了一个特殊的处理，看第5层函数栈帧实现:
 
@@ -517,7 +517,7 @@ ARM64的boot和load总流程
 对应 cpu x0 reg里，然后才是tcg才运行启动guest指令的翻译执行。
 
 可见，如果没有bios，使用qemu内置的bootloader直接启动内核，那么 ``-kernel, -dtb, -initrd`` 都是qemu自己计算的位置，内置
-的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader`` 
+的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader``
 来制定加载对应地址，其他两个不行，需要改一下代码。
 
 QEMU的内置ARM64 boot实现
@@ -652,7 +652,7 @@ QEMU的内置ARM64 boot实现
 
     b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
     看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
-    
+
     // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
     #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
     #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
@@ -763,7 +763,7 @@ GICR的关键属性设置
 根据 :ref:`int_id_type` ARM官方GIC说明，每个核一个GICR，而且每个GICR也需要足够的MMIO空间，最终的GICR个数根据特定逻辑算出来
 后通过property设置给gic的redist-region-count属性。
 
-.. note:: 
+.. note::
 
     https://patchew.org/QEMU/20210930150842.3810-1-peter.maydell@linaro.org/20210930150842.3810-4-peter.maydell@linaro.org/
 
@@ -830,7 +830,7 @@ GIC和CPU的中断pin连接
         <||>
         // #define ARM_CPU_IRQ 0, ARMCPU object's four inbound GPIO lines
         //      有4个：ARM_CPU_FIQ 1, ARM_CPU_VIRQ 2, ARM_CPU_VFIQ 3
-        // sysbus_connect_irq: 
+        // sysbus_connect_irq:
         sysbus_connect_irq(gicbusdev, i, qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
             // 这里gic转成了父类 sysbusdev, 这里比较隐秘的用父类初始化了 gpio out, 看后面callstack
             SysBusDeviceClass *sbd = SYS_BUS_DEVICE_GET_CLASS(dev);
@@ -851,7 +851,7 @@ GIC和CPU的中断pin连接
 
 ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自设备对中断的实现。
 
-对于CPU的连接线 :: 
+对于CPU的连接线 ::
 
     // @cpu.c
     arm_cpu_initfn
@@ -868,7 +868,7 @@ ARM手册里规定 0~31 是SGI/PPI, 后面在连线gic和cpu时，看看各自�
         // generic timer
         // create an array of anonymous output GPIO lines
         //  The device implementation can then raise and lower the GPIO line by calling qemu_set_irq()
-        //      If anything is connected to the other end of the GPIO this will cause the handler function 
+        //      If anything is connected to the other end of the GPIO this will cause the handler function
         //      for that input GPIO to be called.
         // GTIMER_PHYS 0; GTIMER_VIRT 1; GTIMER_HYP 2; GTIMER_SEC 3; GTIMER_HYPVIRT 4;
         qdev_init_gpio_out(DEVICE(cpu), cpu->gt_timer_outputs, ARRAY_SIZE(cpu->gt_timer_outputs));
@@ -967,14 +967,14 @@ callback is invoked. 针对这个arch-timer中断流程 ::
 gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很巧妙，接口定义在语义上很好的模拟了硬件中断管脚的连接。
 
 很多其他的API基本都是对上面的封装，比如：
-    
+
     - qdev_init_gpio_in 想较于 qdev_init_gpio_in_named 是把name设置成了NULL；
     - qdev_init_gpio_out 想较于 qdev_init_gpio_out_named 是把name设置成了NULL;
     - sysbus_connect_irq 则是把特定的device转换为父类sysbusdev后，然后接着调用的 qdev_init_gpio_out_named；
 
 下面分析下arch-timer中断的上报流程：
 
-.. note:: 
+.. note::
 
     什么时候 ARCH_TIMER_NS_EL1_IRQ 30 这个中断上报调用到 cpu_interrupt 呢？通过gdb发现，还是在main_loop定时器抓到了，
     之前的tcg线程应该是一个检查，读写相关arch-timer的系统寄存器也会触发这个 qemu_set_irq 的相关处理，但不一定报给核；
@@ -996,20 +996,20 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
     (gdb) dis 2
     (gdb) c
     Continuing.
-    
+
     Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
     2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
-    
+
     Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
     2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
-    
+
     Thread 3 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
     2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
     [Switching to Thread 0x7fffe89bf3c0 (LWP 12151)]
-    
+
     Thread 1 "qemu-system-aar" hit Breakpoint 3, gt_update_irq (cpu=0x555557a4b030, timeridx=0) at ../target/arm/helper.c:2615
     2615        qemu_set_irq(cpu->gt_timer_outputs[timeridx], irqstate);
-    
+
     Thread 1 "qemu-system-aar" hit Breakpoint 2, cpu_interrupt (cpu=0x555557a4d7f0, mask=30) at ../system/cpus.c:254
     254     {
     (gdb) bt
@@ -1167,7 +1167,7 @@ QEMU的MemoryRegion机制
     void memory_region_init_io(MemoryRegion *mr, Object *owner,
     |                      const MemoryRegionOps *ops,  // read/write callback
     |                      void *opaque, const char *name, uint64_t size);
-    memory_region_init_io 
+    memory_region_init_io
     |   memory_region_init
     sysbus_init_mmio(SysBusDevice *dev, MemoryRegion *memory);
         n = dev->num_mmio++;  // 把这个mr地址赋值给父类的，后面统一管理
@@ -1224,7 +1224,7 @@ QEMU的MemoryRegion机制
   #2  0x0000555556142181 in access_with_adjusted_size (addr=4064, value=0x7fff636778e0, size=4, access_size_min=4, access_size_max=4, access_fn=0x555556141b2c <memory_region_read_accessor>, mr=0x555557d91a90, attrs=...) at ../system/memory.c:573
   #3  0x0000555556144e85 in memory_region_dispatch_read1 (mr=0x555557d91a90, addr=4064, pval=0x7fff636778e0, size=4, attrs=...) at ../system/memory.c:1426
   #4  0x0000555556144fa3 in memory_region_dispatch_read (mr=0x555557d91a90, addr=4064, pval=0x7fff636778e0, op=MO_BEUL, attrs=...) at ../system/memory.c:1459
-  || 
+  ||
   #5  0x000055555619b97f in int_ld_mmio_beN (cpu=0x555557af5980, full=0x7fff54078140, ret_be=0, addr=18446603338413039584, size=4, mmu_idx=2, type=MMU_DATA_LOAD, ra=140734941518592, mr=0x555557d91a90, mr_offset=4064) at ../accel/tcg/cputlb.c:1999
   #6  0x000055555619baff in do_ld_mmio_beN (cpu=0x555557af5980, full=0x7fff54078140, ret_be=0, addr=18446603338413039584, size=4, mmu_idx=2, type=MMU_DATA_LOAD, ra=140734941518592) at ../accel/tcg/cputlb.c:2034
   #7  0x000055555619c610 in do_ld_4 (cpu=0x555557af5980, p=0x7fff63677a20, mmu_idx=2, type=MMU_DATA_LOAD, memop=226, ra=140734941518592) at ../accel/tcg/cputlb.c:2336
@@ -1232,7 +1232,7 @@ QEMU的MemoryRegion机制
   #9  0x000055555619e337 in helper_ldul_mmu (env=0x555557af8140, addr=18446603338413039584, oi=3618, retaddr=140734941518592) at ../accel/tcg/ldst_common.c.inc:33
   #10 0x00007fff68325b50 in code_gen_buffer ()
 
-每个tcg thread，翻译执行guest汇编指令时，都会通过helper函数去访问自己 CPU ENV 的地址空间。CPU ENV怎么和AddressSpace 
+每个tcg thread，翻译执行guest汇编指令时，都会通过helper函数去访问自己 CPU ENV 的地址空间。CPU ENV怎么和AddressSpace
 关联起来的呢，看下 mini-virt 创建 CPU obj的流程 ::
 
     @file: mini-virt.c

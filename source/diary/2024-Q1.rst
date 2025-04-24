@@ -26,7 +26,7 @@
 newsletter 给读者。一旦你要惦记着别人，思考就会变形，就会潜意识里开始作茧自缚，把自己拉低到和大部分浅薄读者一样的水平，
 各个方面变得言不由衷，这样自己其实也没法进步。这样你的思考和文字缺乏真正的灵魂，你自己实际上很清楚，真正深度思考的读者也很清楚，
 但评论区的各种 spammer 和 scammer 会给你虚假和廉价的喝彩，让你欲罢不能。
-`硅谷王川 Chuan <https://twitter.com/Svwang1/status/1700542316644319592>`_ 
+`硅谷王川 Chuan <https://twitter.com/Svwang1/status/1700542316644319592>`_
 
 而如果把写作当成一种和自己进行足够残酷的坦诚 ( brutally honest ) 的对话的方式，在推敲的过程中，肯定会持续挖掘出以前靠直觉的
 决策中的各种缺陷，各种完全错误或者不再适用的隐含假设，这样才能持续在第一时间从源头就开始改进，长期看节省了大量时间和资源，
@@ -56,9 +56,9 @@ OpenAI大佬的一些经典Twitter言论
 
   | i failed pretty hard at my first startup--it sucked!--and am doing pretty well on my second.
 
-  | the thing i wish someone told me during the first one is that no one else thinks about your failures 
+  | the thing i wish someone told me during the first one is that no one else thinks about your failures
     as much as you do, and that as long as don't psych yourself out you can try again.
-  
+
   | 第一个创业项目彻底失败，简直太糟糕了！不过第二个做得还不错。 我希望当初有人告诉我，没有人会像你一样一直想着你的失败，
     只要克服心理障碍，你完全可以再次尝试。
 
@@ -66,24 +66,24 @@ OpenAI大佬的一些经典Twitter言论
 
 .. note::
 
-  | In machine learning systems engineering, complexity always ends up lower in the long run when you tackle 
+  | In machine learning systems engineering, complexity always ends up lower in the long run when you tackle
     the gnarly low-level issues rather than sidestep them.
   | 处理机器学习系统工程中复杂低层问题，从长远来看，总是比回避它们更能降低系统的复杂性。
 
-  | Programming productivity is a precious and fragile thing stemming from great focus. Maintaining it requires 
-    active protection from the individual and organization. 
+  | Programming productivity is a precious and fragile thing stemming from great focus. Maintaining it requires
+    active protection from the individual and organization.
   | 程序员的效率是珍贵且脆弱的，源于高度的专注力。要保持这种效率，需要个人和组织积极维护。
 
   | Personal energy management is as important as any technical skill.
   | 个人能量管理与任何技术技能都同样重要。
 
-  | People often ask if ML or software skills are more the bottleneck to AI progress. 
-    It’s the wrong question—both are invaluable, and people with both sets of skills can have outsized impact. 
+  | People often ask if ML or software skills are more the bottleneck to AI progress.
+    It’s the wrong question—both are invaluable, and people with both sets of skills can have outsized impact.
     We find it easier, however, to teach people ML skills as needed than software engineering.
   | 人们总是问机器学习和软件技术那个是AI进步的瓶颈，这个问题本身就问错了——两者都不可或缺，同时拥有这两类技能的人能够产生巨大的影响。
     然而，我们发现，相比软件工程，教授人们所需的机器学习技能更容易一些。
 
-  | At a low level, there is no magic in machine learning — just lots of straightforward mathematics and systems 
+  | At a low level, there is no magic in machine learning — just lots of straightforward mathematics and systems
     engineering. And somehow the end result is entirely magical.
   | 机器学习的底层原理并没有什么魔法，它仅仅是由大量直白的数学和系统工程知识构建而成。然而，令人惊叹的是，
     最终的结果却往往令人觉得不可思议，仿佛是魔法一般。
@@ -95,16 +95,16 @@ OpenAI大佬的一些经典Twitter言论
   | Criticizing a decision is, to a first order approximation, 100x easier than making one
   | 从一阶近似来看，批评一个决定比做出一个决定容易 100 倍。
 
-  | The biggest trick our brains play is to create the illusion of understanding what’s going on, 
+  | The biggest trick our brains play is to create the illusion of understanding what’s going on,
     both around us and in the world
   | 我们大脑最大的诡计就是制造对周围事物和世界发生的事情理解的幻觉。
 
-  | A one sentence articulation (of existing ideas) for why AI alignment need not be straightforward:  
+  | A one sentence articulation (of existing ideas) for why AI alignment need not be straightforward:
     humans can lie, hide their intent (alignment), and do so for years. Why not AGI? This can be hard to detect.
   | 用一句话（现有想法）阐明了为什么人工智能对齐不需要简单明了：人类可以撒谎、隐藏自己的意图（结盟），并且可以持续多年。
     为什么不是AGI？这可能很难被发现。
-  
-  | User Many believe that great AI advances must contain a new “idea”. But it is not so: many of AI’s greatest 
+
+  | User Many believe that great AI advances must contain a new “idea”. But it is not so: many of AI’s greatest
     advances had the form “huh, turns out this familiar unimportant idea, when done right, is downright incredible”
   | 许多人认为，伟大的人工智能进步必须包含新的“想法”。但事实并非如此：人工智能的许多最伟大的进步都是
     这样的形式：“嗯，事实证明，这个熟悉的不重要的想法，如果做得正确，也可以取得令人难以置信的效果”
@@ -116,14 +116,14 @@ OpenAI大佬的一些经典Twitter言论
 
 看Twitter，一些编程大佬最GPT写代码的观点：
 
-`Lin Wei <https://twitter.com/skywind3000/status/1757038312873767143>`_ 
+`Lin Wei <https://twitter.com/skywind3000/status/1757038312873767143>`_
 两种情况会觉得 gpt 写代码很有帮助：1）自己本身就不大懂；2）写大量粗浅代码。
 
-`云风 <https://twitter.com/cloudwu/status/1757016026393530679>`_ 
+`云风 <https://twitter.com/cloudwu/status/1757016026393530679>`_
 我觉得现阶段用 AI 辅助编程，非常接近搜索引擎刚普及时：对部份人非常有用，很多代码一搜就有，觉得非常方便；
 对有些人一点用都没有，他们根本就不想拷贝粘贴搜来的代码。还有很多人鄙视后一种人，觉得他们落后于时代。
 
-`Kenneth-lee <https://github.com/Kenneth-Lee>`_ 
+`Kenneth-lee <https://github.com/Kenneth-Lee>`_
 对于复杂的算法，基本没啥用，就像个番薯踢一脚滚两下，有这经历不如自己把代码写了。而对于简单的代码，倒确实可以快速给出不错的程序例子。
 但是这些大部分可以用搜索引擎解决，而且置信度更高。给人最大的帮助有：翻译，英文更加native；举例俗人是怎么想的，可以说就是个集大成
 者的俗人，但是发现新知识创新做不到。
@@ -152,7 +152,7 @@ OpenAI大佬的一些经典Twitter言论
 OpenAI Sora研发团队
 ---------------------
 
-他们的Twitter: 
+他们的Twitter:
 
 | Sora团队： https://twitter.com/glow1n/status/1759156700731629911
 | OpenAI员工列表:  https://twitter.com/i/lists/1726156156069196197
@@ -173,20 +173,20 @@ OpenAI Sora研发团队
 0220 自我意识与心流、幸福感
 ==============================
 
-根据 `想要达到心流状态？或许可以尝试这样做 <https://mp.weixin.qq.com/s/m3wf_7l0sVNLeNrTOCtBQw>`_ 
+根据 `想要达到心流状态？或许可以尝试这样做 <https://mp.weixin.qq.com/s/m3wf_7l0sVNLeNrTOCtBQw>`_
 
 自我感觉的本质仍然只是一种幻觉。时不时的摆脱自我意识可能会带来健康的后果。
 
 **放下自我**
 
-.. note:: 
+.. note::
   **自我意识**
 
   拥有自我意识是一种深刻的人类特征，它帮助人类进化并促成了社会的正常运转。自我意识与复杂的语言发展共同帮助我们构建心理形象，
   让我们有幻想未来的可能性。这种能力让我们能够为未来的事件提前做好准备，并做出更好的决定。但也有研究表明，
   暂时放下自我意识会对我们的心理健康产生积极影响。
 
-  放下自我，也被神经科学家称为自我消解，是一个范围很大的概念。从“在书中迷失自己”到“在迷幻中体验自我的丧失”，都属于 **自我消解** 
+  放下自我，也被神经科学家称为自我消解，是一个范围很大的概念。从“在书中迷失自己”到“在迷幻中体验自我的丧失”，都属于 **自我消解**
   的一部分。
 
   **心流**
@@ -216,9 +216,9 @@ OpenAI Sora研发团队
   导致自我向内消耗，并用消极的思想掩盖对现实真正的反思。
 
   研究者在对长期做冥想的参与者大脑进行fMRI 扫描，也发现了类似DMN活动的下降。佛教的核心思想之一是失去自我以达到开悟或涅槃，
-  这种“失去自我”的过程是通过定期冥想而培养来的。 
+  这种“失去自我”的过程是通过定期冥想而培养来的。
 
-  研究发现，我们的思绪飘移得越远越杂，我们就越不快乐。在一项被广泛引用的研究中，哈佛的研究人员马修﹒基林斯沃思 (Matthew 
+  研究发现，我们的思绪飘移得越远越杂，我们就越不快乐。在一项被广泛引用的研究中，哈佛的研究人员马修﹒基林斯沃思 (Matthew
   Killingsworth) 和丹尼尔﹒吉尔伯特 (Daniel Gilbert) 使用手机应用程序收集有关幸福的数据。该应用程序会在随机的时间询问参与者
   他们的感受以及他们现在正在做什么。无论何时，当参与者的思维处于游荡状态时，他们的情绪都会处于最低水平。并且，参与者通常一天中
   会有47%的时间处于这种白日梦游荡状态，即使是在做饭或看电视的时候也是如此。而当参与者在锻炼、发生性关系或与朋友聊天时，
@@ -233,7 +233,7 @@ OpenAI Sora研发团队
 0225 芯片与Infra
 ===================
 
-展望一下未来的高速发展行业: 
+展望一下未来的高速发展行业:
 
 - AI LLM持续突破，感谢OpenAI给世界带来的持续震撼，随之而来会有AI应用、AI Infra(芯片、系统框架软件等)的持续爆发；
 - 新能源汽车的爆发，引领汽车工业向智能化和电气化持续发展，2024年2月比亚迪发布的7万多的秦将会加速这个进程；
@@ -269,7 +269,7 @@ OpenAI Sora研发团队
 基于github的静态网站
 -------------------------
 
-| 今天看Sora大佬的个人网页，之前在Twitter刷到了他们的列表，see: :ref:`open_ai_team` 
+| 今天看Sora大佬的个人网页，之前在Twitter刷到了他们的列表，see: :ref:`open_ai_team`
 | 看到了 William (Bill) Peebles的个人页面： https://www.wpeebles.com/
 | 在他的github上找到了网页源码: https://github.com/wpeebles/wpeebles.github.io
 

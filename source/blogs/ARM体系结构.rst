@@ -11,7 +11,7 @@ ARM体系结构
 ARMv8异常等级和安全态
 ------------------------
 
-ARMv8-A 有两种 security states, Secure and Non-secure. The Non-secure state 也叫做 Normal World. 
+ARMv8-A 有两种 security states, Secure and Non-secure. The Non-secure state 也叫做 Normal World.
 
 .. image:: pic/Exception-level.png
     :scale: 50%
@@ -36,7 +36,7 @@ Exception Handling
 
 执行这些指令可能会引发异常。以请求运行在更高特权级别的软件提供的服务：
 
-.. note:: 
+.. note::
 
   - The Supervisor Call (SVC) instruction enables User mode programs to request an OS service.
   - The Hypervisor Call (HVC) instruction enables the guest OS to request hypervisor services.
@@ -51,16 +51,16 @@ Exception and Interrupt
 | 每种exception都有一个关联的异常handler。当异常被处理后，特权软件恢复到异常前的执行状态。
 | https://developer.arm.com/documentation/100933/latest/AArch64-Exception-and-Interrupt-Handling
 
-.. note:: 
+.. note::
 
   异常和中断的区别:
 
   - exception是一种event，这种event(除了分支和跳转指令)导致正常的指令执行流被修改。
-  - interrupt是exception的一种，并不由程序执行直接触发，通常是硬件触发报给CPU核，比如一个按键中断。 
+  - interrupt是exception的一种，并不由程序执行直接触发，通常是硬件触发报给CPU核，比如一个按键中断。
 
   ARM把exception分为同步和异步两组:
 
-  - The synchronous exception types can have many causes but they are handled in a similar way. 
+  - The synchronous exception types can have many causes but they are handled in a similar way.
   - The asynchronous exception type is subdivided into three interrupt types, IRQ, FIQ, and SError (System Error).
 
 .. _int_id_type:
@@ -164,11 +164,11 @@ Redistributors(GICR_*)
 CPU interface(ICC_*_ELn)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-每个核通过 **CPU interface** 来接收中断。CPU interface提供了寄存器来 mask, identify and control states of interrupts 
-forwarded to that core. 
+每个核通过 **CPU interface** 来接收中断。CPU interface提供了寄存器来 mask, identify and control states of interrupts
+forwarded to that core.
 
-每个核执行exception handler作为响应. The handler must **query the interrupt ID** from a CPU interface register and 
-begin servicing the interrupt source. When finished, the handler must write to a CPU interface register 
+每个核执行exception handler作为响应. The handler must **query the interrupt ID** from a CPU interface register and
+begin servicing the interrupt source. When finished, the handler must write to a CPU interface register
 to **report the end of processing**.
 
 - Provide general control and configuration to enable interrupt
@@ -181,7 +181,7 @@ to **report the end of processing**.
 Configure and initialize
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-GIC可以作为一个memory-mapped peripheral(MMIO外设)来访问. 所有核共享同一个Distributor, 但是CPU interface is banked, 
+GIC可以作为一个memory-mapped peripheral(MMIO外设)来访问. 所有核共享同一个Distributor, 但是CPU interface is banked,
 即每个核都用 **same address** 访问它自己私有的CPU interface. 每个核都不能访问其他核的CPU interface.
 
 Distributor提供了对应的寄存器来配置每个不同中断的属性。Distributor还提供了priority masking优先级掩码，一个中断如果低于了特定的
@@ -194,7 +194,7 @@ In the Distributor, software must configure the priority, target, security and e
 
 Before interrupts are expected in the core, software prepares the core to take interrupts by setting
 a valid **interrupt vector** in the vector table, and clearing interrupt mask bits in PSTATE, and setting
-the routing controls. For an interrupt to reach the core, the individual interrupt, Distributor and CPU interface 
+the routing controls. For an interrupt to reach the core, the individual interrupt, Distributor and CPU interface
 must all be enabled. The interrupt also needs to be of sufficient priority, that is, higher than the core's
 priority mask.
 
@@ -209,9 +209,9 @@ Interrupt handling
 When the core takes an interrupt, it jumps to the top-level interrupt vector obtained from the
 vector table and begins execution.
 
-The top-level interrupt handler reads the IAR(Interrupt Acknowledge Register) from the **CPU Interface** block to 
-obtain the **interrupt ID**. As well as returning the interrupt ID, the read causes the interrupt to be marked 
-as active in the **Distributor**. 
+The top-level interrupt handler reads the IAR(Interrupt Acknowledge Register) from the **CPU Interface** block to
+obtain the **interrupt ID**. As well as returning the interrupt ID, the read causes the interrupt to be marked
+as active in the **Distributor**.
 
 When the device-specific handler finishes execution, the top-level handler writes the same interrupt ID to the
 EoI(End of Interrupt) register in the **CPU Interface**.
@@ -222,7 +222,7 @@ repeat the above sequence until it reads the special interrupt ID value 1023, in
 are no more interrupts pending at this core. This special interrupt ID is called the spurious
 interrupt ID(1023).
 
-.. note:: 
+.. note::
   **1023 - Spurious interrupt**. There are no enabled INTIDs in the pending state, or all INTIDs in that pending
   are of **insufficient priority** to be taken. When polling the IARs, this value indicates that there are
   no interrupts to available to acknowledge.
@@ -245,13 +245,13 @@ The Generic Timer includes a ``System Counter`` and set of **per-core timers**.
 
 The ``System Counter`` is an always-on device, which provides a fixed frequency **incrementing**
 system count. The system count value is broadcast to all the cores in the system, giving the cores
-a common view of the passage of time. 
+a common view of the passage of time.
 
-.. note:: 
+.. note::
   The Generic Timer only measures the passage of time. It does not report the time or date.
   Usually, an SoC would also contain a Real-Time Clock (RTC) for time and date.
 
-These timers provide functionality which is used for things like the operating system **scheduler tick**. 
+These timers provide functionality which is used for things like the operating system **scheduler tick**.
 
 Each core has a set of timers. These timers are comparators, which compare against the broadcast system count that is
 provided by the System Counter. Software can configure timers to **generate interrupts or events** in set points in the
@@ -261,7 +261,7 @@ point for all cores.
 | 针对Server Base System Architecture (SBSA)的推荐中断ID配置：
 | (csv转表格vscode的插件真的好用^_^)
 
-.. table:: 
+.. table::
   :align: left
 
   +-------------------------------+------------------------+
@@ -282,10 +282,10 @@ point for all cores.
   | Secure EL2 Virtual Timer      | 19                     |
   +-------------------------------+------------------------+
 
-.. note:: 
+.. note::
   These INTIDs are in the Private Peripheral Interrupt (PPI) range. These INTIDs are
   private to a specific core. This means that each core sees its EL1 physical timer as
-  INTID 30. 
+  INTID 30.
 
 看下 QEMU virt-machine dts里的timer配置, see :ref:`virt_dts`
 
@@ -528,7 +528,7 @@ QEMU启动内核
 AMR MMU
 -----------
 
-参考： `Armv8-A Address Translation <https://developer.arm.com/documentation/100940/latest/>`_ 
+参考： `Armv8-A Address Translation <https://developer.arm.com/documentation/100940/latest/>`_
 
 大概得地址布局
 
@@ -537,12 +537,12 @@ AMR MMU
 
 可以看出，外设通常在高地址，ram在低地址。内核在高地质，用户程序在低地址。
 
-.. note:: 
+.. note::
 
   The table base addresses are specified in the Translation Table Base Registers (TTBR0_EL1) and (TTBR1_EL1):
 
-  - 用户空间：TTBR0 is selected when the upper bits of the virtual address (VA) are all set to 0. 
-  - 内核空间：TTBR1 is selected when the upper bits of the VA are all set to 1. 
+  - 用户空间：TTBR0 is selected when the upper bits of the virtual address (VA) are all set to 0.
+  - 内核空间：TTBR1 is selected when the upper bits of the VA are all set to 1.
 
   根据上图，就是高16bit，2个Byte来判断的。手册是写：You can enable VA tagging to exclude the top 8 bits from the check.
 
@@ -555,7 +555,7 @@ parallel virtual address spaces (EL0/1, EL2, and EL3)
 .. image:: pic/two-stage-translate.png
   :scale: 60%
 
-.. note:: 
+.. note::
   EL2 and EL3 have a TTBR0, but no TTBR1. This means that is either EL2 or EL3 is using AArch64,
   they can only use virtual addresses in the range 0x0 to 0x0000FFFF_FFFFFFFF.
 
@@ -579,7 +579,7 @@ StreamID
   SMMU使用StreamID来区分不同device，一般一个device只有1个StreamID，但是也可以有多个。比如一个设备的DMA引擎支持多个channel，那么
   每个channel都会有一个StreamID。
 
-  .. note:: 
+  .. note::
     How the StreamID is formed is IMPLEMENTATION DEFINED
 
 SubstreamID
@@ -701,7 +701,7 @@ MPIDR_EL1(Multiprocessor Affinity Register)的作用：
     | 叫亲和性就是因为可能经常和绑定任务thread有关，所以这么叫。
 
     | Aff0, bits [7:0]
-    | Affinity level 0. The value of the MPIDR.{Aff2, Aff1, Aff0} or 
+    | Affinity level 0. The value of the MPIDR.{Aff2, Aff1, Aff0} or
     |   MPIDR_EL1.{Aff3, Aff2, Aff1, Aff0} set of fields of each PE must be unique within the system as a whole.
     | This field has an IMPLEMENTATION DEFINED value.
 

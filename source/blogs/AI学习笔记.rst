@@ -9,7 +9,7 @@ AI学习笔记
 我对AI的认识一直停留在理论和宏观，记点笔记实操一下。刚开始入门一个领域，从整体，多维度，各个细节切入都影响不大，关键是后续
 逐渐丰满对一个领域的知识框架，逐渐把点串起来，前期多看，跟对领域主流的框架、技术点，慢慢尝试就行。
 
-突然想到了卡马克的入门AI的博客： `约翰·卡马克（John Carmack）：学习神经网络这一周 <https://zhuanlan.zhihu.com/p/34391263>`_ 
+突然想到了卡马克的入门AI的博客： `约翰·卡马克（John Carmack）：学习神经网络这一周 <https://zhuanlan.zhihu.com/p/34391263>`_
 
 .. note::
 
@@ -27,7 +27,7 @@ AI学习笔记
     **斯坦福CS231N** 的视频，并从中学到了很多东西。我一般很少看这种演讲视频，会觉得有点浪费时间，但这样“见风使舵”的感觉也不赖。
 
     个人体验而言， 这是高效的一周，因为我把书本上的知识固化成了真实经验 。我的实践模式也很常规：
-    
+
         **先用hacky代码写一版，再根据视频教程重写一个全新的、整洁的版本，然后两者交叉检查，不断优化。**
 
     我曾在反向传播上反复跌倒了好几次，最后得出的经验是比较数值差异非常重要！有趣的一点是，即使每个部分好像都错得离谱，
@@ -37,7 +37,7 @@ AI学习笔记
     我觉得这和图形学中的光线追踪有异曲同工之妙，只要我们有足够的数据、时间和耐心，追踪与光学表面发生交互作用的光线，
     得到光线经过路径的物理模型，我们就能生成最先进的图像。
 
-大模型的课程： `Open AI传奇研究员Andrej Karpathy教你理解和构建GPT Tokenizer <https://www.bilibili.com/video/BV11x421Z7QZ/?vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_ 
+大模型的课程： `Open AI传奇研究员Andrej Karpathy教你理解和构建GPT Tokenizer <https://www.bilibili.com/video/BV11x421Z7QZ/?vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_
 
 AMD GPU对PyTorch的支持
 -----------------------
@@ -65,6 +65,6 @@ PyTorch入门
 ^^^^^^^^^^^^^^^^^^^^^^
 
 | PyTorch有官方样例代码库： https://github.com/pytorch/examples/blob/main/mnist/main.py ，用的是封装好的CNN。
-| B栈这个没用什么库，更方便理解底层实现： `10分钟入门神经网络 PyTorch 手写数字识别 <https://www.bilibili.com/video/BV1GC4y15736/?spm_id_from=333.337.search-card.all.click&vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_ 
+| B栈这个没用什么库，更方便理解底层实现： `10分钟入门神经网络 PyTorch 手写数字识别 <https://www.bilibili.com/video/BV1GC4y15736/?spm_id_from=333.337.search-card.all.click&vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_
 
 详细看下入门代码。

@@ -14,17 +14,17 @@ PCI总线，Peripheral Component Interconnect，是Intel早年推出的一种外
 
 PCIe总线是PCI的发展，它改用了串行DerDes的物理层。PCIe 在软件层面上兼容目前的 PCI 技术和设备。
 
-.. note:: 
-    Q: in a software perspective, can we use the same driver(Linux) for PCI and PCIe(+additional features)? 
-    Is the Bus access will be same? 
+.. note::
+    Q: in a software perspective, can we use the same driver(Linux) for PCI and PCIe(+additional features)?
+    Is the Bus access will be same?
 
-    A: Yes. PCIe use the same old config registers as PCI (plus some extra config register space). 
-    From the Linux driver perspective, the CPU/OS access the same config registers in the PCI/PCIe end-point 
-    regardless of how the write/read access is carried out in the physical media i.e., 
+    A: Yes. PCIe use the same old config registers as PCI (plus some extra config register space).
+    From the Linux driver perspective, the CPU/OS access the same config registers in the PCI/PCIe end-point
+    regardless of how the write/read access is carried out in the physical media i.e.,
     parallel bus (PCI) vs serial link (PCIe). The OS/driver sees the same address space. As long as the definition
-    the address space looks the same, it is compatible. 
+    the address space looks the same, it is compatible.
 
-    From a software standpoint, PCI and PCI Express devices are essentially the same. PCIe devices had the same 
+    From a software standpoint, PCI and PCI Express devices are essentially the same. PCIe devices had the same
     configuration space, BARs, and (usually) support the same PCI INTx interrupts.
 
 PCIe可以级联，构成多样的组合和物理布局。PCIe总线和系统设备通向MMIO空间，所以PCIe设备和总线上的设备非常接近，
@@ -189,21 +189,21 @@ Address Translation
 
     PCI Express TLP transactions use PCIe addresses. There is a mapping requirement
     between a PCIe address and a local internal bus address and to accommodate this
-    address mapping, built-in hardware address translation mechanisms exist. 
+    address mapping, built-in hardware address translation mechanisms exist.
 
     PCIe recognizes four address spaces, Memory, I/O, Configuration, and Message.
 
 参考
 -----
 
-- `KeyStone Architecture Peripheral Component Interconnect Express (PCIe) <https://www.ti.com/lit/ug/sprugs6d/sprugs6d.pdf?ts=1714159982257>`_ 
-- `QEMU docs pcie.txt <https://github.com/qemu/qemu/blob/master/docs/pcie.txt>`_ 
-- `zhihu: qemu PCIe总线结构 <https://zhuanlan.zhihu.com/p/113467453>`_ 
-- `readthedoc: qemu PCIe总线结构 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/qemu_PCIe%E6%80%BB%E7%BA%BF%E7%BB%93%E6%9E%84.html>`_ 
-- `PCIe总线的地址问题 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E5%9C%B0%E5%9D%80%E9%97%AE%E9%A2%98.html>`_ 
-- `PCIe总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_ 
-- `认识鲲鹏920：一个服务器SoC/总线.rst#pcie总线 <https://gitee.com/Kenneth-Lee-2012/know_modern_server_from_kunpeng920_pub/blob/pub/source/%E8%AE%A4%E8%AF%86%E9%B2%B2%E9%B9%8F920%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%99%A8SoC/%E6%80%BB%E7%BA%BF.rst#pcie%E6%80%BB%E7%BA%BF>`_ 
-- `PCI+Express体系结构导读.pdf <https://github.com/vvvlan/misc/blob/master/PCI%2BExpress%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84%E5%AF%BC%E8%AF%BB.pdf>`_ 
+- `KeyStone Architecture Peripheral Component Interconnect Express (PCIe) <https://www.ti.com/lit/ug/sprugs6d/sprugs6d.pdf?ts=1714159982257>`_
+- `QEMU docs pcie.txt <https://github.com/qemu/qemu/blob/master/docs/pcie.txt>`_
+- `zhihu: qemu PCIe总线结构 <https://zhuanlan.zhihu.com/p/113467453>`_
+- `readthedoc: qemu PCIe总线结构 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/qemu_PCIe%E6%80%BB%E7%BA%BF%E7%BB%93%E6%9E%84.html>`_
+- `PCIe总线的地址问题 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E5%9C%B0%E5%9D%80%E9%97%AE%E9%A2%98.html>`_
+- `PCIe总线的保序模型 <https://mysummary.readthedocs.io/zh/latest/%E8%BD%AF%E4%BB%B6%E6%9E%84%E6%9E%B6%E8%AE%BE%E8%AE%A1/PCIe%E6%80%BB%E7%BA%BF%E7%9A%84%E4%BF%9D%E5%BA%8F%E6%A8%A1%E5%9E%8B.html>`_
+- `认识鲲鹏920：一个服务器SoC/总线.rst#pcie总线 <https://gitee.com/Kenneth-Lee-2012/know_modern_server_from_kunpeng920_pub/blob/pub/source/%E8%AE%A4%E8%AF%86%E9%B2%B2%E9%B9%8F920%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%99%A8SoC/%E6%80%BB%E7%BA%BF.rst#pcie%E6%80%BB%E7%BA%BF>`_
+- `PCI+Express体系结构导读.pdf <https://github.com/vvvlan/misc/blob/master/PCI%2BExpress%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84%E5%AF%BC%E8%AF%BB.pdf>`_
 - https://docs.kernel.org/PCI/pci.html
 - https://stackoverflow.com/questions/45366918/difference-between-pci-and-pcie
 - https://stackoverflow.com/questions/12159739/linux-driver-development-difference-between-pci-and-pcie-driver
