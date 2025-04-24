@@ -10,6 +10,7 @@
    Sphinx文档系统
    ARM体系结构
    Linux操作系统
+   cc-notes
    OS笔记
    QEMU仿真虚拟化
    QEMU TCG
