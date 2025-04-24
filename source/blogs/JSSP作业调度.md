@@ -1,4 +1,4 @@
-# JSSP车间作业调度
+# JSSP作业调度
 
 ✨ Job-Shop Scheduling Problem (JSSP) 通用建模与最小例解析
 

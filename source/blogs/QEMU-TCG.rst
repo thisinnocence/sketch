@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-QEMU TCG
+QEMU-TCG
 ===========
 
 decodetree

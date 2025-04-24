@@ -6,14 +6,21 @@
 C/C++笔记
 ===========
 
-请参考： 
-
 C++书籍
 ---------
 
-- https://github.com/thisinnocence/cc-notes/tree/master/cpp-book
+- `现代 C++ 教程：高速上手 C++ 11/14/17/20 <https://changkun.de/modern-cpp/zh-cn/00-preface>`_ 
+
 
 C++笔记
 ---------
-- https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes
-- https://github.com/thisinnocence/cc-notes/tree/master/build-system
+
+- 语法: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes
+- 编译: https://github.com/thisinnocence/cc-notes/tree/master/build-system
+- demo: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes-src
+
+C-demo
+--------
+
+- 网络编程: https://github.com/thisinnocence/cc-notes/tree/master/network
+- 系统编程: https://github.com/thisinnocence/cc-notes/tree/master/c-demo
