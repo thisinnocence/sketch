@@ -15,7 +15,7 @@ C++书籍
 C++笔记
 ---------
 
-- 语法: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes
+- 笔记: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes
 - 编译: https://github.com/thisinnocence/cc-notes/tree/master/build-system
 - demo: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes-src
 
