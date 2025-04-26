@@ -4,7 +4,7 @@
 #########
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 3
    :caption: Contents:
 
    2024-Q1

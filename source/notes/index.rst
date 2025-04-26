@@ -1,13 +1,12 @@
 .. blogs
 
-思考
+编程笔记
 #########
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   写作
-   道德经
-   学习方法
-   理财投资
+   cc-notes
+   js-notes
+   AI-notes

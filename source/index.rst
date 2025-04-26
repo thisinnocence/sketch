@@ -7,9 +7,11 @@ Michael Wu's sketch
 =====================================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Contents:
 
+   notes/index
+   os/index
    blogs/index
    think/index
    diary/index

@@ -219,7 +219,7 @@ else:
 
 运行结果：
 
-```txt
+```yaml
 最优解 Makespan = 6
 
 工序调度详情:

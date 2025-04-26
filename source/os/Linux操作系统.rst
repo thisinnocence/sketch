@@ -192,7 +192,7 @@ device tree的基本单元是node。这些node被组织成树状结构，除了r
 QEMU导出dts
 ^^^^^^^^^^^^^
 
-QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/blogs/QEMU仿真虚拟化` 的例子，用下面方法导出virt machine的dts ::
+QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/os/QEMU仿真虚拟化` 的例子，用下面方法导出virt machine的dts ::
 
     // 方法一, 推荐这种方法
     启动QEMU后，ctrl a,c 进入 console

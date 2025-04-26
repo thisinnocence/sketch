@@ -27,7 +27,7 @@ QEMU仿真虚拟化
     ../configure --target-list=aarch64-softmmu --enable-debug
     make -j
 
-编译Linux内核，请参考 :doc:`/blogs/Linux操作系统`
+编译Linux内核，请参考 :doc:`/os/Linux操作系统`
 
 启动QEMU, ``start.sh``
 
@@ -388,7 +388,7 @@ Data Register, UARTDR 的偏移是0，屏幕打印就是这个寄存器的值。
     }
 
 这里就对中断号做了特殊处理，external interrupts 是所有核共享的，放到到 ``[0, N-1]``， 而前32个中断号是每个核私有的，
-可以看那 :doc:`/blogs/ARM体系结构` 里GIC章节。每个核私有中断包括了SGI/PPI，这样好处就是让CPU核和中断编号就对应了起来了，
+可以看那 :doc:`/os/ARM体系结构` 里GIC章节。每个核私有中断包括了SGI/PPI，这样好处就是让CPU核和中断编号就对应了起来了，
 就又了注释中所说明的， ``[N..N+31]`` 就是CPU0, 然后就是CPU1。巧妙在数据结构关系中建立了这个逻辑。
 
 后面可以看下 Linux 内核里相关的实现再。

@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-关于写作
+写作
 =========
 
 前面在日记中，写了一些关于写作的想法： :ref:`write_think`

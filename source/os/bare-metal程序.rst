@@ -3,10 +3,10 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-OS笔记
-===========
+Bare-metal编程
+=================
 
-因为Linux太过复杂，为了方便了解一下基本原理，还有 aarch64 体系结构编程，这里教学类的简单的OS学习一下。
+针对AMR64体系结构, bare metal的启动程序。
 
 启动
 -----
