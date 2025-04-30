@@ -11,5 +11,6 @@
    ARM体系结构
    QEMU仿真虚拟化
    QEMU-TCG
-   bare-metal程序
+   Bare-metal程序
    PCIe总线
+   芯片开发入门
