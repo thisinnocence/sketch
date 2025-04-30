@@ -15,8 +15,8 @@ JavaScript教程
 - `七天学会NodeJS <https://nqdeng.github.io/7-days-nodejs/>`_
 - `HTML 语言简介 <https://wangdoc.com/html/intro>`_
 
-JavaScript笔记
----------------
+JavaScript学习笔记
+-----------------------
 
 - 笔记: https://github.com/thisinnocence/js-notes/tree/master/notes
 - demo: https://github.com/thisinnocence/js-notes/tree/master/web

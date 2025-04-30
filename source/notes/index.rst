@@ -8,6 +8,7 @@
    :caption: Contents:
 
    Sphinx
+   learn-coding
    cc-notes
    js-notes
    AI-notes
