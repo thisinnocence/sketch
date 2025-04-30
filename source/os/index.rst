@@ -9,8 +9,8 @@
 
    Linux操作系统
    ARM体系结构
+   Bare-metal编程
    QEMU仿真虚拟化
    QEMU-TCG
-   Bare-metal程序
+   数字芯片开发
    PCIe总线
-   芯片开发入门

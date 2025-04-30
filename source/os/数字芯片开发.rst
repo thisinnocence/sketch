@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-芯片开发入门
+数字芯片开发
 ====================
 
 verilog入门
