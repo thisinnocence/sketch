@@ -1,12 +1,11 @@
 .. blogs
 
-博客
+数学建模
 #########
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   Sphinx文档系统
    常见数学符号
    JSSP作业调度

@@ -12,7 +12,7 @@ Michael Wu's sketch
 
    notes/index
    os/index
-   blogs/index
+   math/index
    think/index
    diary/index
 

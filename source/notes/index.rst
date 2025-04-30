@@ -7,6 +7,7 @@
    :maxdepth: 2
    :caption: Contents:
 
+   Sphinx
    cc-notes
    js-notes
    AI-notes
