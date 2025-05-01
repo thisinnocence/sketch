@@ -26,6 +26,10 @@ Google ``sphinx 指南`` 查到了很多文章，下面几个很不错：
 - sphinx入门指南:  https://iridescent.ink/HowToMakeDocs/Basic/Sphinx.html
 - 语法速查手册: https://docutils.sourceforge.io/docs/user/rst/quickref.html
 - 工程搭建指导：  https://yanghongfei.readthedocs.io/zh/latest/index.html
+- 各种主题选择： https://sphinx-themes.org/#themes
+
+| PS: 下面的这个主题行宽挺宽，而且左右导航也都有回头试试：
+| https://sphinx-themes.org/sample-sites/sphinx-wagtail-theme/kitchen-sink/really-long/
 
 而且还可以查这些工程的源码，在github上看他们的 ``conf.py`` 配置，以及目录结构，插件等，都
 十分的方便，可以快速参考来进行自己的rst编写。几个工程源码：
