@@ -8,8 +8,8 @@ Linux操作系统
 
 本文主要针对ARM64架构的相关代码进行介绍。
 
-编译Linux kernel
-------------------
+编译ARM64 Linux kernel
+-------------------------
 
 下载Linux源码后，使用menuconfig勾选RAM disks为 ``build-in`` 支持，并调整大小为: 65536 kb， 方便后面用QEMU拉起。
 
@@ -53,8 +53,8 @@ ARM Linux常见的内核镜像格式：
     sudo apt install u-boot-tools
     mkimage -A <arch> -O linux -T kernel -C none -a <load-address> -e <entry-point> -n "Linux kernel" -d arch/arm/boot/zImage uImage
 
-编译initrd
-----------------
+制作根文件系统initrd
+-----------------------
 
 从 https://busybox.net 下载源码，然后交叉编译。可以参考下面命令编译ARM64架构的busybox :
 
@@ -113,8 +113,8 @@ ARM Linux常见的内核镜像格式：
 
 然后就可以使用QEMU来拉起了。
 
-ARM DTS设备树
---------------
+制作ARM DTS设备树
+------------------------
 
 DTS基础知识
 ^^^^^^^^^^^^^^^
@@ -291,7 +291,7 @@ QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/os/QEMU仿真虚�
     0000000008020000-0000000008020fff (prio 0, i/o): gicv2m
     0000000009000000-0000000009000fff (prio 0, i/o): pl011
 
-QEMU virt machine dts解析
+QEMU-virt-dts解析
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 从 UART pl011 的dts配置看起：
@@ -447,8 +447,8 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
 
 .. _linux_lsp:
 
-用VScode clangd看内核代码
---------------------------
+使用VScode+clangd看内核代码
+----------------------------
 
 | LSP技术发展到现在，我猜Linux内核社区已经支持了，随便搜了下文件发现了就有 gen_compile_commands.py :
 | https://github.com/torvalds/linux/commits/master/scripts/clang-tools/gen_compile_commands.py
@@ -477,7 +477,7 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
 
 有了这个LSP支持，看内核和修改内核代码效率大增。
 
-调试Linux
+使用QEMU调试Linux
 ------------------------
 
 | QEMU内置的gdb server可以单步调试内核，这个非常方便。可以看内核官方文档的链接:
