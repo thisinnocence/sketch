@@ -203,7 +203,7 @@ QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/os/QEMU仿真虚�
     [machine]
         dumpdtb = "virt.dtb"
 
-然后在执行拉起命令，就可以导出来 virt.dtb 文件。然后可以反编译出来看下具体配置
+然后在执行拉起命令，就可以导出来virt.dtb文件。然后可以反编译出来看下具体配置
 
 .. code-block:: bash
 
@@ -291,8 +291,8 @@ QEMU有个功能，可以导出来machine的dts. 参考 :doc:`/os/QEMU仿真虚�
     0000000008020000-0000000008020fff (prio 0, i/o): gicv2m
     0000000009000000-0000000009000fff (prio 0, i/o): pl011
 
-QEMU-virt-dts解析
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEMU-virt-dts
+^^^^^^^^^^^^^^^^
 
 从 UART pl011 的dts配置看起：
 
@@ -536,7 +536,7 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
 
 还有很多的定位手段，可以看上面文档链接，或者内核源码目录的 Documentation/dev-tools 下的文档。
 
-ARM64 Linux 的启动入口
+ARM64 Linux的启动入口
 ------------------------
 
 针对 arm64 linux kernel， 入口在
