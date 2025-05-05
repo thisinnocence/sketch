@@ -6,19 +6,11 @@
 QEMU仿真虚拟化
 ================
 
-编译和运行
-----------------
+编译支持ARM64的QEMU
+-------------------------
 
-使用当前（2024.3）的最新版本即可:
-
-.. csv-table::
-    :align: left
-
-    QEMU, https://www.qemu.org, https://github.com/qemu, v8.2.0
-    Linux, https://www.kernel.org, https://github.com/torvalds/linux, v6.8.0
-    BusyBox, https://busybox.net, https://github.com/mirror/busybox, 1.36.0
-
-编译QEMU, 为了方便调试，加入了 ``--enable-debug`` 选项，这个方便单步调试，但是会影响性能，所以release版本不要带。
+在x86-64的Linux Host机器上，编译QEMU，然后拉起一个ARM64的Guest Linux。编译QEMU, 为了方便调试，加入了 ``--enable-debug`` 选项，
+这个方便单步调试，但是会影响性能。
 
 .. code-block:: bash
 
@@ -27,9 +19,10 @@ QEMU仿真虚拟化
     ../configure --target-list=aarch64-softmmu --enable-debug
     make -j
 
-编译Linux内核，请参考 :doc:`/os/Linux操作系统`
+编译Linux内核可参考 :doc:`/os/Linux操作系统`, 然后启动QEMU:
 
-启动QEMU, ``start.sh``
+QEMU拉起ARM64 Linux内核
+-------------------------
 
 .. code-block:: bash
 
@@ -40,7 +33,7 @@ QEMU仿真虚拟化
         -cpu cortex-a57 \
         -readconfig virt.cfg
 
-配置文件 ``virt.cfg``
+配置文件 ``virt.cfg``，当然也可以都在命令行拉起。
 
 .. code-block:: ini
 
@@ -79,9 +72,6 @@ QEMU仿真虚拟化
         ]
     }
 
-加载kernel, initrd, dtb
-------------------------
-
 这里直接使用QEMU命令行传递内核和initrd，用了QEMU内置的mini-Bootloader，关键的流程步骤:
 
 1. load kernel
@@ -119,8 +109,8 @@ QEMU仿真虚拟化
 
 内核启动是需要Bootloader的，硬件初始化，把内核/DTB从文件加载到内存，PC设置到入口等等。
 
-选项解析与初始化
------------------
+QEMU启动选项解析
+---------------------
 
 首先说一下怎么看qemu所支持的参数 ::
 
@@ -167,24 +157,8 @@ QEMU仿真虚拟化
 
 上面就是使用QEMU解析命令行参数和配置文件启动virt(arm machine)跑Linux的流程。
 
-编译QEMU的rst文档
-------------------
-
-可以直接看docs下面的QEMU文档，也可以本地编译，这样看文档没有相比online更加快不会有时延体验更好，也方便自己修改文档
-是否引入sphinx的编译问题。  ::
-
-    mkdir build
-    cd build
-    ../configure --target-list=aarch64-softmmu --enable-docs
-    make html
-    cd dosc/manual
-
-然后再build目录的 docs/manual 目录下面就有编译好的文档了，直接双击 index.html 浏览器打开即可, 速度非常快。
-
-在QEMU仓库的 docs 目录，还有一些txt的文档，这些不是rst格式，不会sphinx编译发布，这种直接vim打开就好，比如 pcie.txt 文档。
-
-QEMU对ARM系统仿真的支持
------------------------
+ARM架构的仿真支持
+-----------------
 
 https://www.qemu.org/docs/master/system/target-arm.html
 
@@ -203,85 +177,10 @@ ARM由于是开放授权的，有很多种硬件。上面链接就说明了当�
 
 一个查所有device的命令： ``qemu -device help``
 
-TCG的原理
+串口的仿真
 -----------
 
-| QEMU仿真的核心机制是DBT(Dynamic Binary Translate), 在TCG模块不停的翻译Guest的指令为Host的指令。
-| see: `QEMU - Binary Translation <https://www.slideshare.net/RampantJeff/qemu-binary-translation>`_
-
-把Guest的汇编指令翻译为Host的汇编指令，有个论文做的统计是大概是原来指令数的10多倍。那么为什么会多执行了这么多？很简单，比如
-下面的情况：
-
-- 访问内存的指令(访存指令)，肯定需要调用到对应内存的回调；
-- 访问IO的指令(IO指令)，也会调用到对应IO的仿真回调函数；
-- 特定系统寄存器的访问(系统寄存器读写指令)，也会调用到对应的helper函数中；
-- 指令执行出现异常后的处理，这个也需要额外的处理；
-
-这片文章讲的很不错: `QEMU tcg源码分析与unicorn原理 <https://bbs.kanxue.com/thread-277163.htm>`_ ，讲了下面几个点：
-
-.. note::
-
-    1. 普通算术逻辑运算指令如何更新Host体系结构相关寄存器
-    2. 内存读写如何处理
-    3. 分支指令(条件跳转、非条件跳转、返回指令）
-    4. 目标机器没有的指令、特权指令、敏感指令
-    5. 非普通内存读写如设备寄存器访问MMIO
-    6. 指令执行出现了同步异常如何处理(如系统调用)
-    7. 硬件中断如何处理
-
-QEMU会 ``mmap`` 一段空间，放到 ``code_gen_buffer`` 这个指针指向的位置，加入执行权限，然后来存放TCG对Guest指令进行翻译后的指令,
-可以看 ``/qemu/tcg/region.c`` 相关的实现。
-
-这些情况必须正确处理了，才能够做到一个真正的仿真。TCG是按照TB(Translate Block)进行一块一块的翻译。遇到函数调用类似 ``callq`` 等
-就会有跳转，这时就会执行另一个TB。每个TB处理都会有 prologue, epilogue 的预处理和后处理，方便做特殊处理，比如遇到异常等，如下：
-
-.. image:: pic/tcg_exec_trans.png
-    :scale: 60%
-
-TCG会把翻译过得指令给缓存起来，下次遇到同样的TB，就可以直接执行这些翻译过的指令了，这样就提高了效率，大概执行的流程如下：
-
-.. image:: pic/qemu-tcg-flow.png
-    :scale: 60%
-
-| 上面执行过程也可以看出，当遇到 Exception 时，会去执行异常处理，如中断、IO访问等。
-
-还可以使用 ``-d help`` 看支持的选项，把tcg翻译前后的指令打印出来，先安装 ``apt install libcapstone-dev`` 支持反汇编。
-还是用前面的环境配置，用下面一行命令拉起  ::
-
-    qemu-system-aarch64 -nographic -cpu cortex-a57 -readconfig virt.cfg -d in_asm,out_asm -D a.log
-
-    运行后的日志就被打印到 a.log 里了，大概如下，可以明显看出，一条guest会有很多host指令 ：
-    IN:
-    0xffff8000083ca030:  910163e0  add      x0, sp, #0x58
-    0xffff8000083ca034:  f9002fe3  str      x3, [sp, #0x58]
-    0xffff8000083ca038:  b90063e4  str      w4, [sp, #0x60]
-    0xffff8000083ca03c:  940345d5  bl       #0xffff80000849b790
-
-    OUT: [size=296]
-      -- guest addr 0x0000000000000030 + tb prologue
-    0x7f985d36c280:  8b 5d f0                 movl     -0x10(%rbp), %ebx
-    0x7f985d36c283:  85 db                    testl    %ebx, %ebx
-    0x7f985d36c285:  0f 8c b3 00 00 00        jl       0x7f985d36c33e
-    0x7f985d36c28b:  c6 45 f4 00              movb     $0, -0xc(%rbp)
-    0x7f985d36c28f:  48 8b 9d 38 01 00 00     movq     0x138(%rbp), %rbx
-    0x7f985d36c296:  4c 8d 63 58              leaq     0x58(%rbx), %r12
-    0x7f985d36c29a:  4c 89 65 40              movq     %r12, 0x40(%rbp)
-      -- guest addr 0x0000000000000034
-    0x7f985d36c29e:  4c 8d 63 58              leaq     0x58(%rbx), %r12
-    0x7f985d36c2a2:  4c 8b 6d 58              movq     0x58(%rbp), %r13
-    0x7f985d36c2a6:  49 8b fc                 movq     %r12, %rdi
-    0x7f985d36c2a9:  48 c1 ef 07              shrq     $7, %rdi
-    0x7f985d36c2ad:  48 23 bd 10 ff ff ff     andq     -0xf0(%rbp), %rdi
-    0x7f985d36c2b4:  48 03 bd 18 ff ff ff     addq     -0xe8(%rbp), %rdi
-    0x7f985d36c2bb:  49 8d 74 24 07           leaq     7(%r12), %rsi
-    0x7f985d36c2c0:  48 81 e6 00 f0 ff ff     andq     $0xfffffffffffff000, %rsi
-    0x7f985d36c2c7:  48 3b 77 08              cmpq     8(%rdi), %rsi
-    0x7f985d36c2cb:  0f 85 79 00 00 00        jne      0x7f985d36c34a
-    0x7f985d36c2d1:  48 8b 7f 18              movq     0x18(%rdi), %rdi
-    0x7f985d36c2d5:  4d 89 2c 3c              movq     %r13, 0(%r12, %rdi)
-
-串口pl011的仿真
-----------------
+QEMU的virt machine支持多种串口设备，最常用的是 pl011, 也就是ARM PrimeCell PL011 UART。这个是ARM的一个标准外设。
 
 | 官方手册： https://developer.arm.com/documentation/ddi0183/latest/
 | 寄存器:  https://developer.arm.com/documentation/ddi0183/g/programmers-model/summary-of-registers
@@ -393,327 +292,8 @@ Data Register, UARTDR 的偏移是0，屏幕打印就是这个寄存器的值。
 
 后面可以看下 Linux 内核里相关的实现再。
 
-最小系统mini-virt
------------------
-
-前面的virt实现还是比较复杂，很多硬件设备没用上。针对 :ref:`cut_dts` , 也可以对 QEMU virt 的实现做裁剪，
-实现一个 mini-virt 最小 machine, 这里使用 **gic-v3** 注意前面链接裁剪的dts，改为gicv3的node. 而且也不需要启动参数
-传递gic版本了，默认就是gic-v3实现了，代码链接：
-
-| mini-virt.c:   https://github.com/thisinnocence/qemu/blob/my/v8.2.0/hw/arm/mini-virt.c
-| mini-virt.dts: https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-virt.dts
-
-QEMU源码里实现一个machine，不能像内核一样改改dts配置就行，还需要改动一些源码。裁剪的时候，刚开始遇到了一些问题，
-单步内核看，发现是dtb没有load到正确的问题，然后对比了一些 virt 的实现，发现如果用qemu的load dtb机制，需要在
-machine init done后，通过notify来，然后改完后就好了。看内核这块代码，printk早起没有打出来，单步还是很方便的，
-一下子就看到问题所在了，知道明确的失败点就好反推了。
-
-并且由于指定了默认的CPU type，也不用传 ``-cpu`` 这个参数了。
-
-这个拉起来后，可以在看么 meminfo，对比一下qemu console的和内核的，如下 ::
-
-    Please press Enter to activate this console.
-    / #
-    / # cat /proc/iomem
-    08000000-0800ffff : GICD
-    080a0000-08ffffff : GICR
-    09000000-09000fff : pl011@9000000
-    09000000-09000fff : 9000000.pl011 pl011@9000000
-    40000000-13fffffff : System RAM
-    40210000-41d6ffff : Kernel code
-    41d70000-4270ffff : reserved
-    42710000-42c3ffff : Kernel data
-    // ... reserved
-    / #
-    / # QEMU 8.2.0 monitor - type 'help' for more information
-    (qemu) info mtree
-    address-space: I/O
-    0000000000000000-000000000000ffff (prio 0, i/o): io
-
-    address-space: cpu-memory-0
-    address-space: cpu-secure-memory-0
-    address-space: memory
-    0000000000000000-ffffffffffffffff (prio 0, i/o): system
-        0000000008000000-000000000800ffff (prio 0, i/o): gicv3_dist
-        00000000080a0000-00000000080bffff (prio 0, i/o): gicv3_redist_region[0]
-        0000000009000000-0000000009000fff (prio 0, i/o): pl011
-        0000000040000000-000000013fffffff (prio 0, ram): ram
-    (qemu)
-    // 看roms，可以看内置的loader所占用的地址，也方便定位是否发生了内存覆盖的问题
-    (qemu) info roms
-    addr=0000000040000000 size=0x000028 mem=ram name="bootloader"
-    addr=0000000040200000 size=0x29a1a00 mem=ram name="/root/github/linux/build/arch/arm64/boot/Image"
-    addr=0000000048000000 size=0x2000000 mem=ram name="initrd.ext4"
-    addr=000000004a000000 size=0x005622 mem=ram name="dtb"
-
-可以看出，如果不算Bootloader（用QEMU内置的），那么拉起一个最小的ARM64 Linux, 只需要上面几个设备就行了，非常少。
-比DTS里面描述的还少，DTS里描述串口的时候，还需要指定一个外设时钟 ``apb_pclk``, QEMU仿真中在创建没看到，估计在其他地方或者
-就不需要模拟了，后面再研究下。
-
-QEMU内置的Bootloader
------------------------
-
-QEMU不需要BIOS，也可以把内核给启动起来，靠的就是内置的bootloader。把内核、DTB、根文件系统等加载到特定物理地址(ROM/RAM)中，然后
-QEMU自身也有内置的极简的boot代码，也放入对应的物理地址，作为首条指令进行启动。
-
-ARM64的boot和load总流程
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-那么用qemu -bios参数指定的dtb，是如何确定加载的位置呢，追一下代码流程 ::
-
-    // @file: mini-virt.c
-    vms->bootinfo.loader_start = vms->memmap[VIRT_MEM].base; // 0x40000000 (1 GiB)
-
-    // load 内核image和initrd
-    arm_load_kernel  // @file: boot.c
-        arm_setup_direct_kernel_boot
-            primary_loader = bootloader_aarch64;
-            |   ARMInsnFixup bootloader_aarch64[] = {
-            |       { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
-            |       //...
-            |       { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
-            arm_load_elf(info, &elf_entry...)
-            |   load_elf_hdr(info->kernel_filename, &elf_header, &elf_is64, &err); // @file: loader.c;
-            loadaddr = info->loader_start + KERNEL_NOLOAD_ADDR; // + 0x2000000(32 KiB) = 0x42000000
-            load_uimage_as(info->kernel_filename, &entry, &loadaddr,
-            load_aarch64_image(filename, hwaddr mem_base, hwaddr *entry, AddressSpace *as)
-            |   load_image_gzipped_buffer // aarch64, it's the bootloader's job to uncompress kernel
-            |   g_file_get_contents(filename, (char **)&buffer, &len, NULL) // 没有压缩的内核
-            |   unpack_efi_zboot_image
-            |   *entry = mem_base + kernel_load_offset; // 0x40000000 + 0x200000
-            |       rom_add_blob_fixed_as(filename, buffer, size, *entry, as); // blob加载到address-space
-            |           rom_add_blob
-            |               rom = g_malloc0(sizeof(*rom));
-            |               memcpy(rom->data, blob, len);
-            | // put the initrd far enough into RAM...
-            info->initrd_start = info->loader_start + MIN(info->ram_size / 2, 128 * MiB);
-            info->initrd_start = MAX(info->initrd_start, image_high_addr);
-            info->initrd_start = TARGET_PAGE_ALIGN(info->initrd_start);
-            load_ramdisk_as
-            |   load_uboot_image // <-- initrd filename
-            |   load_image_targphys_as  // @file: loader.c
-            |       rom_add_file_fixed_as
-            |           rom_add_file
-            | // has dtb
-            align = 2 * MiB;
-            // Place the DTB after the initrd in memory with alignment
-            info->dtb_start = QEMU_ALIGN_UP(info->initrd_start + initrd_size, align);
-            |   // info->initrd_start = 0x48000000
-            |   // then result = 0x4a000000
-            arm_write_bootloader("bootloader", as, info->loader_start, primary_loader, fixupcontext);
-            |   rom_add_blob_fixed_as
-            ARM_CPU(cs)->env.boot_info = info;
-
-    // 最后load dtb
-    virt_machine_done
-        as = arm_boot_address_space(cpu, info);
-        arm_load_dtb(info->dtb_start, info, info->dtb_limit, as, ms); // info->dtb_start = 0x4a000000
-            load_device_tree
-            |   load_image_size(const char *filename, void *addr, size_t size)
-            rom_add_blob_fixed_as  // Put the DTB into the memory map as a ROM image
-                rom_add_blob
-
-针对这个 boot 和 load 流程，执行内置的bootloader代码时，执行到linux OS代码时，理应有个地方时把 dtb addr 设置到
-对应 cpu x0 reg里，然后才是tcg才运行启动guest指令的翻译执行。
-
-可见，如果没有bios，使用qemu内置的bootloader直接启动内核，那么 ``-kernel, -dtb, -initrd`` 都是qemu自己计算的位置，内置
-的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader``
-来制定加载对应地址，其他两个不行，需要改一下代码。
-
-QEMU的内置ARM64 boot实现
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: c
-
-    // 每个CPU核的定义，有通用寄存器，关键系统寄存器，PC等
-    // file: target/arm/cpu.h
-    typedef struct CPUArchState {
-        /* Regs for current mode.  */
-        uint32_t regs[16];
-
-        /* 32/64 switch only happens when taking and returning from
-        * exceptions so the overlap semantics are taken care of then
-        * instead of having a complicated union.
-        */
-        /* Regs for A64 mode.  */
-        uint64_t xregs[32];
-        uint64_t pc;
-        // -----557 lines:---------------- 被vim自由折叠
-    } CPUARMState;
-
-    // qemu自带的aarch64 boot代码，硬编码的几个核心指令
-    // file: boot.c
-    static const ARMInsnFixup bootloader_aarch64[] = {
-        { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
-        { 0xaa1f03e1 }, /* mov x1, xzr */
-        { 0xaa1f03e2 }, /* mov x2, xzr */
-        { 0xaa1f03e3 }, /* mov x3, xzr */
-        { 0x58000084 }, /* ldr x4, entry ; Load the lower 32-bits of kernel entry */
-        { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
-        { 0, FIXUP_ARGPTR_LO }, /* arg: .word @DTB Lower 32-bits */ // <------ 这个就是DTB地址
-        { 0, FIXUP_ARGPTR_HI}, /* .word @DTB Higher 32-bits */
-        { 0, FIXUP_ENTRYPOINT_LO }, /* entry: .word @Kernel Entry Lower 32-bits */
-        { 0, FIXUP_ENTRYPOINT_HI }, /* .word @Kernel Entry Higher 32-bits */
-    };
-
-    // @file: boot.c
-    arm_setup_direct_kernel_boot
-        arm_load_elf(info, &elf_entry...)
-        entry = elf_entry;
-        fixupcontext[FIXUP_ENTRYPOINT_LO] = entry; // <-- 传递给这个Guest的地址，需要前面配合设置x0
-
-    // linux kernel
-    // @arch/arm64/kernel/head.S
-    // Kernel startup entry point
-    //    MMU = off, D-cache = off, I-cache = on or off
-    //    x0 = physical address to the FDT blob.  <--- i
-
-然后，用 tcg 内置的 gdbserver看下启动的首地址 ::
-
-    (gdb) target remote :1234
-    Remote debugging using :1234
-    0x0000000040000000 in ?? ()
-    (gdb) p $pc
-    $1 = (void (*)()) 0x40000000
-    (gdb) x/10i $pc
-    => 0x40000000:  ldr     x0, 0x40000018    //同上面硬编码的boot code (gpt解析不准： ldr x0, [pc, #0x18])
-       0x40000004:  mov     x1, xzr
-       0x40000008:  mov     x2, xzr
-       0x4000000c:  mov     x3, xzr
-       0x40000010:  ldr     x4, 0x40000020
-       0x40000014:  br      x4
-       0x40000018:  eor     w0, w0, w0 // 这个是DTB的参数地址，可以看QEMU对应代码的注释也 -- value是0x4a000000
-       0x4000001c:  .inst   0x00000000 ; undefined
-       0x40000020:  .inst   0x40200000 ; undefined
-    (gdb) ni
-    0x0000000040000004 in ?? ()
-    (gdb) p/x $x0
-    $2 = 0x4a000000 // 就是 info roms里的dtb加载地址
-    (gdb) x/wx 0x40000018
-    0x40000018:     0x4a000000
-
-对于 ``0x580000c0`` 这个汇编指令解码，可以参考 ARMv8-Reference-Manual.pdf 的 C6.2.102 LDR (literal)
-
-.. image:: pic/ldr_instruct.png
-
-根据 opc 解析出 ldr 类型，lable is: ((0x580000c0 & 0xfff) >> 5) * 4 = 0x18
-
-这样看下来，qemu内置的Bootloader实现加载DTB，并传递地址给内核入口，这段实现还是很巧妙的，需要对汇编指令然后bootload机制
-有系统的了解，代码还是比较清晰的。
-
-核启动的执行第一条Guest指令是怎么个流程呢? 首先是设置PC(Program Counter)寄存器位置，可以通过CPUState的PC成员看调用点 ::
-
-    @file: target/arm/cpu.h
-    struct CPUArchState {
-        uint64_t xregs[32];  /* Regs for A64 mode.  */
-        uint64_t pc;
-        // ...
-    }
-
-    @file: include/hw/core/cpu.h
-    arm_cpu_set_pc(CPUState *cs, vaddr value)
-    arm_cpu_class_init
-        cc->set_pc = arm_cpu_set_pc;
-    ||
-    cpu_set_pc(CPUState *cpu, vaddr addr)
-        cc->set_pc(cpu, addr);
-
-    @file: boot.c  // 使用qemu内置的boot，boot阶段就置位了PC
-    default_reset_secondary
-        cpu_set_pc(cs, info->smp_loader_start);
-    ||
-    do_cpu_reset(void *opaque)
-        if (cs == first_cpu)
-            cpu_set_pc(cs, info->loader_start);
-
-    <<---create machine finished---->>
-    do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
-    qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
-    qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
-    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:156ed
-    qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
-    qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
-    qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
-    main(int argc, char ** argv) (\root\github\qemu\system\main.c:47)
-
-    // 也是reset阶段，把所有roms的data写入对应系统的地址空间里面去的
-    #0  address_space_write_rom_internal (as=0x555557acc1c0, addr=1073741824, attrs=..., ptr=0x555557dac7d0, len=40, type=WRITE_DATA) at ../system/physmem.c:2936
-    #1  0x000055555615408f in address_space_write_rom (as=0x555557acc1c0, addr=1073741824, attrs=..., buf=0x555557dac7d0, len=40) at ../system/physmem.c:2956
-    #2  0x00005555559aa9bb in rom_reset (unused=0x0) at ../hw/core/loader.c:1282
-    #3  0x00005555561b6ded in qemu_devices_reset (reason=SHUTDOWN_CAUSE_NONE) at ../hw/core/reset.c:84
-    #4  0x0000555555d0e8ea in qemu_system_reset (reason=SHUTDOWN_CAUSE_NONE) at ../system/runstate.c:494
-    #5  0x00005555559b2107 in qdev_machine_creation_done () at ../hw/core/machine.c:1569
-    #6  0x0000555555d15947 in qemu_machine_creation_done () at ../system/vl.c:2677
-    #7  0x0000555555d15a47 in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2706
-    #8  0x0000555555d18276 in qemu_init (argc=8, argv=0x7fffffffdc48) at ../system/vl.c:3753
-    #9  0x00005555558ede00 in main (argc=8, argv=0x7fffffffdc48) at ../system/main.c:47
-
-然后是TCG大循环开始执行翻译的第一条Guest OS指令 ::
-
-    b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
-    看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
-
-    // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
-    #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
-    #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
-    #2  0x0000555555e89093 in arm_cpu_realizefn (dev=0x555557a4a030, errp=0x7fffffffd650) at ../target/arm/cpu.c:2387
-    #3  0x00005555561b5f29 in device_set_realized (obj=0x555557a4a030, value=true, errp=0x7fffffffd760) at ../hw/core/qdev.c:510
-    #4  0x00005555561c0071 in property_set_bool (obj=0x555557a4a030, v=0x555557a62390, name=0x5555566afdf1 "realized", opaque=0x5555576eb4a0, errp=0x7fffffffd760) at ../qom/object.c:2305
-    #5  0x00005555561bdf98 in object_property_set (obj=0x555557a4a030, name=0x5555566afdf1 "realized", v=0x555557a62390, errp=0x7fffffffd760) at ../qom/object.c:1435
-    #6  0x00005555561c2542 in object_property_set_qobject (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=0x555557a62370, errp=0x5555575a9f60 <error_fatal>) at ../qom/qom-qobject.c:28
-    #7  0x00005555561be312 in object_property_set_bool (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=true, errp=0x5555575a9f60 <error_fatal>) at ../qom/object.c:1504
-    #8  0x00005555561b56e9 in qdev_realize (dev=0x555557a4a030, bus=0x0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:292
-    #9  0x0000555555dfee79 in create_cpu (machine=0x555557918000) at ../hw/arm/mini-virt.c:88
-    #10 0x0000555555dff27c in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:146
-    #11 0x00005555559b1f9e in machine_run_board_init (machine=0x555557918000, mem_path=0x0, errp=0x7fffffffd960) at ../hw/core/machine.c:1509
-    #12 0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
-    #13 0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2704
-    #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
-    #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
-
-至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。CPU执行第一调Guest指令时，一定已经是翻译成Host了，这个涉及了
-访存（第一条boot指令时加载内存里的值到，那么会触发helper的访存操作，最终会访问到对应的地址 ::
-
-    gdb --args qemu-system-aarch64 -nographic -readconfig mini-virt.cfg -plugin ~/github/qemu/build/contrib/plugins/libexeclog.so -d plugin
-
-    (gdb) b cpu_tb_exec
-    (gdb) r
-    Thread 3 "qemu-system-aar" hit Breakpoint 1, cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:448
-    448         CPUArchState *env = cpu_env(cpu);
-    (gdb) n
-    451         const void *tb_ptr = itb->tc.ptr;
-    (gdb)
-    453         if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
-    (gdb)
-    457         qemu_thread_jit_execute();
-    (gdb)
-    458         ret = tcg_qemu_tb_exec(env, tb_ptr); // 后面就是执行boot这个第一段TB的所涉及的指令，以及对应访存
-    (gdb)
-    0, 0x40000000, 0x580000c0, "ldr x0, #0x40000018", load, 0x40000018, RAM
-    0, 0x40000004, 0xaa1f03e1, "mov x1, xzr"
-    0, 0x40000008, 0xaa1f03e2, "mov x2, xzr"
-    0, 0x4000000c, 0xaa1f03e3, "mov x3, xzr"
-    0, 0x40000010, 0x58000084, "ldr x4, #0x40000020", load, 0x40000020, RAM
-    459         cpu->neg.can_do_io = true;
-    (gdb) bt
-    #0  cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:459
-    #1  0x0000555556184ee4 in cpu_loop_exec_tb (cpu=0x555557a4a730, tb=0x7fffa3e7e040, pc=1073741824, last_tb=0x7fff63e79060, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:920
-    #2  0x000055555618522a in cpu_exec_loop (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1041
-    #3  0x00005555561852f0 in cpu_exec_setjmp (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1058
-    #4  0x0000555556185386 in cpu_exec (cpu=0x555557a4a730) at ../accel/tcg/cpu-exec.c:1084
-    #5  0x00005555561ab526 in tcg_cpus_exec (cpu=0x555557a4a730) at ../accel/tcg/tcg-accel-ops.c:76
-    #6  0x00005555561abc28 in mttcg_cpu_thread_fn (arg=0x555557a4a730) at ../accel/tcg/tcg-accel-ops-mttcg.c:95
-
-| 上面插件的使用方法在QEMU的官方文档的说明  https://www.qemu.org/docs/master/devel/tcg-plugins.html#example-plugins
-| 结合着gdb qemu，就很容易找到最开始哪里执行Guest的第一条指令的，执行的是什么指令，这就可以很好的回答起那么的问题。
-
-.. note::
-
-    code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
-
-
 中断的仿真
-----------
+-----------
 
 查看Guest的中断统计
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1034,8 +614,328 @@ gpio_in 里的 qemu_irq pin里的handler回调函数。这个接口设计的很�
 
     可以看出，这次arch-timer中断触发，并最终报到CPU，是定时器机制触发的。
 
-运行bootloader u-boot
+
+运行小系统mini-virt
 ----------------------
+
+前面的virt实现还是比较复杂，很多硬件设备没用上。针对 :ref:`cut_dts` , 也可以对 QEMU virt 的实现做裁剪，
+实现一个 mini-virt 最小 machine, 这里使用 **gic-v3** 注意前面链接裁剪的dts，改为gicv3的node. 而且也不需要启动参数
+传递gic版本了，默认就是gic-v3实现了，代码链接：
+
+| mini-virt.c:   https://github.com/thisinnocence/qemu/blob/my/v8.2.0/hw/arm/mini-virt.c
+| mini-virt.dts: https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-virt.dts
+
+QEMU源码里实现一个machine，不能像内核一样改改dts配置就行，还需要改动一些源码。裁剪的时候，刚开始遇到了一些问题，
+单步内核看，发现是dtb没有load到正确的问题，然后对比了一些 virt 的实现，发现如果用qemu的load dtb机制，需要在
+machine init done后，通过notify来，然后改完后就好了。看内核这块代码，printk早起没有打出来，单步还是很方便的，
+一下子就看到问题所在了，知道明确的失败点就好反推了。
+
+并且由于指定了默认的CPU type，也不用传 ``-cpu`` 这个参数了。
+
+这个拉起来后，可以在看么 meminfo，对比一下qemu console的和内核的，如下 ::
+
+    Please press Enter to activate this console.
+    / #
+    / # cat /proc/iomem
+    08000000-0800ffff : GICD
+    080a0000-08ffffff : GICR
+    09000000-09000fff : pl011@9000000
+    09000000-09000fff : 9000000.pl011 pl011@9000000
+    40000000-13fffffff : System RAM
+    40210000-41d6ffff : Kernel code
+    41d70000-4270ffff : reserved
+    42710000-42c3ffff : Kernel data
+    // ... reserved
+    / #
+    / # QEMU 8.2.0 monitor - type 'help' for more information
+    (qemu) info mtree
+    address-space: I/O
+    0000000000000000-000000000000ffff (prio 0, i/o): io
+
+    address-space: cpu-memory-0
+    address-space: cpu-secure-memory-0
+    address-space: memory
+    0000000000000000-ffffffffffffffff (prio 0, i/o): system
+        0000000008000000-000000000800ffff (prio 0, i/o): gicv3_dist
+        00000000080a0000-00000000080bffff (prio 0, i/o): gicv3_redist_region[0]
+        0000000009000000-0000000009000fff (prio 0, i/o): pl011
+        0000000040000000-000000013fffffff (prio 0, ram): ram
+    (qemu)
+    // 看roms，可以看内置的loader所占用的地址，也方便定位是否发生了内存覆盖的问题
+    (qemu) info roms
+    addr=0000000040000000 size=0x000028 mem=ram name="bootloader"
+    addr=0000000040200000 size=0x29a1a00 mem=ram name="/root/github/linux/build/arch/arm64/boot/Image"
+    addr=0000000048000000 size=0x2000000 mem=ram name="initrd.ext4"
+    addr=000000004a000000 size=0x005622 mem=ram name="dtb"
+
+可以看出，如果不算Bootloader（用QEMU内置的），那么拉起一个最小的ARM64 Linux, 只需要上面几个设备就行了，非常少。
+比DTS里面描述的还少，DTS里描述串口的时候，还需要指定一个外设时钟 ``apb_pclk``, QEMU仿真中在创建没看到，估计在其他地方或者
+就不需要模拟了，后面再研究下。
+
+QEMU内置的Bootloader
+-----------------------
+
+QEMU不需要BIOS，也可以把内核给启动起来，靠的就是内置的bootloader。把内核、DTB、根文件系统等加载到特定物理地址(ROM/RAM)中，然后
+QEMU自身也有内置的极简的boot代码，也放入对应的物理地址，作为首条指令进行启动。
+
+ARM64的boot和load总流程
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+那么用qemu -bios参数指定的dtb，是如何确定加载的位置呢，追一下代码流程 ::
+
+    // @file: mini-virt.c
+    vms->bootinfo.loader_start = vms->memmap[VIRT_MEM].base; // 0x40000000 (1 GiB)
+
+    // load 内核image和initrd
+    arm_load_kernel  // @file: boot.c
+        arm_setup_direct_kernel_boot
+            primary_loader = bootloader_aarch64;
+            |   ARMInsnFixup bootloader_aarch64[] = {
+            |       { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
+            |       //...
+            |       { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
+            arm_load_elf(info, &elf_entry...)
+            |   load_elf_hdr(info->kernel_filename, &elf_header, &elf_is64, &err); // @file: loader.c;
+            loadaddr = info->loader_start + KERNEL_NOLOAD_ADDR; // + 0x2000000(32 KiB) = 0x42000000
+            load_uimage_as(info->kernel_filename, &entry, &loadaddr,
+            load_aarch64_image(filename, hwaddr mem_base, hwaddr *entry, AddressSpace *as)
+            |   load_image_gzipped_buffer // aarch64, it's the bootloader's job to uncompress kernel
+            |   g_file_get_contents(filename, (char **)&buffer, &len, NULL) // 没有压缩的内核
+            |   unpack_efi_zboot_image
+            |   *entry = mem_base + kernel_load_offset; // 0x40000000 + 0x200000
+            |       rom_add_blob_fixed_as(filename, buffer, size, *entry, as); // blob加载到address-space
+            |           rom_add_blob
+            |               rom = g_malloc0(sizeof(*rom));
+            |               memcpy(rom->data, blob, len);
+            | // put the initrd far enough into RAM...
+            info->initrd_start = info->loader_start + MIN(info->ram_size / 2, 128 * MiB);
+            info->initrd_start = MAX(info->initrd_start, image_high_addr);
+            info->initrd_start = TARGET_PAGE_ALIGN(info->initrd_start);
+            load_ramdisk_as
+            |   load_uboot_image // <-- initrd filename
+            |   load_image_targphys_as  // @file: loader.c
+            |       rom_add_file_fixed_as
+            |           rom_add_file
+            | // has dtb
+            align = 2 * MiB;
+            // Place the DTB after the initrd in memory with alignment
+            info->dtb_start = QEMU_ALIGN_UP(info->initrd_start + initrd_size, align);
+            |   // info->initrd_start = 0x48000000
+            |   // then result = 0x4a000000
+            arm_write_bootloader("bootloader", as, info->loader_start, primary_loader, fixupcontext);
+            |   rom_add_blob_fixed_as
+            ARM_CPU(cs)->env.boot_info = info;
+
+    // 最后load dtb
+    virt_machine_done
+        as = arm_boot_address_space(cpu, info);
+        arm_load_dtb(info->dtb_start, info, info->dtb_limit, as, ms); // info->dtb_start = 0x4a000000
+            load_device_tree
+            |   load_image_size(const char *filename, void *addr, size_t size)
+            rom_add_blob_fixed_as  // Put the DTB into the memory map as a ROM image
+                rom_add_blob
+
+针对这个 boot 和 load 流程，执行内置的bootloader代码时，执行到linux OS代码时，理应有个地方时把 dtb addr 设置到
+对应 cpu x0 reg里，然后才是tcg才运行启动guest指令的翻译执行。
+
+可见，如果没有bios，使用qemu内置的bootloader直接启动内核，那么 ``-kernel, -dtb, -initrd`` 都是qemu自己计算的位置，内置
+的bootloader可以使用 boot_info 的 loader_start 指定，其他两个都是根据一定逻辑自己判断的。 ``-initrd`` 可以用  ``-device loader``
+来制定加载对应地址，其他两个不行，需要改一下代码。
+
+QEMU的内置ARM64 boot实现
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: c
+
+    // 每个CPU核的定义，有通用寄存器，关键系统寄存器，PC等
+    // file: target/arm/cpu.h
+    typedef struct CPUArchState {
+        /* Regs for current mode.  */
+        uint32_t regs[16];
+
+        /* 32/64 switch only happens when taking and returning from
+        * exceptions so the overlap semantics are taken care of then
+        * instead of having a complicated union.
+        */
+        /* Regs for A64 mode.  */
+        uint64_t xregs[32];
+        uint64_t pc;
+        // -----557 lines:---------------- 被vim自由折叠
+    } CPUARMState;
+
+    // qemu自带的aarch64 boot代码，硬编码的几个核心指令
+    // file: boot.c
+    static const ARMInsnFixup bootloader_aarch64[] = {
+        { 0x580000c0 }, /* ldr x0, arg ; Load the lower 32-bits of DTB */
+        { 0xaa1f03e1 }, /* mov x1, xzr */
+        { 0xaa1f03e2 }, /* mov x2, xzr */
+        { 0xaa1f03e3 }, /* mov x3, xzr */
+        { 0x58000084 }, /* ldr x4, entry ; Load the lower 32-bits of kernel entry */
+        { 0xd61f0080 }, /* br x4      ; Jump to the kernel entry point */
+        { 0, FIXUP_ARGPTR_LO }, /* arg: .word @DTB Lower 32-bits */ // <------ 这个就是DTB地址
+        { 0, FIXUP_ARGPTR_HI}, /* .word @DTB Higher 32-bits */
+        { 0, FIXUP_ENTRYPOINT_LO }, /* entry: .word @Kernel Entry Lower 32-bits */
+        { 0, FIXUP_ENTRYPOINT_HI }, /* .word @Kernel Entry Higher 32-bits */
+    };
+
+    // @file: boot.c
+    arm_setup_direct_kernel_boot
+        arm_load_elf(info, &elf_entry...)
+        entry = elf_entry;
+        fixupcontext[FIXUP_ENTRYPOINT_LO] = entry; // <-- 传递给这个Guest的地址，需要前面配合设置x0
+
+    // linux kernel
+    // @arch/arm64/kernel/head.S
+    // Kernel startup entry point
+    //    MMU = off, D-cache = off, I-cache = on or off
+    //    x0 = physical address to the FDT blob.  <--- i
+
+然后，用 tcg 内置的 gdbserver看下启动的首地址 ::
+
+    (gdb) target remote :1234
+    Remote debugging using :1234
+    0x0000000040000000 in ?? ()
+    (gdb) p $pc
+    $1 = (void (*)()) 0x40000000
+    (gdb) x/10i $pc
+    => 0x40000000:  ldr     x0, 0x40000018    //同上面硬编码的boot code (gpt解析不准： ldr x0, [pc, #0x18])
+       0x40000004:  mov     x1, xzr
+       0x40000008:  mov     x2, xzr
+       0x4000000c:  mov     x3, xzr
+       0x40000010:  ldr     x4, 0x40000020
+       0x40000014:  br      x4
+       0x40000018:  eor     w0, w0, w0 // 这个是DTB的参数地址，可以看QEMU对应代码的注释也 -- value是0x4a000000
+       0x4000001c:  .inst   0x00000000 ; undefined
+       0x40000020:  .inst   0x40200000 ; undefined
+    (gdb) ni
+    0x0000000040000004 in ?? ()
+    (gdb) p/x $x0
+    $2 = 0x4a000000 // 就是 info roms里的dtb加载地址
+    (gdb) x/wx 0x40000018
+    0x40000018:     0x4a000000
+
+对于 ``0x580000c0`` 这个汇编指令解码，可以参考 ARMv8-Reference-Manual.pdf 的 C6.2.102 LDR (literal)
+
+.. image:: pic/ldr_instruct.png
+
+根据 opc 解析出 ldr 类型，lable is: ((0x580000c0 & 0xfff) >> 5) * 4 = 0x18
+
+这样看下来，qemu内置的Bootloader实现加载DTB，并传递地址给内核入口，这段实现还是很巧妙的，需要对汇编指令然后bootload机制
+有系统的了解，代码还是比较清晰的。
+
+核启动的执行第一条Guest指令是怎么个流程呢? 首先是设置PC(Program Counter)寄存器位置，可以通过CPUState的PC成员看调用点 ::
+
+    @file: target/arm/cpu.h
+    struct CPUArchState {
+        uint64_t xregs[32];  /* Regs for A64 mode.  */
+        uint64_t pc;
+        // ...
+    }
+
+    @file: include/hw/core/cpu.h
+    arm_cpu_set_pc(CPUState *cs, vaddr value)
+    arm_cpu_class_init
+        cc->set_pc = arm_cpu_set_pc;
+    ||
+    cpu_set_pc(CPUState *cpu, vaddr addr)
+        cc->set_pc(cpu, addr);
+
+    @file: boot.c  // 使用qemu内置的boot，boot阶段就置位了PC
+    default_reset_secondary
+        cpu_set_pc(cs, info->smp_loader_start);
+    ||
+    do_cpu_reset(void *opaque)
+        if (cs == first_cpu)
+            cpu_set_pc(cs, info->loader_start);
+
+    <<---create machine finished---->>
+    do_cpu_reset(void * opaque) (\root\github\qemu\hw\arm\boot.c:757)
+    qemu_devices_reset(ShutdownCause reason) (\root\github\qemu\hw\core\reset.c:84)
+    qemu_system_reset(ShutdownCause reason) (\root\github\qemu\system\runstate.c:494)
+    qdev_machine_creation_done() (\root\github\qemu\hw\core\machine.c:156ed
+    qemu_machine_creation_done() (\root\github\qemu\system\vl.c:2677)
+    qmp_x_exit_preconfig(Error ** errp) (\root\github\qemu\system\vl.c:2706)
+    qemu_init(int argc, char ** argv) (\root\github\qemu\system\vl.c:3753)
+    main(int argc, char ** argv) (\root\github\qemu\system\main.c:47)
+
+    // 也是reset阶段，把所有roms的data写入对应系统的地址空间里面去的
+    #0  address_space_write_rom_internal (as=0x555557acc1c0, addr=1073741824, attrs=..., ptr=0x555557dac7d0, len=40, type=WRITE_DATA) at ../system/physmem.c:2936
+    #1  0x000055555615408f in address_space_write_rom (as=0x555557acc1c0, addr=1073741824, attrs=..., buf=0x555557dac7d0, len=40) at ../system/physmem.c:2956
+    #2  0x00005555559aa9bb in rom_reset (unused=0x0) at ../hw/core/loader.c:1282
+    #3  0x00005555561b6ded in qemu_devices_reset (reason=SHUTDOWN_CAUSE_NONE) at ../hw/core/reset.c:84
+    #4  0x0000555555d0e8ea in qemu_system_reset (reason=SHUTDOWN_CAUSE_NONE) at ../system/runstate.c:494
+    #5  0x00005555559b2107 in qdev_machine_creation_done () at ../hw/core/machine.c:1569
+    #6  0x0000555555d15947 in qemu_machine_creation_done () at ../system/vl.c:2677
+    #7  0x0000555555d15a47 in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2706
+    #8  0x0000555555d18276 in qemu_init (argc=8, argv=0x7fffffffdc48) at ../system/vl.c:3753
+    #9  0x00005555558ede00 in main (argc=8, argv=0x7fffffffdc48) at ../system/main.c:47
+
+然后是TCG大循环开始执行翻译的第一条Guest OS指令 ::
+
+    b mttcg_cpu_thread_fn 这个，首次断住，只有1个，secondary core还没启动。
+    看调用点事 mttcg_start_vcpu_thread， 断这个看调用栈
+
+    // 至少看这个时机，bootloader/kernel 还没load，tcg thread 已经OK
+    #0  mttcg_start_vcpu_thread (cpu=0x555557a4a030) at ../accel/tcg/tcg-accel-ops-mttcg.c:137
+    #1  0x0000555555d01633 in qemu_init_vcpu (cpu=0x555557a4a030) at ../system/cpus.c:649
+    #2  0x0000555555e89093 in arm_cpu_realizefn (dev=0x555557a4a030, errp=0x7fffffffd650) at ../target/arm/cpu.c:2387
+    #3  0x00005555561b5f29 in device_set_realized (obj=0x555557a4a030, value=true, errp=0x7fffffffd760) at ../hw/core/qdev.c:510
+    #4  0x00005555561c0071 in property_set_bool (obj=0x555557a4a030, v=0x555557a62390, name=0x5555566afdf1 "realized", opaque=0x5555576eb4a0, errp=0x7fffffffd760) at ../qom/object.c:2305
+    #5  0x00005555561bdf98 in object_property_set (obj=0x555557a4a030, name=0x5555566afdf1 "realized", v=0x555557a62390, errp=0x7fffffffd760) at ../qom/object.c:1435
+    #6  0x00005555561c2542 in object_property_set_qobject (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=0x555557a62370, errp=0x5555575a9f60 <error_fatal>) at ../qom/qom-qobject.c:28
+    #7  0x00005555561be312 in object_property_set_bool (obj=0x555557a4a030, name=0x5555566afdf1 "realized", value=true, errp=0x5555575a9f60 <error_fatal>) at ../qom/object.c:1504
+    #8  0x00005555561b56e9 in qdev_realize (dev=0x555557a4a030, bus=0x0, errp=0x5555575a9f60 <error_fatal>) at ../hw/core/qdev.c:292
+    #9  0x0000555555dfee79 in create_cpu (machine=0x555557918000) at ../hw/arm/mini-virt.c:88
+    #10 0x0000555555dff27c in mach_virt_init (machine=0x555557918000) at ../hw/arm/mini-virt.c:146
+    #11 0x00005555559b1f9e in machine_run_board_init (machine=0x555557918000, mem_path=0x0, errp=0x7fffffffd960) at ../hw/core/machine.c:1509
+    #12 0x0000555555d157cf in qemu_init_board () at ../system/vl.c:2613
+    #13 0x0000555555d15a3d in qmp_x_exit_preconfig (errp=0x5555575a9f60 <error_fatal>) at ../system/vl.c:2704
+    #14 0x0000555555d18276 in qemu_init (argc=6, argv=0x7fffffffdc68) at ../system/vl.c:3753
+    #15 0x00005555558ede00 in main (argc=6, argv=0x7fffffffdc68) at ../system/main.c:47
+
+至于执行到第一条Guest指令，用qemu的boot的话，应该是那个boot的地址。CPU执行第一调Guest指令时，一定已经是翻译成Host了，这个涉及了
+访存（第一条boot指令时加载内存里的值到，那么会触发helper的访存操作，最终会访问到对应的地址 ::
+
+    gdb --args qemu-system-aarch64 -nographic -readconfig mini-virt.cfg -plugin ~/github/qemu/build/contrib/plugins/libexeclog.so -d plugin
+
+    (gdb) b cpu_tb_exec
+    (gdb) r
+    Thread 3 "qemu-system-aar" hit Breakpoint 1, cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:448
+    448         CPUArchState *env = cpu_env(cpu);
+    (gdb) n
+    451         const void *tb_ptr = itb->tc.ptr;
+    (gdb)
+    453         if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
+    (gdb)
+    457         qemu_thread_jit_execute();
+    (gdb)
+    458         ret = tcg_qemu_tb_exec(env, tb_ptr); // 后面就是执行boot这个第一段TB的所涉及的指令，以及对应访存
+    (gdb)
+    0, 0x40000000, 0x580000c0, "ldr x0, #0x40000018", load, 0x40000018, RAM
+    0, 0x40000004, 0xaa1f03e1, "mov x1, xzr"
+    0, 0x40000008, 0xaa1f03e2, "mov x2, xzr"
+    0, 0x4000000c, 0xaa1f03e3, "mov x3, xzr"
+    0, 0x40000010, 0x58000084, "ldr x4, #0x40000020", load, 0x40000020, RAM
+    459         cpu->neg.can_do_io = true;
+    (gdb) bt
+    #0  cpu_tb_exec (cpu=0x555557a4a730, itb=0x7fffa3e7e040, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:459
+    #1  0x0000555556184ee4 in cpu_loop_exec_tb (cpu=0x555557a4a730, tb=0x7fffa3e7e040, pc=1073741824, last_tb=0x7fff63e79060, tb_exit=0x7fff63e79050) at ../accel/tcg/cpu-exec.c:920
+    #2  0x000055555618522a in cpu_exec_loop (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1041
+    #3  0x00005555561852f0 in cpu_exec_setjmp (cpu=0x555557a4a730, sc=0x7fff63e790e0) at ../accel/tcg/cpu-exec.c:1058
+    #4  0x0000555556185386 in cpu_exec (cpu=0x555557a4a730) at ../accel/tcg/cpu-exec.c:1084
+    #5  0x00005555561ab526 in tcg_cpus_exec (cpu=0x555557a4a730) at ../accel/tcg/tcg-accel-ops.c:76
+    #6  0x00005555561abc28 in mttcg_cpu_thread_fn (arg=0x555557a4a730) at ../accel/tcg/tcg-accel-ops-mttcg.c:95
+
+| 上面插件的使用方法在QEMU的官方文档的说明  https://www.qemu.org/docs/master/devel/tcg-plugins.html#example-plugins
+| 结合着gdb qemu，就很容易找到最开始哪里执行Guest的第一条指令的，执行的是什么指令，这就可以很好的回答起那么的问题。
+
+.. note::
+
+    code_gen_buffer 中是TB翻译后的指令数据，不能够用gdb单步执行，好的办法是借助 -d in_asm,out_asm 或者 tcg plugin来分析。
+
+
+运行u-boot
+------------
 
 | 了解 u-boot: https://docs.u-boot.org/en/latest/arch/arm64.html
 | QEMU-ARM: https://docs.u-boot.org/en/latest/board/emulation/qemu-arm.html
@@ -1139,8 +1039,8 @@ QEMU加载bios流程  ::
 
     后面试一下引导标准linux.
 
-QEMU的MemoryRegion机制
-------------------------
+MemoryRegion机制
+-----------------
 
 研究一下TCG再翻译执行Guest汇编指令集的时候遇到访存指令(访问Memory)或者IO指令(访问IO)，如何关联到QEMU的MemoryRegion的。这里
 主要针对ARM架构来研究，IO和访存物理地址空间合一。
