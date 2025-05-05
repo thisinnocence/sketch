@@ -12,11 +12,7 @@ Linux操作系统
 -------------------------
 
 下载Linux源码后，使用menuconfig勾选RAM disks为 ``build-in`` 支持，并调整大小为: 65536 kb， 方便后面用QEMU拉起。
-
-.. note::
-    后续的代码主要针对： v6.8.0
-
-编译ARM64内核镜像方法如下：
+编译ARM64内核镜像(v6.8.0)方法：
 
 .. code-block:: bash
 
@@ -130,9 +126,9 @@ DTS基础知识
 
     - ARM的核心代码仍然保存在arch/arm目录下
     - ARM SoC core architecture code保存在arch/arm目录下
-    - ARM SOC的周边外设模块的驱动保存在drivers目录下
-    - ARM SOC的特定代码在arch/arm/mach-xxx目录下
-    - ARM SOC board specific的代码被移除，由DeviceTree机制来负责传递硬件拓扑和硬件资源信息。
+    - ARM SoC的周边外设模块的驱动保存在drivers目录下
+    - ARM SoC的特定代码在arch/arm/mach-xxx目录下
+    - ARM SoC board specific的代码被移除，由DeviceTree机制来负责传递硬件拓扑和硬件资源信息。
 
 本质上，Device Tree改变了原来用hardcode方式将HW 配置信息嵌入到内核代码的方法，改用bootloader传递一个DB的形式。对于操作系统，一个
 系统要能够运行到多种硬件平台，还有对一个平台多种特定的单板期间，那么为了内核的通用性，内核启动就要感知：
@@ -142,6 +138,7 @@ DTS基础知识
 3. 设备的拓扑结构以及特性
 
 在系统启动阶段，bootloader会加载内核并将控制权转交给内核，此外， 还需要把上述的三个参数信息传递给kernel，以便kernel可以有较大的灵活性。
+
 可以看这篇文章： https://e-mailky.github.io/2019-01-14-dts-1
 
 Device Tree由一系列被命名的结点（node）和属性（property）组成，而结点本身可包含 **子结点** 。所谓属性， 其实就是成对出现的name和value。
