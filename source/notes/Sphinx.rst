@@ -132,7 +132,7 @@ vscode的settings.json中加入下面的配置即可：
         "pasteImage.path": "${currentFileDir}/pic",
         "pasteImage.filePathConfirmInputBoxMode": "onlyName",
         "pasteImage.encodePath": "none",
-        "pasteImage.prefix": ".. image:: ",
+        "pasteImage.prefix": ".. image:: "
     }
 
 .. tip::
