@@ -184,3 +184,20 @@ https://www.zhihu.com/question/649976562/answer/1893695374948022083
 所以，先有输出型爱好，有自己的兴趣价值领域，这些才是为后面自己有足够自由可支配时间所准备好的，并且这些也很关键，甚至对于上班的生
 活也是，因为除非上班恰好就是自己的爱好价值所在，不过大概率不可能全是，因为上班，工作都是来源于组织的分配的。比如，很多的大佬程序员，
 他上班也无法深耕自己感兴趣和热爱的领域，可能业余或者自己做的项目才是他真正感兴趣的领域。
+
+0520 巴纳姆效应
+========================
+
+学到了1个巴纳姆效应(Barnum effect), 其指人们倾向于相信那些模糊、普遍适用的描述，认为它们是针对自己的个性化描述。这个效应
+在心理学和占星术中经常被提及。下面的Twitter帖子总结的不错：
+
+- https://x.com/knowledgefxg/status/1914689186332074031
+
+.. image:: pic/Barnum-effect.png
+    :scale: 50%
+    :alt: 巴纳姆效应
+
+还有峰哥的下面的切片哈哈，说的有意思：
+
+- `峰哥:相信算命的都是傻比！ <https://www.bilibili.com/video/BV1NgVfzZELD/?spm_id_from=333.337.search-card.all.click&vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_
+- `峰哥:“为啥丑逼穷逼都爱算命。” <https://www.bilibili.com/video/BV1jP4y1L79s/?spm_id_from=333.337.search-card.all.click&vd_source=f7b8e2d66d4b85cd95e1a463f568439f>`_
