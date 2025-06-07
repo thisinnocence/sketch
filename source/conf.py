@@ -44,7 +44,6 @@ todo_include_todos = True
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 html_theme = 'furo'
 html_static_path = ['_static']
+html_css_files = ['my_theme.css']
+# code style
 pygments_style = 'sphinx'
-
-def setup(app):
-    app.add_css_file('my_theme.css')
