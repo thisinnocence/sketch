@@ -7,7 +7,7 @@
    :maxdepth: 2
    :caption: Contents:
 
-   Linux操作系统
+   编译调试Linux内核
    ARM体系结构
    QEMU仿真虚拟化
    QEMU-TCG
