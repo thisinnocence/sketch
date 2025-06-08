@@ -1,49 +1,40 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-import sys
 import os
-import sphinx
+import sys
 
-# --- Project information ---
+# --- Project Information ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
 project = 'wu-sketch'
-copyright = '2024, Michael-Wu'
+copyright = '2025, Michael-Wu'
 author = 'Michael-Wu'
 
-sys.path.append(os.path.abspath("./_extensions"))
-
-# --- General configuration ---
+# --- General Configuration ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 language = 'zh_CN'
-templates_path = ['_templates']
+templates_path = ['_templates']  # 自定义模板目录, 如 footer.html
+sys.path.append(os.path.abspath('./_extensions'))  # 自定义扩展目录
 
-# https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 extensions = [
-    'chinese_space',
-    'sphinx.ext.todo',
-    'sphinx_copybutton',
-    'sphinx.ext.mathjax',
-    'myst_parser',
+    'chinese_space',       # 自定义扩展（放在 _extensions/ 目录）
+    'sphinx.ext.todo',     # TODO 功能
+    'sphinx_copybutton',   # 代码块复制按钮
+    'sphinx.ext.mathjax',  # LaTeX 数学公式支持
+    'myst_parser',         # Markdown 解析
 ]
 
-# myst_parser options for markdown
+# Markdown Support
+# https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
-    "dollarmath",    # 支持 $...$ 行内数学公式
-    "amsmath",       # 支持 LaTeX 公式环境（如 \begin{align}）
-    "colon_fence",   # 支持 ::: 语法定义代码块
-    "html_image",    # 支持 HTML 图片标签
+    "amsmath",  # 支持 LaTeX 公式环境（如 \begin{align}）
 ]
+# https://www.sphinx-doc.org/en/master/usage/extensions/todo.html
+todo_include_todos = True  # 显示文档中的 TODO 项
 
-# Display todos by setting to True
-todo_include_todos = True
-
+# --- HTML output ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-html_theme = 'furo'
-html_static_path = ['_static']
-html_css_files = ['my_theme.css']
-# code style
-pygments_style = 'sphinx'
+# https://pygments.org/styles/
+html_theme = 'furo'                # 主题名称
+html_static_path = ['_static']     # 静态文件目录（CSS/JS/图片）
+html_css_files = ['my_theme.css']  # 自定义 CSS 文件（可选）
+pygments_style = 'sphinx'          # 代码高亮主题（Pygments 样式）
