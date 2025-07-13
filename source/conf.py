@@ -26,7 +26,8 @@ extensions = [
 # https://www.sphinx-doc.org/en/master/usage/markdown.html#configuration
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
-    "amsmath",  # 支持 LaTeX 公式环境（如 \begin{align}）
+    "amsmath",     # 支持 LaTeX 公式环境（如 \begin{align}）
+    "dollarmath",  # 支持行内数学公式（如 $E=mc^2$）
 ]
 # https://www.sphinx-doc.org/en/master/usage/extensions/todo.html
 todo_include_todos = True  # 显示文档中的 TODO 项
