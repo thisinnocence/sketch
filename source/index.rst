@@ -11,7 +11,7 @@ Michael Wu's sketch
    :caption: Contents:
 
    notes/index
-   os/index
+   arch/index
    math/index
    think/index
    diary/index

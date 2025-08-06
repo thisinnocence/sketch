@@ -423,7 +423,7 @@ R1 the MACH_TYPE value and R2 the address of the tagged list of parameters.
 QEMU启动内核
 ^^^^^^^^^^^^^
 
-用 ``-S -s`` 调试, 环境版本参考 :doc:`/os/QEMU仿真虚拟化`, 大概调试了下相关流程 ::
+用 ``-S -s`` 调试, 环境版本参考 :doc:`/arch/QEMU仿真虚拟化`, 大概调试了下相关流程 ::
 
   (gdb) target remote :1234
   Remote debugging using :1234
