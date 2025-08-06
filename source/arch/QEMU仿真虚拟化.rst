@@ -19,7 +19,7 @@ QEMU仿真虚拟化
     ../configure --target-list=aarch64-softmmu --enable-debug
     make -j
 
-编译Linux内核可参考 :doc:`/arch/编译调试Linux内核`, 然后启动QEMU:
+编译Linux内核可参考 :doc:`/arch/编译调试ARM-Linux`, 然后启动QEMU:
 
 QEMU拉起ARM64 Linux内核
 -------------------------

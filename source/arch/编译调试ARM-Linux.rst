@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-编译调试Linux内核
+编译调试ARM-Linux
 ==================
 
 本文主要针对ARM64架构的相关代码进行介绍。
