@@ -12,3 +12,4 @@
    cc-notes
    js-notes
    AI-notes
+   rtl-notes
