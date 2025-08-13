@@ -15,11 +15,12 @@ templates_path = ['_templates']  # 自定义模板目录, 如 footer.html
 sys.path.append(os.path.abspath('./_extensions'))  # 自定义扩展目录
 
 extensions = [
-    'chinese_space',       # 自定义扩展（放在 _extensions/ 目录）
-    'sphinx.ext.todo',     # TODO 功能
-    'sphinx_copybutton',   # 代码块复制按钮
-    'sphinx.ext.mathjax',  # LaTeX 数学公式支持
-    'myst_parser',         # Markdown 解析
+    'chinese_space',        # 自定义扩展（放在 _extensions/ 目录）
+    'sphinx.ext.todo',      # TODO 功能
+    'sphinx_copybutton',    # 代码块复制按钮
+    'sphinx.ext.mathjax',   # LaTeX 数学公式支持
+    'myst_parser',          # Markdown 解析
+    'sphinx_wagtail_theme', # wagtail 主题支持
 ]
 
 # Markdown Support
@@ -34,8 +35,10 @@ todo_include_todos = True  # 显示文档中的 TODO 项
 
 # --- HTML output ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-# https://pygments.org/styles/
-html_theme = 'furo'                # 主题名称
+html_theme = 'sphinx_wagtail_theme'  # wagtail 主题
 html_static_path = ['_static']     # 静态文件目录（CSS/JS/图片）
 html_css_files = ['my_theme.css']  # 自定义 CSS 文件（可选）
-pygments_style = 'sphinx'          # 代码高亮主题（Pygments 样式）
+#
+# html_theme = 'furo'                # furo 主题
+# https://pygments.org/styles/
+# pygments_style = 'sphinx'          # 代码高亮主题, 可配套 furo 主题

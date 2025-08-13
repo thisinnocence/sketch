@@ -1,6 +1,8 @@
 # Defining the exact version will make sure things don't break
+# See https://docs.readthedocs.com/platform/stable/guides/reproducible-builds.html#id3
 sphinx
 sphinx_rtd_theme
 furo
 myst_parser
 sphinx_copybutton
+sphinx_wagtail_theme
