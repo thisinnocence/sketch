@@ -19,4 +19,5 @@ JavaScript学习笔记
 -----------------------
 
 - 笔记: https://github.com/thisinnocence/js-notes/tree/master/notes
-- demo: https://github.com/thisinnocence/js-notes/tree/master/web
+- js-demo: https://github.com/thisinnocence/js-notes/tree/master/notes-code
+- web-demo: https://github.com/thisinnocence/js-notes/tree/master/web-demos
