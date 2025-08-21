@@ -14,3 +14,4 @@
    QEMU-TCG
    数字芯片开发
    PCIe总线
+   Linux-user-ELF程序
