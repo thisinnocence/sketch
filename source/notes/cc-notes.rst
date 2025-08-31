@@ -13,7 +13,7 @@ C++11 实用特性
 --------------------
 
 - 就地初始化，直接在类内对成员变量进行初始化，简化构造函数， {} 可避免窄化转换, 不涉及窄化转换时可用 ``=`` 进行初始化。
-- 统一初始化，使用花括号 ``{}`` 进行初始化，避免了窄化转换，可以初始化数组、容器和类对象，避免了类型转换和隐式构造函数调用。
+- 统一初始化，使用花括号 ``{}`` 进行初始化，避免了窄化转换，可以初始化数组、容器和类对象。
 - 模板变长参数，允许模板接受任意数量和类型的参数，增强了模板的灵活性和可扩展性。
 - 模板别名，使用 ``using`` 关键字为模板类型创建别名，简化了复杂类型的使用和阅读。
 - 右值引用和移动语义，允许资源的高效转移，减少不必要的拷贝，提高性能。
@@ -30,23 +30,22 @@ C++11 实用特性
 - 多线程支持，提供了线程、互斥锁、条件变量等多线程编程的基础设施，简化了并发编程。
 - 字符串转换函数，提供了更方便和安全的字符串转换函数，如 ``std::to_string`` 和 ``std::stoi``。
 - 正则表达式库 ``<regex>`` ，提供了强大的字符串模式匹配和处理功能。
-- 时间库 ``<chrono>`` ，提供了日期、时间和时区的处理功能。
+- 时间库 ``<chrono>`` ，提供高精度计时和时间段处理功能。
 
 C++14 实用特性
 --------------------
 
 - 函数返回值类型推导，允许编译器自动推导函数的返回类型，简化了函数的定义和阅读。
-- 泛型 ``Lambda`` 表达式，允许参数 auto 类型推导，允许 lambda 表达式的参数类型自动推导，增强了 lambda 的灵活性和可读性。
+- ``lambda`` 参数类型可用 auto 推导, 使得lambda更加的强大和灵活。
 - ``lambda`` 支持初始化捕获（init-capture），允许 lambda 表达式捕获变量时使用移动语义，增强了 lambda 的性能和安全性。
 - 变量模板，允许定义模板变量，简化了常量和静态变量的使用。如： ``template<typename T> constexpr T pi = T(3.14159);``
 - ``constexpr`` 增强，允许在 constexpr 函数中使用更多的语句和控制结构，增强了编译时计算的能力。
 - ``std::make_unique``，提供了一种安全和简洁的方式来创建 ``std::unique_ptr``，避免了手动使用 new 关键字。
 - ``std::shared_timed_mutex``，共享定时互斥锁，允许多个线程同时读取，但只有一个线程可以写入，提高了并发性能，有超时功能。
-- ``std::shared_lock``，它们是锁管理类，是工具。它们遵循 RAII 原则，用于以安全、方便的方式去获取和释放​。
+- ``std::shared_lock``，配合 ``shared_mutex/shared_timed_mutex`` 使用的 RAII 读锁​。
 - ``std::integer_sequence``，提供了一种编译时整数序列，简化了模板元编程和参数包展开。
 - 二进制字面量，允许使用二进制格式表示整数，增强了代码的可读性和表达能力。如： ``0b1010`` 表示十进制的 10
 - 数字分隔符，允许在数字字面量中使用单引号作为分隔符，增强了大数字的可读性。如： ``1'000'000`` 表示一百万。
-- ``constexpr`` 增强，允许包含局部变量、循环、分支等复杂逻辑，提高了编译时计算的能力。
 
 C++17 实用特性
 --------------------
@@ -56,7 +55,7 @@ C++17 实用特性
 - 内联变量，允许在头文件中定义变量而不会导致重复定义错误，简化了常量和静态变量的使用，如 ``inline int global_var = 42``;
 - 类模板参数推导，允许编译器自动推导构造函数模板的参数类型，简化了模板类的使用和实例化。
 - 折叠表达式，允许对参数包进行递归操作，简化了模板元编程和参数包展开。
-- namespace嵌套，允许在一个 namespace 内嵌套另一个 namespace，简化了命名空间的组织和管理。
+- 嵌套命名空间namespace定义简写，简化了命名空间的组织和管理。
 - ``[[nodiscard]], [[maybe_unused]], [[fallthrough]]`` 等属性，增强了代码的安全性和可读性。
 - ``std::variant``，提供了一种类型安全的联合体，可以存储不同类型的值，增强了类型的灵活性和安全性, 里面可以有string等复杂类型。
 - ``std::optional``，表示一个可能包含值也可能不包含值的对象，简化了可选值的处理和检查。
@@ -65,29 +64,9 @@ C++17 实用特性
 - ``std::make_from_tuple``，允许从元组创建对象，简化了对象的构造和初始化。
 - ``std::string_view``，提供了一种轻量级的字符串视图，避免了不必要的字符串拷贝，提高性能。
 - ``std::filesystem``，提供了一套跨平台的文件系统操作接口，简化了文件和目录的管理和操作。
-- ``as_const`` 函数，提供了一种将对象转换为 const 引用的简洁方式，增强了代码的可读性和安全性。
+- ``as_const`` 函数，是 <utility> 中的一个函数模板，作用是返回 const T&, 新增的工具函数。
 - ``constexpr if`` 在编译期根据条件选择代码分支，避免无效代码实例化，简化模板元编程逻辑。
 - ``std::scoped_lock`` C++17 引入的 RAII 锁管理器，可同时安全锁定多个互斥量，避免死锁。
-
-.. note::
-
-  举例 ``constexpr if`` 的使用：
-
-  .. code-block:: cpp
-
-    template<typename T>
-    void process(const T& value) {
-        if constexpr (std::is_integral_v<T>) {
-            // 处理整数类型
-            std::cout << "Processing integral: " << value << std::endl;
-        } else if constexpr (std::is_floating_point_v<T>) {
-            // 处理浮点类型
-            std::cout << "Processing floating point: " << value << std::endl;
-        } else {
-            // 处理其他类型
-            std::cout << "Processing other type" << std::endl;
-        }
-    }
 
 C++20 实用特性
 --------------------
@@ -97,7 +76,7 @@ C++20 实用特性
 - concepts，提供了一种新的模板约束机制，增强了模板的类型安全性和可读性。
 - coroutines，提供了一种新的异步编程模型，简化了异步代码的编写和管理，提高了代码的可读性和性能。
 - lambda 表达式更新，支持使用模板参数，constexpr确认，对 =this 的捕获等。
-- constexpr 增强：几乎所有标准库函数和语言结构都能 constexpr 使用，包括动态内存分配，更多代码编译期执行。
+- constexpr 增强：大量标准库算法和容器操作被标记为 constexpr 使用，更多代码编译期执行。
 - std::format ，提供了一种类型安全且灵活的字符串格式化方式，替代了传统的 printf 风格格式化。
 - ``<=>`` 三路比较运算符（太空船操作符），简化了自定义类型的比较操作，自动生成所有比较运算符。
 
@@ -111,16 +90,8 @@ class keywords
 
 - ``override`` 是一种安全校验，是可选的，你意图是覆盖父类的父方法，那么就会校验父类有没有，函数签名匹配不匹配，编译器拦截低级错误。
 - ``final`` 是一种安全校验，是可选的，你的类或者类成员函数不想让人继承就用 ``final`` 修饰。
-- ``virtual`` 是必须的，类的成员函数如果想被子类重写，必须是 ``virtual``, 但是子类中覆盖父类的virtual函数时， ``virtual`` 关键
-  字则可选，无需再加，建议加上 ``override`` 即可；只有最开始的根父类，才需要加上 ``virtual`` 关键字。
-
-  .. note::
-
-    如果一个基类打算被继承，那么它的析构函数必须是虚函数。否则，通过基类指针删除子类对象时，只会调用基类的析构函数，
-    而子类特有的资源（如动态分配的内存）将得不到释放，导致内存泄漏。虚析构函数能确保通过虚函数表正确地调用到子类的析构函数。
-    原理是：当基类的析构函数被声明为虚函数时，编译器会为该类生成一个虚函数表（vtable），其中包含指向类的虚函数的指针。当通过
-    基类指针删除子类对象时，会查找虚函数表，调用子类的析构函数，从而确保子类的资源得到正确释放。
-
+- ``virtual`` 是必须的，类的成员函数如果想被子类重写，必须是 ``virtual``, 如果一个基类打算被继承，那么它的析构函数必须是虚函数。
+  子类中覆盖父类的virtual函数时， ``virtual`` 关键字可选，一般无需再加，建议加上 ``override`` 来明确语义方便编辑器检查。
 - ``default`` 这个关键字指定默认特殊成员函数，包括：构造、析构、拷贝构造、拷贝赋值、移动构造、移动赋值。某些特定成员函数的用户
   自定义声明会抑制（阻止）编译器自动生成其他特定的成员函数，但是你还需要，并且编译器默认实现的也满足需求，此时可以使用 ``default``。
 - ``delete`` 同样针对上面的特殊类成员函数：构造、析构、移动构造、拷贝构造、赋值运算符等，
@@ -143,20 +114,44 @@ class keywords
   让编程的意图更加的清晰，还有就是可以一定程度的省去临时对象开销。防止的就是这种情况：你本以传递1个参数，
   你并不想传递那个类的对象，但是编译器帮你隐式转换了，导致了低级错误，而编译期无法检测出来。
 
-零/三/五法则
+三/五/零之法则
 ----------------
 
-C++中有一个重要的设计原则，叫做零/三/五法则：
+https://c-cpp.com/cpp/language/rule_of_three
+
+C++中有一个重要的设计原则，三/五/零之法则：
 
 - 零法则（Rule of Zero）： 现代 C++ 的首选。如果你的类不拥有任何需要手动管理的资源（如裸指针），那么你不需要自定义任何特殊成员函数,
-  让编译器自动生成即可。
+  让编译器自动生成即可。当有意将某个基类用于多态用途时，可能必须将其析构函数声明为公开的虚函数。由于这会阻拦隐式移动（并弃用隐式
+  复制）的生成，因而必须将各特殊成员函数声明为预置的。然而这使得类有可能被切片，这是多态类经常把复制定义为弃置的原因。
 - 三法则（Rule of Three）： C++98 时代的法则。如果你的类拥有需要手动管理的资源，且你自定义了以下三者中的任何一个，就应该自
   定义所有三个：析构函数、拷贝构造函数和拷贝赋值运算符。
-- 五法则（Rule of Five）： C++11 引入移动语义后的扩展。在三法则的基础上，为了支持移动语义，还应该提供移动构造函数和移动赋值运算符。
+- 五法则（Rule of Five）： C++11 引入移动语义后的扩展。在三法则的基础上，为了支持移动语义，还应该提供 移动构造函数 和 移动赋值运算 符。
 
 .. note::
 
   黄金准则： 在现代 C++ 中，尽量使用“零法则”。你的类成员应仅由基本类型、智能指针和标准库容器组成。
+
+一个典型的多态积累定义：
+
+.. code-block:: cpp
+
+    class Animal {
+     public:
+      // 必须有虚析构函数，以支持多态
+      virtual ~Animal() = default;
+
+      // 显式禁用复制，以防止对象切片
+      Animal(const Animal&) = delete;
+      Animal& operator=(const Animal&) = delete;
+
+      // 显式预置移动，如果需要
+      // Animal(Animal&&) = default;
+      // Animal& operator=(Animal&&) = default;
+      
+      // 其他虚函数
+      virtual void eat() = 0;
+  };
 
 移动语义
 ========
@@ -277,8 +272,11 @@ C++中的 lambda 是一种匿名函数，大大的增加了语言的表达能力
     lambda 捕获变量的原理，是编译器在后台为你生成一个匿名类，并把捕获的变量作为这个类的成员，通过构造函数进行初始化，从而实
     现了将外部状态“打包”到函数对象中的闭包特性。
 
+STL
+=======
+
 迭代器
-======
+------
 
 C++ 迭代器是基于运算符重载的类，它提供了一种统一的接口，让你能够像操作指针一样遍历不同容器中的元素。库与编译器特性共同协作实现。
 核心思想是将指针的行为泛化。重载了 ``* -> ++ -- == !=`` 等运算符，从而实现类似指针的行为。
@@ -290,9 +288,6 @@ C++ 迭代器是基于运算符重载的类，它提供了一种统一的接口�
   特别注意可能会导致迭代期失效的操作。比如：C++ 语言标准明确规定了 std::vector::erase 会导致迭代器失效，因为其本质
   是删除元素后，可能会移动其他元素来填补空缺，从而使得原有的迭代器指向无效的位置。此时，正确的做法是，erase 操作后，使用
   erase 返回的新迭代器继续遍历。其他不同容器进行删除操作后，失效的规则也不一样。
-
-STL
-=======
 
 vector
 ------
@@ -425,7 +420,204 @@ C++社区鼓励使用这种算法，而不是手写循环。这种方式更简�
   // 下面的 erase 实际删除元素
   vec.erase(newEnd, vec.end()); // 实际删除元素
 
-Github笔记
+编程风格
+==========
+
+谷歌C++编程风格
+-----------------
+
+- https://google.github.io/styleguide/cppguide.html
+- https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/index.html
+
+已有项目建议保持项目的风格，保持命名风格一致性比具体用哪种风格更重要。新项目(可参考谷歌编程风格)：
+  
+  - 类型名： ``UpperCamelCase``
+  - 普通函数名： ``UpperCamelCase``
+  - 类成员函数： ``UpperCamelCase``
+  - 普通变量名： ``snake_case``
+  - struct成员变量： ``snake_case``
+  - class成员变量： ``snake_case_``
+  - 常量名： ``kUppperCamelCase``
+  - 枚举名： ``kUpperCamelCase`` ， 这个类似常量
+  - 缩进：统一两个空格，而 ``public/private/protected`` 缩进一个空格
+  - 缩写处理：缩写按单词处理，例如 HttpServer 而不是 HTTPServer
+  - 布尔变量：用 ``is_ / has_ / can_ / should_`` 前缀，例如 is_valid，而不是 validFlag
+  - 文件命名：一律 ``snake_case``
+  - 命名空间：禁止头文件用 ``using namespace``, 在 ``.cc`` 文件中可以使用命名空间别名 ``namespace foo = my_project::foo; ``
+  - 禁止使用宏定义常量（#define），用 ``constexpr`` 或 ``const`` 代替
+  - 单行注释用 ``//``
+  - 类、函数、复杂逻辑前建议加简短注释，说明用途而不是实现细节
+  - 指针和引用的靠近： ``char* ptr``（星号靠近类型）， ``const std::string& name``（引用符号靠近类型）
+  - 头文件保护： ``#ifndef/#define/#endif`` 形式的 include guard，或 ``#pragma once``
+  - 函数参数: 输入参数在前，输出参数在后；尽量使用返回值而不是输出参数
+  - 类成员顺序： public → protected → private，并且每个区域内部按类型分组（类型别名、常量、构造/析构、方法、数据成员）
+  - 优先使用 ``std::unique_ptr`` / ``std::shared_ptr``，避免裸 ``new/delete``
+  - 头文件顺序： 自己的 .h → C 系统库 → C++ 标准库 → 其他库 → 本项目其他头文件。每组之间空一行
+  - 不鼓励使用异常（throw），推荐返回 Status 或 bool
+  - 行宽还是推荐 80
+
+.. note::
+
+  https://google.github.io/styleguide/cppguide.html#Function_Names
+
+  - 大多数函数名：遵循UpperCamelCase，即每个单词的首字母都大写，例如 ``CalculatePrice()``
+  - 存取器（Getter/Setter）：可以作为特例，使用 snake_case。例如， ``int count()`` 或 ``int get_count()``
+
+  https://google.github.io/styleguide/cppguide.html#Variable_Names
+
+  - 普通变量：The names of variables (including function parameters) and data members are ``snake_case``，包括了
+    全局变量等，谷歌不规矩全局作用域的全局变量，推荐用 class内部的static变量或者namespace中的全局变量。PS: 如果确实是有
+    这个变量，我个人觉得可以加个 ``g_`` 前缀，很好的一眼区分和普通变量。
+  - 类成员变量： Data members of classes, both static and non-static, 和普通变量一样, 但是 **下划线结尾**，对
+    于static **constant** class members例外;
+  - 结构体成员变量： Data members of structs, both static and non-static, 和普通变量一样, 也没有下划线结尾；
+  
+  https://google.github.io/styleguide/cppguide.html#Constant_Names
+
+  Variables declared ``constexpr`` or ``const``, and whose value is fixed for the duration of the program, are named 
+  with a leading ``"k"`` followed by ``mixed case``， such as ``kUpperCamelCase``. Underscores can be used as separators 
+  in the rare cases where capitalization cannot be used for separation.
+
+  https://google.github.io/styleguide/cppguide.html#Enumerator_Names
+
+  Enumerators (for both scoped and unscoped enums) should be named like constants, not like macros. 
+  That is, use ``kEnumName`` not ENUM_NAME. such as ``kOk = 0, kOutOfMemory,`` .
+
+  https://google.github.io/styleguide/cppguide.html#Namespace_Names
+
+  Namespace names are ``snake_case`` (all lowercase, with underscores between words). 在头文件中，
+  当你在命名空间外使用该命名空间里的东西时，必须使用完整的命名空间名。因为在头文件中，使用不完整的命名空间
+  别名（例如 using namespace some_namespace;）是被严格禁止的。因为会直接被其他 .cc 文件导入了这个。
+
+    - 完整限定（fully qualified）：指使用完整的命名空间路径，比如 ``google::protobuf::Message`` 。
+    - 不完整别名（unqualified aliases）：指像 ``using namespace std;`` 这样的语句。它会把整个命名空间的内容导入到当前作用域，
+      这在头文件中是危险的，因为它可能导致包含该头文件的其他代码文件出现意外的命名冲突。
+
+项目举例参考:
+
+.. code-block:: cpp
+
+  // see: 类成员函数名, 普通变量名, 类成员变量名, 常量名, 类型名
+  // @file: https://github.com/google/googletest/blob/main/googletest/src/gtest-filepath.cc
+  const char kPathSeparator = '/';
+  FilePath FilePath::RemoveExtension(const char* extension) const {
+    const std::string dot_extension = std::string(".") + extension;
+    if (String::EndsWithCaseInsensitive(pathname_, dot_extension)) {
+      return FilePath(
+          pathname_.substr(0, pathname_.length() - dot_extension.length()));
+    }
+    return *this;
+  }
+
+  // see: 普通函数命名，变量名
+  // @file: https://github.com/google/googletest/blob/main/googletest/src/gtest-typed-test.cc
+  static const char* SkipSpaces(const char* str) {
+    while (IsSpace(*str)) str++;
+    return str;
+  }
+
+  // see: 函数名，变量名
+  // @file: https://chromium.googlesource.com/chromium/src/+/refs/heads/main/cc/scheduler/begin_frame_tracker.cc
+  bool BeginFrameTracker::HasLast() const {
+    DCHECK(HasFinished())
+        << "Tried to use last viz::BeginFrameArgs before the frame is finished.";
+    return current_args_.IsValid();
+  }
+
+  // see: public 缩进 1 个空格
+  // @file: https://github.com/google/googletest/blob/main/googletest/test/production.h
+  class PrivateCode {
+   public:
+    // Declares a friend test that does not use a fixture.
+    FRIEND_TEST(PrivateCodeTest, CanAccessPrivateMembers);
+
+    // Declares a friend test that uses a fixture.
+    FRIEND_TEST(PrivateCodeFixtureTest, CanAccessPrivateMembers);
+
+    PrivateCode();
+
+    int x() const { return x_; }
+
+   private:
+    void set_x(int an_x) { x_ = an_x; }
+    int x_;
+  };
+
+  // see: 命名空间的行首无所进，结尾出用注释来显示的指出闭合的是哪个 namespace
+  // @file: https://chromium.googlesource.com/chromium/src/+/refs/heads/main/cc/scheduler/scheduler.h
+  namespace perfetto {
+  namespace protos {
+  namespace pbzero {
+  class ChromeCompositorSchedulerStateV2;
+  }
+  }  // namespace protos
+  }  // namespace perfetto
+
+.. note::
+
+  Google 风格将 函数和类型 都归为 ``UpperCamelCase`` ，这种做法使得代码库中的所有“可调用实体”（函数和类型构造函数）都以大写开头，形
+  成了一种视觉上的统一。
+  
+  同时使用 ``UpperCamelCase`` 和 ``lowerCamelCase``，有时候可能会让人混淆。Google 风格通过将规则简化为两种主要
+  风格 (``UpperCamelCase`` 和 ``snake_case``)，并且每种风格都有明确的用途，从而避免了这种混淆。
+
+  When Google's large-scale C++ projects include a small amount of C code, the C code itself will 
+  follow the ``snake_case`` naming convention because that's the standard style for the C language community.
+
+C++ Core Guidelines
+---------------------
+
+是目前最权威、最受推崇的 C++ 指南之一。它由 C++ 之父 Bjarne Stroustrup 和其他 C++ 专家共同维护。它的目标不是为了统一
+代码格式（比如缩进），而是为了指导开发者如何编写更现代、更安全、更高效的 C++ 代码。
+
+https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c-core-guidelines
+
+对于命名规则的建议：Rationale: Consistency in naming and naming style increases readability. 就是统一就好。
+
+https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rl-name
+
+LLVM Coding Standards
+-----------------------
+
+LLVM关于命名风格相关：
+
+https://llvm.org/docs/CodingStandards.html#the-low-level-issues
+
+LLVM 命名风格如下：
+
+- 类型名： UpperCamelCase, (including classes, structs, enums, typedefs, etc), 并且是名词；
+- 变量名： UpperCamelCase， 应该是名词，因为表示的是状态；
+- 函数名： lowerCamelCase， 应该是动词短语；
+- Enum declarations (e.g. enum Foo {...}) are types, 同类型也是 UpperCamelCase;
+- Enumerators (e.g. enum { Foo, Bar }) and public member 也是 UpperCamelCase；
+
+.. note::
+
+  - LLVM对于变量的命名是 UpperCamelCase, 这个我不太习惯，还是倾向于谷歌的 snake_case, 或者有时候个人也倾向 lowerCamelCase, QT的也是 lowerCamelCase
+  - LLVM对函数的命名是 lowerCamelCase, 这个QT也是 lowerCamelCase, 但是谷歌、虚幻引擎的是 UpperCamelCase, C社区都是 snake_case, 我经常混用 :)
+
+这个是QT的风格说明： https://wiki.qt.io/Qt_Coding_Style
+
+C Coding Standards
+---------------------
+
+- https://www.kernel.org/doc/html/v4.10/process/coding-style.html
+- https://qemu-project.gitlab.io/qemu/devel/style.html#naming
+
+风格如下：
+
+- 变量名： 基本一律 snake_case
+- 函数名： 基本一律 snake_case
+- 类型名： 
+    - QEMU 的结构体命名是 UpperCamelCase
+    - linux 的结构体命名是 snake_case, 如果用了 typedef 会用 ``_t`` 后缀
+
+编程风格总结
+-------------
+
+一致性最重要，过时的匈牙利前缀命名法要避免。其他的都是个人习惯，新项目达成内部团队一致。个人倾向于谷歌的风格。
+
+笔记
 ===========
 
 - 语言特性: https://github.com/thisinnocence/cc-notes/tree/master/cpp-notes
