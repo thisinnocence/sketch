@@ -8,7 +8,7 @@ C++ 编程风格
 - https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/index.html
 
 已有项目建议保持项目的风格，保持命名风格一致性比具体用哪种风格更重要。新项目(可参考谷歌编程风格)：
-  
+
   - 类型名： ``UpperCamelCase``
   - 普通函数名： ``UpperCamelCase``
   - 类成员函数： ``UpperCamelCase``
@@ -21,11 +21,11 @@ C++ 编程风格
   - 缩写处理：缩写按单词处理，例如 HttpServer 而不是 HTTPServer
   - 布尔变量：用 ``is_ / has_ / can_ / should_`` 前缀，例如 is_valid，而不是 validFlag
   - 文件命名：一律 ``snake_case``
-  - 命名空间：禁止头文件用 ``using namespace``, 在 ``.cc`` 文件中可以使用命名空间别名 ``namespace foo = my_project::foo; ``
+  - 命名空间：禁止头文件用 ``using namespace``, 在 ``.cc`` 文件中可以使用命名空间别名 ``namespace foo = my_project::foo;``
   - 禁止使用宏定义常量（#define），用 ``constexpr`` 或 ``const`` 代替
   - 单行注释用 ``//``
   - 类、函数、复杂逻辑前建议加简短注释，说明用途而不是实现细节
-  - 指针和引用的靠近： ``char* ptr``（星号靠近类型）， ``const std::string& name``（引用符号靠近类型）
+  - 指针和引用的靠近： ``char* ptr``（星号靠近类型）， ``const std::string& name`` （引用符号靠近类型）
   - 头文件保护： ``#ifndef/#define/#endif`` 形式的 include guard，或 ``#pragma once``
   - 函数参数: 输入参数在前，输出参数在后；尽量使用返回值而不是输出参数
   - 类成员顺序： public → protected → private，并且每个区域内部按类型分组（类型别名、常量、构造/析构、方法、数据成员）
@@ -38,7 +38,7 @@ C++ 编程风格
 
   https://google.github.io/styleguide/cppguide.html#Function_Names
 
-  - 大多数函数名：遵循UpperCamelCase，即每个单词的首字母都大写，例如 ``CalculatePrice()``
+  - 大多数函数名：遵循 UpperCamelCase ，也叫 PascalCase ，即每个单词的首字母都大写，例如 ``CalculatePrice()``
   - 存取器（Getter/Setter）：可以作为特例，使用 snake_case。例如， ``int count()`` 或 ``int get_count()``
 
   https://google.github.io/styleguide/cppguide.html#Variable_Names
@@ -49,16 +49,16 @@ C++ 编程风格
   - 类成员变量： Data members of classes, both static and non-static, 和普通变量一样, 但是 **下划线结尾**，对
     于static **constant** class members例外;
   - 结构体成员变量： Data members of structs, both static and non-static, 和普通变量一样, 也没有下划线结尾；
-  
+
   https://google.github.io/styleguide/cppguide.html#Constant_Names
 
-  Variables declared ``constexpr`` or ``const``, and whose value is fixed for the duration of the program, are named 
-  with a leading ``"k"`` followed by ``mixed case``， such as ``kUpperCamelCase``. Underscores can be used as separators 
+  Variables declared ``constexpr`` or ``const``, and whose value is fixed for the duration of the program, are named
+  with a leading ``"k"`` followed by ``mixed case``， such as ``kUpperCamelCase``. Underscores can be used as separators
   in the rare cases where capitalization cannot be used for separation.
 
   https://google.github.io/styleguide/cppguide.html#Enumerator_Names
 
-  Enumerators (for both scoped and unscoped enums) should be named like constants, not like macros. 
+  Enumerators (for both scoped and unscoped enums) should be named like constants, not like macros.
   That is, use ``kEnumName`` not ENUM_NAME. such as ``kOk = 0, kOutOfMemory,`` .
 
   https://google.github.io/styleguide/cppguide.html#Namespace_Names
@@ -135,22 +135,23 @@ C++ 编程风格
 
   Google 风格将 函数和类型 都归为 ``UpperCamelCase`` ，这种做法使得代码库中的所有“可调用实体”（函数和类型构造函数）都以大写开头，形
   成了一种视觉上的统一。
-  
+
   同时使用 ``UpperCamelCase`` 和 ``lowerCamelCase``，有时候可能会让人混淆。Google 风格通过将规则简化为两种主要
   风格 (``UpperCamelCase`` 和 ``snake_case``)，并且每种风格都有明确的用途，从而避免了这种混淆。
 
-  When Google's large-scale C++ projects include a small amount of C code, the C code itself will 
-  follow the ``snake_case`` naming convention because that's the standard style for the C language community.
+  When Google's large-scale C++ projects include a small amount of C code, the C code itself will
+  follow the ``snake_case`` naming convention because that's the standard style for the C language
+  community.
 
 C++ Core Guidelines
 ---------------------
 
-是目前最权威、最受推崇的 C++ 指南之一。它由 C++ 之父 Bjarne Stroustrup 和其他 C++ 专家共同维护。它的目标不是为了统一
-代码格式（比如缩进），而是为了指导开发者如何编写更现代、更安全、更高效的 C++ 代码。
+是目前最权威、最受推崇的 C++ 指南之一。它由 C++ 之父 Bjarne Stroustrup 和其他 C++ 专家共同维护。它的目标不
+是为了统一代码格式（比如缩进），而是为了指导开发者如何编写更现代、更安全、更高效的 C++ 代码。
 
 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c-core-guidelines
 
-对于命名规则的建议：Rationale: Consistency in naming and naming style increases readability. 就是统一就好。
+对于命名规则的建议: Rationale: Consistency in naming and naming style increases readability. 就是统一就好。
 
 https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rl-name
 
@@ -168,13 +169,36 @@ LLVM 命名风格如下：
 - 函数名： lowerCamelCase， 应该是动词短语；
 - Enum declarations (e.g. enum Foo {...}) are types, 同类型也是 UpperCamelCase;
 - Enumerators (e.g. enum { Foo, Bar }) and public member 也是 UpperCamelCase；
+- 行宽：Write your code to fit within **80** columns，为了可读可适当放宽到 **100**；
+- 缩进：也是默认两个空格
 
 .. note::
 
   - LLVM对于变量的命名是 UpperCamelCase, 这个我不太习惯，还是倾向于谷歌的 snake_case, 或者有时候个人也倾向 lowerCamelCase, QT的也是 lowerCamelCase
-  - LLVM对函数的命名是 lowerCamelCase, 这个QT也是 lowerCamelCase, 但是谷歌、虚幻引擎的是 UpperCamelCase, C社区都是 snake_case, 我经常混用 :)
+  - LLVM对函数的命名是 lowerCamelCase, 这个QT也是 lowerCamelCase, 但是谷歌、虚幻引擎的是 UpperCamelCase, C社区都是 snake_case, 我经常混用
+  - 对于行宽，LLVM还是建议80，考虑到方便并排显示，越多历史知名项目一直，进而可能和很多editor等配置一致；
 
-这个是QT的风格说明： https://wiki.qt.io/Qt_Coding_Style
+  在llvm-dev等邮件列表中，多次有过关于列限制的讨论。社区的普遍共识是：​​“80列是一个指导方针（guideline），而不
+  是不可侵犯的教条（dogma）”​。可读性是最高原则，80列是为可读性服务的。	实际代码中常接近 100 列，注重可读性而
+  非硬性规定。
+
+QT coding-style
+------------------
+
+- https://wiki.qt.io/Qt_Coding_Style
+- https://github.com/qt/qt5/blob/dev/_clang-format
+
+.. note::
+
+  | # Column width is limited to 100 in accordance with Qt Coding Style.
+  | # https://wiki.qt.io/Qt_Coding_Style
+  | # Note that this may be changed at some point in the future.
+  | ColumnLimit: 100
+
+  Line breaks
+    Keep lines shorter than 100 characters; wrap if necessary
+
+  4 spaces are used for indentation, Spaces, not tabs!
 
 C Coding Standards
 ---------------------
@@ -186,7 +210,7 @@ C Coding Standards
 
 - 变量名： 基本一律 snake_case
 - 函数名： 基本一律 snake_case
-- 类型名： 
+- 类型名：
     - QEMU 的结构体命名是 UpperCamelCase
     - linux 的结构体命名是 snake_case, 如果用了 typedef 会用 ``_t`` 后缀
 
@@ -229,10 +253,10 @@ https://github.com/google/googletest/blob/main/.clang-format
     BreakBeforeBraces: Custom
     BraceWrapping:
       AfterFunction: true
-    
+
     # 缩进4个空格 （谷歌默认2个空格）
     IndentWidth: 4
     # public/private/protected 缩进2个，把上面缩进2个，如果-4就是不缩进（谷歌默认缩进1个）
     AccessModifierOffset: -2
 
-上面就是自定义少量修改的 style 了。
+上面就是自定义少量修改的 style 了。个人觉得只需要适当放宽行宽到100就可以了，其他不用变默认Google style就好。
