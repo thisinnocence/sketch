@@ -25,7 +25,7 @@ C++ 编程风格
   - 禁止使用宏定义常量（#define），用 ``constexpr`` 或 ``const`` 代替
   - 单行注释用 ``//``
   - 类、函数、复杂逻辑前建议加简短注释，说明用途而不是实现细节
-  - 指针和引用的靠近： ``char* ptr``（星号靠近类型）， ``const std::string& name`` （引用符号靠近类型）
+  - 指针和引用靠近类型, 比如： ``char* ptr``, ``const std::string& name``
   - 头文件保护： ``#ifndef/#define/#endif`` 形式的 include guard，或 ``#pragma once``
   - 函数参数: 输入参数在前，输出参数在后；尽量使用返回值而不是输出参数
   - 类成员顺序： public → protected → private，并且每个区域内部按类型分组（类型别名、常量、构造/析构、方法、数据成员）
