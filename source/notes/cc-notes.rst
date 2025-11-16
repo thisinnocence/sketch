@@ -74,7 +74,7 @@ C++中有一个重要的设计原则，三/五/零之法则：
       // 显式预置移动，如果需要
       // Animal(Animal&&) = default;
       // Animal& operator=(Animal&&) = default;
-      
+
       // 其他虚函数
       virtual void eat() = 0;
   };
