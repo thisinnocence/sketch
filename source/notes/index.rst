@@ -10,6 +10,8 @@
    Sphinx
    learn-coding
    cc-notes
+   cc-code-style
+   cc-feature
    js-notes
    AI-notes
    rtl-notes
