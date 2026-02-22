@@ -66,8 +66,7 @@
     - 机制解释：偏好连接让注意力与资源呈幂律分布
     - 行动策略：低成本试错 + 需求外显 + 顺风加注
 
-参考资料
---------
+参考资料:
 
 - Merton, R. K. (1988). The Matthew Effect in Science. Cumulative Advantage and the Symbolism of Intellectual Property. `Sartoniana <https://openjournals.ugent.be/sartoniana/article/id/95293/>`_
 - Price, D. de Solla (1976). A general theory of bibliometric and other cumulative advantage processes. `JASIS (EconPapers) <https://econpapers.repec.org/RePEc:bla:jamest:v:27:y:1976:i:5:p:292-306>`_
@@ -76,3 +75,50 @@
 - Pluchino, A., Biondo, A. E., Rapisarda, A. (2018). Talent vs Luck: the role of randomness in success and failure. `arXiv <https://arxiv.org/abs/1802.07068>`_
 - Frank, R. H. (2016). How Winner-Take-All Markets Magnify Luck’s Role. `Success and Luck (De Gruyter) <https://www.degruyterbrill.com/document/doi/10.1515/9781400880270-005/html>`_
 - The Matthew effect for cohorts of economists (2013). `Journal of Informetrics (ScienceDirect) <https://www.sciencedirect.com/science/article/abs/pii/S1751157713000163>`_
+
+状态洁癖与执行力
+----------------
+
+很多人执行力差，不是因为目标不清晰，也不是方法不够多，而是被一种隐性的“状态洁癖”卡住了：
+总想等到状态好、心情顺、环境整齐、时间完整，再开始做事。
+这个执念看起来理性，实际上会持续抬高行动门槛，把“开始”变成一件越来越困难的事。
+
+高手和普通人的核心差距，往往不在认知层，而在启动机制。
+普通人习惯“先有状态，再行动”；高手是“先行动，再有状态”。
+行动会触发大脑的启动效应，注意力和投入感会在过程里逐步上升。
+拖延则相反，拖得越久，大脑越会制造“我现在状态不行”的理由，最后把逃避包装成“等我准备好”。
+
+从机制上看，“状态”很多时候不是前提，而是结果。
+你越把它当成前提，它越像海市蜃楼；你越用行动去验证，它越容易出现。
+所以执行力的关键不是找到完美状态，而是建立“低情绪波动下也能启动”的行为系统。
+
+第一种破解方式是立死规矩：到点就干，不谈状态。
+把关键动作绑定到时间和场景，比如“每天 8:30 打开项目文档并写 15 分钟”。
+这类规则的价值在于，把决策从当下情绪中抽离，减少“做不做”的内耗。
+当你连续执行一段时间后，会明显发现：状态并没有想象中重要，行动本身才是状态的生成器。
+
+第二种破解方式是把任务拆到极致，主动降低启动阈值。
+不要写“开始学习”，而写“打开目录，读第一页前两段”；不要写“开始健身”，而写“换衣服，做 10 个深蹲”。
+任务拆得越具体、越可见、越可立即完成，大脑越不容易抗拒。
+当第一个最小动作完成后，惯性会推动你做第二个、第三个动作，这就是执行力真正的杠杆点。
+
+进一步说，真正可持续的执行力底层是“先交付，后优化”。
+先用最小动作把事情从 0 推到 1，再在推进中修正路径，而不是在原地追求完美起步。
+你不需要一开始就有满格动力、完整方案和最佳节奏，只需要让事情从静止变成运动。
+当“微启动 - 微反馈 - 微强化”的闭环形成后，行动会越来越自动化，焦虑会下降，长期复利会把人与人拉开。
+
+.. note::
+
+    执行力反直觉清单：
+
+    - 不等状态，先做最小动作
+    - 不求完整，先交付可运行版本
+    - 不靠情绪，靠固定触发点（时间/地点/动作）
+    - 不做大计划，先做下一步清单
+
+可直接落地的 7 天训练法：
+
+- 第 1-2 天：只训练“准点开始”，任务时长可短，不追求质量
+- 第 3-4 天：每个任务强制拆成 3 个最小动作，完成第一个就算启动成功
+- 第 5-6 天：每天记录一次“开始前状态”和“开始后 15 分钟状态”，验证行动制造状态
+- 第 7 天：复盘本周最有效的触发器，固化为下周固定规则
