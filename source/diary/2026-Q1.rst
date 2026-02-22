@@ -1,0 +1,78 @@
+﻿.. Michael Wu 版权保留
+
+:Authors: Michael Wu
+:Version: 1.0
+
+2026-Q1
+*******
+
+2026年1月
+===========
+
+运气、试错与顺风局
+------------------
+
+最近刷到一段关于“运气在成功中占比”的讨论，核心三句话很直白：低成本试错、让别人知道你需要什么、顺风局敢于梭哈。
+我把它当成一套行动框架来理解。
+
+低成本试错的意思不是随便赌，而是把每一次尝试拆小，控制损失，让学习发生得更快。
+不确定性高的时候，路径本来就模糊，与其一次性押重，不如先做小实验，看反馈再调整。
+样本量上来后，运气出现的次数也会变多，这是“把自己扔进概率池子里”的现实含义。
+
+.. note::
+
+    平时过于固定的生活，可以适当的引入一些变量。比如说，每周读一本跨领域的书，参加个沙龙，甚至出去玩结交一些行业朋友，
+    这些都是增加运气出现机会的好方法。因为运气的出现是有概率的，只有增加了尝试的次数，才有可能遇到运气。
+
+让别人知道你需要什么，本质是降低信息成本。
+如果需求一直藏着，机会就很难精准落在自己身上。
+公开表达、求助、协作，其实是在扩大自己可被匹配的范围。
+
+顺风局敢于梭哈不是盲目加注，而是当连续反馈都指向同一方向时，把资源从探索转向利用。
+长期停留在“试试看”的状态，会错过真正的高胜率窗口。
+
+运气确实存在，但能不能接住、能接住多少，取决于你是否持续在场、是否敢在优势期集中资源。
+同时也要记住风险边界：单次失败代价过高时，再高概率也不值得。
+
+运气与成功的学术脉络
+--------------------
+
+关于“运气在成功中的占比”，学术脉络其实很长，核心脉络可以追到“累积优势”和“回报结构”这两条线。
+60-70年代的研究开始描述“成功会带来更多成功”的统计过程：在科学评价体系里，声誉与资源往往会自我强化，
+这被概括为“马太效应”，后来也被形式化成“累积优势”分布的理论框架。它提醒我们：早期的小优势可能被制度放大，
+最终形成看起来像“能力差距”的结果，但本质是路径依赖和概率堆叠。
+
+80年代经济学把这个现象放进市场结构里讨论，提出“超级明星经济学”：
+当产品可以被大量复制、消费者偏好集中时，微小差距会被放大成极端收益，
+这类市场天然更接近“赢家通吃”。在这种结构里，运气的作用会被放大，而不是被削弱。
+
+90年代网络科学进一步给出机制层面的解释：偏好连接会让已有连接更多的节点获得更多新连接，
+最终形成少数枢纽占据绝大多数注意力的“尺度无关网络”。这和现实世界里的曝光、流量、合作机会几乎是同构的。
+
+进入近些年的建模研究，有学者用非常简单的代理模型展示：当人才近似正态分布、机会是随机事件时，
+成功分布会呈现强烈的幂律，而顶尖成功者往往并非最有天赋的人，而是“足够有天赋 + 更幸运”的组合。
+这类结果的意义不在于否定能力，而在于提醒我们：仅凭结果评价能力是危险的，
+也容易导致资源分配上的误判。
+
+这些研究连起来看，给出一个更“工程化”的结论：运气并非偶发小扰动，
+而是被市场结构、评价体系与网络机制放大后的系统性因素。
+因此，与其纠结“运气占比到底多大”，不如把它当成需要管理的变量：
+用试错扩大样本量，用外显需求提升信息流，用加注把资源投入高胜率阶段。
+
+.. note::
+
+    - 累积优势：早期小优势会被放大，路径依赖很强
+    - 回报结构：越接近赢家通吃，运气权重越大
+    - 机制解释：偏好连接让注意力与资源呈幂律分布
+    - 行动策略：低成本试错 + 需求外显 + 顺风加注
+
+参考资料
+--------
+
+- Merton, R. K. (1988). The Matthew Effect in Science. Cumulative Advantage and the Symbolism of Intellectual Property. `Sartoniana <https://openjournals.ugent.be/sartoniana/article/id/95293/>`_
+- Price, D. de Solla (1976). A general theory of bibliometric and other cumulative advantage processes. `JASIS (EconPapers) <https://econpapers.repec.org/RePEc:bla:jamest:v:27:y:1976:i:5:p:292-306>`_
+- Rosen, S. (1981). The Economics of Superstars. `American Economic Review (EconPapers) <https://econpapers.repec.org/RePEc:aea:aecrev:v:71:y:1981:i:5:p:845-58>`_
+- Barabási, A.-L., Albert, R. (1999). Emergence of scaling in random networks. `Science (arXiv) <https://arxiv.org/abs/cond-mat/9910332>`_
+- Pluchino, A., Biondo, A. E., Rapisarda, A. (2018). Talent vs Luck: the role of randomness in success and failure. `arXiv <https://arxiv.org/abs/1802.07068>`_
+- Frank, R. H. (2016). How Winner-Take-All Markets Magnify Luck’s Role. `Success and Luck (De Gruyter) <https://www.degruyterbrill.com/document/doi/10.1515/9781400880270-005/html>`_
+- The Matthew effect for cohorts of economists (2013). `Journal of Informetrics (ScienceDirect) <https://www.sciencedirect.com/science/article/abs/pii/S1751157713000163>`_
