@@ -12,6 +12,7 @@
    cc-notes
    cc-code-style
    cc-feature
+   rust-notes
    js-notes
    AI-notes
    rtl-notes
