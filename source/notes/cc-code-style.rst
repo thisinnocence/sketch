@@ -21,11 +21,11 @@ C++ 编程风格
   - 缩写处理：缩写按单词处理，例如 HttpServer 而不是 HTTPServer
   - 布尔变量：用 ``is_ / has_ / can_ / should_`` 前缀，例如 is_valid，而不是 validFlag
   - 文件命名：一律 ``snake_case``
-  - 命名空间：禁止头文件用 ``using namespace``, 在 ``.cc`` 文件中可以使用命名空间别名 ``namespace foo = my_project::foo; ``
+  - 命名空间：禁止头文件用 ``using namespace``。在 ``.cc`` 文件中可以使用命名空间别名，例如 ``namespace foo = my_project::foo;``
   - 禁止使用宏定义常量（#define），用 ``constexpr`` 或 ``const`` 代替
   - 单行注释用 ``//``
   - 类、函数、复杂逻辑前建议加简短注释，说明用途而不是实现细节
-  - 指针和引用的靠近： ``char* ptr``（星号靠近类型）， ``const std::string& name``（引用符号靠近类型）
+  - 指针和引用的靠近：例如 ``char* ptr`` 表示星号靠近类型，``const std::string& name`` 表示引用符号靠近类型
   - 头文件保护： ``#ifndef/#define/#endif`` 形式的 include guard，或 ``#pragma once``
   - 函数参数: 输入参数在前，输出参数在后；尽量使用返回值而不是输出参数
   - 类成员顺序： public → protected → private，并且每个区域内部按类型分组（类型别名、常量、构造/析构、方法、数据成员）
