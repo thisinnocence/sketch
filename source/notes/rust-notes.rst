@@ -266,3 +266,666 @@ workspace 常见还有几个补充字段：
 
     ``workspace`` 是 Cargo 层面的工程组织；``crate`` 是 rustc 层面的编译单元；``mod`` 是 crate 内部的源码拆分方式。
     这三个概念很容易混，但其实正好对应了 工程级 / 编译级 / 源码级 三个层次。
+
+纯 Rust 工程目录组织
+^^^^^^^^^^^^^^^^^^^^^^
+
+如果是业界里一个“纯 Rust”工程，通常首先会遵守 Cargo 的默认目录约定。原因很简单：
+工具链、IDE、文档生成、测试发现、示例构建、CI 命令几乎都围绕这些约定工作。遵守约定，
+能明显降低理解成本，也减少自己手写额外配置的需要。
+
+最常见的单 crate 目录大致如下：
+
+.. code-block:: text
+
+    my-crate/
+    |- Cargo.toml
+    |- Cargo.lock
+    |- src/
+    |  |- lib.rs
+    |  |- main.rs
+    |  |- config.rs
+    |  |- model.rs
+    |  |- service/
+    |  |  |- mod.rs
+    |  |  `- user.rs
+    |  `- bin/
+    |     `- admin.rs
+    |- tests/
+    |  `- api_test.rs
+    |- examples/
+    |  `- basic.rs
+    |- benches/
+    |  `- parser.rs
+    |- build.rs
+    |- rustfmt.toml
+    |- clippy.toml
+    `- .cargo/
+       `- config.toml
+
+不过这里不是说所有文件都必须同时存在，而是说 Cargo 为这些名字提供了清晰约定：
+
+- ``src/lib.rs``: 库 crate 的默认 crate root，也是对外 API 的主要收口点；
+- ``src/main.rs``: 主二进制的默认入口，适合放程序启动、参数解析、初始化等；
+- ``src/bin/*.rs``: 一个 package 下挂多个独立二进制时使用，每个文件对应一个可执行程序；
+- ``tests/``: integration test，每个文件会被当成单独的测试 crate 编译；
+- ``examples/``: 可编译、可运行的示例代码，常用于演示公开 API 的使用方式；
+- ``benches/``: benchmark 代码，一般配合 Criterion 等库使用；
+- ``build.rs``: 构建脚本，只在确实需要编译期探测、代码生成、链接外部库时才加；
+- ``.cargo/config.toml``: 放 target、runner、alias、linker 等 cargo 级别配置；
+
+这里需要特别注意一个容易混淆的点：``Cargo.toml`` 的 package 维度，和 ``src/`` 里的 crate 入口维度，不完全是同一个概念。
+一个 package 最常见是“一个 lib + 零个或多个 bin”：
+
+- 如果只有 ``src/lib.rs``，那它是一个纯库 package；
+- 如果只有 ``src/main.rs``，那它是一个纯可执行 package；
+- 如果两者都存在，那么同一个 package 会同时产出一个 library crate 和一个 binary crate；
+
+后一种在业界很常见，因为它可以让 ``main.rs`` 只是很薄的一层壳，把真正业务逻辑都放进 ``lib.rs`` 对应的库里，
+这样测试、复用和后续拆分都会更容易。
+
+lib.rs 和 main.rs 的职责
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+很多刚接触 Rust 的人会把所有代码直接堆进 ``main.rs``，小 demo 没问题，但真实工程通常不会这么做。
+比较常见的组织方式是：
+
+- ``main.rs`` 负责“启动流程”；
+- ``lib.rs`` 负责“可复用逻辑”；
+
+例如一个命令行工具，``main.rs`` 常见只做几件事：
+
+- 解析命令行参数；
+- 初始化日志、配置、运行时；
+- 调用库层入口；
+- 处理退出码和错误打印；
+
+而真正的业务实现、协议处理、数据库访问、领域逻辑，通常会放在 ``lib.rs`` 及其子模块里。
+原因主要有下面几点：
+
+- library 更容易做单元测试，不必每次都通过进程级入口去测；
+- integration test 可以直接依赖这个库 crate，而不是只能黑盒跑二进制；
+- 当工程后面要拆 workspace、多二进制复用同一逻辑时，迁移成本更低；
+- 文档生成（``cargo doc``）主要围绕库 API 展开，公共接口放在库层更自然；
+
+一个常见例子如下：
+
+.. code-block:: text
+
+    my-app/
+    |- Cargo.toml
+    `- src/
+       |- main.rs
+       |- lib.rs
+       |- cli.rs
+       |- app.rs
+       `- infra/
+          `- mod.rs
+
+其中 ``main.rs`` 可能非常薄：
+
+.. code-block:: rust
+
+    fn main() -> anyhow::Result<()> {
+        my_app::run()
+    }
+
+而 ``lib.rs`` 暴露相对稳定的入口：
+
+.. code-block:: rust
+
+    pub mod app;
+    mod cli;
+    mod infra;
+
+    pub fn run() -> anyhow::Result<()> {
+        let args = cli::parse();
+        app::run(args)
+    }
+
+这种写法的核心思想是：把“进程入口”与“程序能力”分开。前者只有一个，后者往往需要被测试、被示例、被其他 bin 复用。
+
+src 目录内部如何拆模块
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+``src/`` 目录内部属于 Rust 模块系统的范畴。一个常见误区是把文件系统层次，误认为就是最终对外的模块层次；
+其实文件只是承载方式，真正决定模块树的是 ``mod`` / ``pub mod`` 声明以及 re-export。
+
+现代 Rust 工程里，一个模块常见有两种落地形式：
+
+- ``foo.rs``: 适合模块比较小，内容集中；
+- ``foo/mod.rs`` 加 ``foo/*.rs``: 适合这个模块本身还有多个子模块；
+
+例如下面两种都合法：
+
+.. code-block:: text
+
+    src/
+    |- lib.rs
+    |- parser.rs
+    `- parser/
+       |- lexer.rs
+       `- ast.rs
+
+或者：
+
+.. code-block:: text
+
+    src/
+    |- lib.rs
+    |- parser.rs
+    |- lexer.rs
+    `- ast.rs
+
+很多老资料会大量使用 ``mod.rs``，这是历史上更常见的写法。现在 Rust 也支持：
+
+- ``foo.rs`` 作为模块 ``foo`` 的定义文件；
+- 同时在 ``foo/`` 目录下放它的子模块文件；
+
+所以现代工程里更常见的是：
+
+.. code-block:: text
+
+    src/
+    |- lib.rs
+    |- parser.rs
+    `- parser/
+       |- lexer.rs
+       `- ast.rs
+
+对应 ``lib.rs``:
+
+.. code-block:: rust
+
+    pub mod parser;
+
+对应 ``parser.rs``:
+
+.. code-block:: rust
+
+    pub mod lexer;
+    pub mod ast;
+
+这种方式通常比到处放 ``mod.rs`` 更直观，因为目录名和模块入口文件不会同名叠在一起。
+
+从工程实践看，模块拆分通常遵循几个原则：
+
+- 先按职责拆，而不是按语言特性拆；例如优先拆 ``config``、``http``、``storage``，而不是拆成 ``structs``、``traits``、``utils``；
+- ``lib.rs`` 主要做模块声明与对外 re-export，不要把大量实现细节都堆进去；
+- 子模块内部尽量保持高内聚，避免随处 ``pub`` 暴露导致边界失控；
+- 如果一个模块只有父模块会用，优先 ``mod`` 或 ``pub(crate)``，不要上来就对外公开；
+- ``utils.rs`` 这类名字要克制使用，很多时候它只是“暂时不知道该放哪”的信号；
+
+关于 ``lib.rs`` 本身，一个很常见的最佳实践是把它当成“包的公开门面”，而不是“最大的实现文件”。
+例如：
+
+.. code-block:: rust
+
+    mod config;
+    mod error;
+    pub mod client;
+
+    pub use client::Client;
+    pub use error::{Error, Result};
+
+这样外部使用者看到的是比较稳定、紧凑的 API 面，而不是被迫知道内部所有模块细节。
+
+tests / examples / benches 的常见用法
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Rust 工程里，测试代码一般不只一种形态，常见会分成三层：
+
+- 单元测试（unit test）：通常写在模块内部的 ``#[cfg(test)] mod tests``；
+- 集成测试（integration test）：放在 ``tests/`` 目录下；
+- 示例与基准：分别放在 ``examples/`` 与 ``benches/``；
+
+单元测试更适合测局部实现细节，因为它可以直接访问当前模块的私有项；而 ``tests/`` 下的 integration test
+更像从外部使用者视角验证公共 API 和系统行为。
+
+例如：
+
+.. code-block:: rust
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn parse_ok() {
+            assert!(parse("42").is_ok());
+        }
+    }
+
+而 ``tests/api_test.rs`` 则通常写成：
+
+.. code-block:: rust
+
+    use my_crate::Client;
+
+    #[test]
+    fn client_can_connect() {
+        let _ = Client::new();
+    }
+
+这两类测试的差异，本质上是：
+
+- 模块内测试偏白盒；
+- ``tests/`` 下测试偏黑盒；
+
+业界实践上，通常建议：
+
+- 核心算法、边界条件、多分支逻辑优先写单元测试；
+- 公共接口、模块协作、对外行为保证放 integration test；
+- ``examples/`` 里的代码尽量保持“真的能运行”，不要把它当伪代码文档；
+- benchmark 放到独立目录，不要和功能测试混在一起；
+
+单 crate 何时够用，何时拆成 workspace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+很多工程一开始并不需要 workspace。一个经验上比较合理的顺序是：
+
+- 先从单 package 开始；
+- 当公共逻辑明确需要被多个二进制、多个库、或不同发布边界复用时，再拆成多个 crate；
+
+也就是说，是否拆 crate，不要只看“文件多不多”，而要看“边界是否已经稳定”。
+
+下面几种情况，比较适合继续保持单 crate：
+
+- 代码规模还不大，核心逻辑强耦合；
+- 目前只有一个可执行程序；
+- 所谓“模块边界”还经常变化；
+- 团队还在快速试错，过早拆 crate 只会增加 feature、版本和依赖管理成本；
+
+而下面几种情况，通常可以考虑拆 workspace / 多 crate：
+
+- 一个共享库被多个 bin、多个服务、多个工具共同依赖；
+- 想把 proc-macro、代码生成器、核心库、CLI 明确隔离；
+- 不同子系统的依赖差异很大，放一起会让编译时间和依赖面失控；
+- 需要更清晰的发布边界，甚至部分 crate 需要单独发到 crates.io；
+
+一个较常见的业界结构类似：
+
+.. code-block:: text
+
+    my-workspace/
+    |- Cargo.toml
+    |- Cargo.lock
+    |- crates/
+    |  |- core/
+    |  |  |- Cargo.toml
+    |  |  `- src/lib.rs
+    |  |- storage/
+    |  |  |- Cargo.toml
+    |  |  `- src/lib.rs
+    |  `- cli/
+    |     |- Cargo.toml
+    |     `- src/main.rs
+    `- tools/
+       `- xtask/
+          |- Cargo.toml
+          `- src/main.rs
+
+这里 ``crates/`` 只是社区里常见习惯，不是 Cargo 强制要求。有人也会直接用 ``app/``、``libs/``、``tools/``。
+重点不在目录名，而在于边界是否稳定、是否便于理解。
+
+工程实践上的几个常见建议
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+除了目录本身，纯 Rust 工程在业界里还有一些比较稳定的实践倾向：
+
+- 尽量遵守 Cargo 默认约定，少改 crate root 路径，除非确实有集成历史包袱；
+- ``main.rs`` 保持薄，业务逻辑沉到 ``lib.rs`` 和子模块；
+- 优先用模块边界解决问题，只有当复用/发布/依赖边界稳定时再升级成多 crate；
+- 谨慎使用 ``pub``，公开 API 一旦被依赖，后续收缩成本会很高；
+- ``build.rs`` 只在必要时使用，因为它会引入额外构建复杂度和缓存失效点；
+- feature flag 用于可选能力与依赖裁剪，不要把它当成大规模条件编译拼图；
+- 工程根常见会放 ``rustfmt.toml``、``clippy.toml``、``rust-toolchain.toml``，用于统一格式、lint 和工具链版本；
+- CI 里常见至少跑 ``cargo fmt --check``、``cargo clippy``、``cargo test``、``cargo check --workspace``；
+
+关于 feature flag，再补一条很重要的经验：feature 更适合表达“增量能力”，不适合表达互相缠绕的大型产品矩阵。
+如果 feature 组合已经让测试矩阵和代码路径变得难以穷尽，通常说明 crate 边界或产品分层需要重新整理。
+
+另外，Rust 工程里还经常会看到一个 ``xtask`` crate。它本质上只是团队约定，不是官方机制，
+思路是用 Rust 自己写工程脚本，而不是堆很多 Bash/Python 脚本。例如封装下面这些任务：
+
+- 代码生成；
+- 打包发布；
+- 本地开发辅助命令；
+- 一些跨平台但不适合塞进 ``build.rs`` 的自动化流程；
+
+它常见长这样：
+
+.. code-block:: bash
+
+    cargo run -p xtask -- codegen
+    cargo run -p xtask -- release
+
+这种方式的优点是脚本也能复用同一套依赖管理、类型系统和跨平台能力，但前提是团队真的愿意维护它；
+如果只是非常简单的几条命令，直接放 Makefile 或 CI 配置里也未必不好。
+
+.. note::
+
+    对多数 Rust 工程来说，最稳妥的起点通常不是“先设计一个很复杂的目录树”，而是：
+    先遵守 Cargo 默认约定，用 ``src/lib.rs`` / ``src/main.rs`` / ``tests/`` 这些基础结构把边界立住；
+    等代码增长后，再根据复用边界、发布边界和依赖边界，决定是否拆成 workspace 多 crate。
+
+C/Rust 混合工程（以 QEMU 为例）
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+纯 Rust 工程的默认世界观，通常是 Cargo 作为唯一的构建入口；但像 QEMU 这种历史悠久、体量巨大、以 C 为主体的系统软件，
+真实情况往往不是“全部重写”，而是“在已有 C 工程中渐进引入 Rust”。这种工程的重点，不是把目录做得像标准 Cargo 项目，
+而是把下面几件事同时处理好：
+
+- 最终产物仍然能被原有主构建系统稳定地产出；
+- Rust 代码能享受到 Cargo 生态的开发体验（lint、fmt、doc、IDE）；
+- C 和 Rust 的边界清晰，unsafe 尽量集中；
+- 改一个头文件、一个设备模型、一个绑定层时，不会把整个工程无脑重编；
+
+QEMU 是这类工程里非常有代表性的例子：主工程仍以 C 和 Meson/Ninja 为中心，但 Rust 代码已经被系统性纳入同一套大工程构建。
+它不是“Rust 主工程 + 少量 C glue”，而是反过来，“C 主工程 + 若干渐进接入的 Rust 子系统”。
+
+从目录组织上，可以把它理解成下面这种形态：
+
+.. code-block:: text
+
+    qemu/
+    |- meson.build
+    |- include/
+    |- hw/
+    |  |- char/
+    |  |  `- pl011.c
+    |  `- timer/
+    |     `- hpet.c
+    |- rust/
+    |  |- Cargo.toml
+    |  |- meson.build
+    |  |- qemu-api/
+    |  |- qemu-api-macros/
+    |  |- hw/
+    |  |  |- char/
+    |  |  |  `- pl011/
+    |  |  `- timer/
+    |  |     `- hpet/
+    |  |- bindings/
+    |  `- tests/
+    `- subprojects/
+
+这个结构的关键信号很明显：
+
+- 整个仓库根仍然是 C 工程的根，``meson.build`` 在最外层；
+- Rust 代码整体收敛到 ``rust/`` 子树，而不是零散混进所有 C 目录；
+- 具体设备模型的 Rust 实现，仍然按 QEMU 原有子系统语义组织，例如 ``hw/char/pl011``、``hw/timer/hpet``；
+- 绑定生成、宏 crate、测试 crate 等“Rust 特有基础设施”集中放在 ``rust/`` 下统一管理；
+
+这种组织方式非常适合“大型存量 C 工程渐进引入 Rust”，因为它既保留了原工程的心智模型，也没有把 Rust 代码变成完全脱离主树的外部插件。
+
+QEMU 这类工程为什么不能让 Cargo 独自统管
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+如果一个工程最终的链接、配置探测、平台差异处理、代码生成、子项目管理，本来就是由 Meson/CMake/Bazel 之类系统构建工具掌控，
+那么 Cargo 通常就不适合直接当“唯一真相来源”。QEMU 的情况就很典型：
+
+- 最终二进制并不只是 Rust 产物，而是大量 C 对象文件、生成代码、系统库、平台配置一起链接出来；
+- 很多 Rust 代码依赖 C 侧生成的头文件、配置宏、对象文件或 glue code；
+- 测试也常常不是纯 Rust 单元测试，而是依赖整个 QEMU 运行时与辅助 C 代码；
+
+因此在这类工程里，最稳定的思路通常是：
+
+- 系统级构建、最终链接、平台探测交给主构建系统；
+- Rust 开发体验、lint、fmt、doc、依赖描述交给 Cargo workspace；
+
+QEMU 官方文档对这个分工说得很直接：Rust 代码是通过 Meson 集成进模拟器的，Meson 直接调用 ``rustc`` 生成静态库，
+再与 C 代码一起链接；而 Cargo 主要用于 ``clippy``、``rustfmt``、``rustdoc`` 这类 Rust 开发工作流。
+
+这类分工的核心思想可以概括成一句话：
+
+- Cargo 负责“描述 Rust 世界”；
+- Meson 负责“产出整个系统”；
+
+这和很多初学者理解的“Cargo 一定是最终 build 的入口”不同。在混合工程里，更合理的问题往往是：
+哪个工具最了解最终产物的全貌？如果答案不是 Cargo，那 Cargo 就更适合做 Rust 子世界的工具入口，而不是全局链接入口。
+
+Meson 和 Cargo 的职责分工
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+以 QEMU 这种工程为例，Meson 和 Cargo 最常见的职责边界大致如下：
+
+Meson 更适合负责：
+
+- 宿主机/目标机能力探测；
+- C 编译选项、系统库、平台 ABI 差异；
+- 生成配置头、生成源码、组织子目录；
+- 调度 bindgen、rustc、cc 等多语言工具链；
+- 把 Rust 静态库和 C 对象一起做最终链接；
+- 统一测试入口、统一安装与打包；
+
+Cargo 更适合负责：
+
+- Rust crate graph 与 path dependency 描述；
+- workspace 级别 edition、lint、依赖版本约束；
+- ``cargo clippy`` / ``cargo fmt`` / ``cargo doc``；
+- 给 rust-analyzer 等工具提供可理解的 Rust 项目模型；
+
+QEMU 里还有一个很典型的做法：为了让 Cargo 工作流与 Meson 生成产物协同，专门使用 ``build.rs`` 去拾取 Meson build 目录下的生成文件，
+再放到 Cargo 预期的位置。这个做法本质上是在解决一个现实问题：
+
+- Meson 才知道系统构建过程中生成了什么；
+- Cargo/IDE 又需要“看见”这些生成物，才能把 Rust 项目体验做完整；
+
+所以在混合工程里，``build.rs`` 不一定只是“编译 Rust 原生 C 依赖”的脚本，它也可以是“把系统级构建结果桥接给 Cargo 工具链”的适配层。
+
+如果抽象成一般规律，大致可以写成：
+
+- 主构建系统是最终真相来源（source of truth）；
+- Cargo workspace 是 Rust 子树的开发真相来源；
+- ``build.rs`` / 环境变量 / 生成目录拷贝，是两者之间的桥；
+
+因此，看到一个 C/Rust 混合工程同时有 ``meson.build`` 和 ``Cargo.toml``，不要马上觉得“重复”。
+很多时候它们分别在回答不同问题：
+
+- ``Cargo.toml`` 回答：Rust 代码如何组织、如何 lint、如何做局部文档化；
+- ``meson.build`` 回答：整个产品怎样真正被构建、链接、测试、发布；
+
+QEMU 中 Rust crate 的分层思路
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+QEMU 的代表性，不只在于“用了 Rust”，更在于它没有把 Rust 代码随意堆成一个大 crate，而是明显按职责分层。
+从工程抽象上，可以把这类混合工程里的 Rust 部分理解成下面几层：
+
+- 原始绑定层（raw FFI / bindings）；
+- 安全封装层（safe wrapper / API layer）；
+- 过程宏与元编程层（proc-macro）；
+- 具体业务或设备实现层（leaf crates）；
+
+QEMU 文档里明确提到，绑定不是只做一个巨大的总绑定库，而是按子系统拆分，例如 util、qom、chardev、hw core、migration、system 等。
+这样做有两个很现实的好处：
+
+- C 头文件改动时，受影响的 Rust crate 范围更小；
+- 不会让所有绑定类型都堆进一个巨大命名空间和一个巨型 crate 里；
+
+这其实是混合工程里很值得借鉴的一条经验：raw FFI crate 不要按“语言”切，而要按“子系统依赖边界”切。
+
+对于 QEMU，可以把典型职责理解为：
+
+- 绑定层 crate：负责把 C 接口、结构体、枚举、宏常量映射进 Rust；
+- ``qemu-api`` 这类上层 crate：负责把原始绑定包装成更可用、更 Rust 化的接口；
+- ``qemu-api-macros``：负责派生宏、元数据提取、样板代码生成；
+- ``pl011``、``hpet`` 这类 leaf crate：负责具体设备模型的业务实现；
+
+这和一般社区里推荐的混合工程拆分法其实非常一致：
+
+- ``foo-sys`` 或 bindings crate 负责“不好看但真实”的原始接口；
+- ``foo`` 或 api crate 负责“安全、可维护、符合 Rust 习惯”的包装；
+- 真正业务 crate 只依赖包装层，不直接四处碰裸 FFI；
+
+这么拆的主要目的，不是“看起来更模块化”，而是为了明确下面这些边界：
+
+- unsafe 边界；
+- 重新编译边界；
+- API 稳定边界；
+- 团队协作边界；
+- 测试边界；
+
+多个 crate 拆分的真实目的
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+在混合工程里，crate 拆分往往比纯 Rust 应用更有价值，因为它不仅是源码组织，更直接关系到 FFI 边界与构建成本。
+以 QEMU 这类工程为例，多个 crate 一般至少在解决下面几类问题：
+
+- 1 隔离 raw FFI
+
+  把 bindgen 生成物、``extern "C"``、裸指针转换集中在少数 crate 中，避免业务代码层到处散落 unsafe。
+
+- 2 控制重编成本
+
+  头文件或 wrapper 变化时，只让受影响的绑定子树重编，而不是所有设备 crate 全部重编。
+
+- 3 明确宿主构建与目标构建差异
+
+  例如 ``proc-macro`` crate 本质上运行在宿主编译器环境中，天然就应该单独拆分，不能和目标侧库随意混在一起。
+
+- 4 保持 API 语义分层
+
+  绑定层的 API 通常不漂亮也不稳定；上层封装 crate 可以把对外语义收口，减少叶子 crate 直接依赖底层细节。
+
+- 5 给测试和迁移留空间
+
+  当团队希望把某个 C 子系统逐步替换成 Rust 时，先替换 leaf crate，再逐步沉淀公共 wrapper，比一开始就做大一统 crate 更可控。
+
+所以，不要把“多个 crate”简单理解成“Rust 社区喜欢这样分”。对于混合工程来说，它更多是在做“架构隔离”和“编译隔离”。
+
+QEMU 里的命名和目录命名实践
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+QEMU 官方文档专门讨论了 Rust 命名约定，这一点很值得注意。C 世界里的命名，经常带有很强的前缀风格，例如：
+
+- ``QEMUTimer``
+- ``timer_mod``
+- ``sysbus_connect_irq``
+- ``qdev_realize``
+
+到了 Rust 侧，通常不会机械保留所有 C 前缀，而是会做“Rust 化映射”：
+
+- 类型名用 Rust 的类型风格；
+- 方法名去掉重复的前缀；
+- 但如果在继承层次/语义层次里出现重名或歧义，则保留必要前缀来区分；
+
+QEMU 文档里给出的例子很典型：
+
+- ``QEMUTimer`` 对应到 ``timer::Timer``；
+- ``timer_mod`` 对应到 ``Timer::modify``；
+- ``sysbus_connect_irq`` 对应到 ``SysBusDeviceMethods::connect_irq``；
+
+而如果类层次里同名语义容易混淆，则下层类型的方法名会保留更多前缀。
+
+这背后的通用经验是：
+
+- C 的命名常常在弥补“没有命名空间”；
+- Rust 已经有模块、类型、trait 这些命名空间能力，所以前缀可以适度去掉；
+- 但不能为了“更像 Rust”就把语义差异抹平；
+
+因此，对于混合工程的目录和命名，比较好的实践通常是：
+
+- 目录名尽量沿用原 C 工程的领域结构，例如 ``hw/char``、``block``、``migration``；
+- crate 名体现角色，例如 ``*-sys``、``*-macros``、``*-api``、具体模块名；
+- Rust ``use`` 时的名字要符合 Rust 习惯，但目录层次不要和原工程脱钩；
+- 不要发明大量和原 C 工程不一致的新术语，否则跨语言读代码时心智切换成本会很高；
+
+QEMU 还有一个很细但很有代表性的点：目录名可以是 ``qemu-api``，而 Rust crate 名/导入名是 ``qemu_api``。
+这说明目录命名和 Rust 代码里的标识符命名，最好分别遵守各自社区的常规，而不是强行统一成一种风格。
+
+QEMU 特化的实践
+^^^^^^^^^^^^^^^^
+
+下面这些做法，更偏 QEMU 这个项目自身的结构与约束，并不一定要机械照搬到所有混合工程：
+
+- Meson 是绝对主导的系统构建入口，Cargo 不是最终二进制的拥有者；
+- Rust 当前主要聚焦在特定设备模型/子系统上，而不是平均渗透到全部模块；
+- Rust 侧接口深度依赖 QOM、SysBusDevice、Migration、MemoryRegion 等 QEMU 内部对象模型；
+- 由于 QOM 对象共享引用很多，QEMU 文档特别强调应优先 ``&self`` + interior mutability，而不是轻易从裸指针恢复 ``&mut self``；
+- QEMU 还引入了和 Big QEMU Lock 相关的专门 cell 类型，用来表达锁语义与 interior mutability；
+- 新增第三方 Rust 依赖时，除了改 ``Cargo.toml``，还要让 Meson 学会如何构建这些 crate，并维护对应 subproject；
+
+这些做法背后都不是“Rust 语言必然要求”，而是因为 QEMU 已有的大工程现实：
+
+- 历史包袱重；
+- C 抽象模型成熟；
+- 并发/锁模型不是从 Rust 原生设计出来的；
+- 最终构建和发布流程必须继续统一在现有工程系统下；
+
+因此看 QEMU 时，要分清楚：
+
+- 哪些是“Rust 语言的通用最佳实践”；
+- 哪些是“为了接住 QEMU 现有架构而做的适配”；
+
+更通用的 C/Rust 混合工程实践
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+如果把 QEMU 的经验抽象出来，对一般 C/Rust 混合工程更普适的建议大致有下面这些：
+
+- 只保留一个最终构建真相来源。可以是 Meson、CMake、Bazel，但最好不要让 Cargo 和系统构建同时争夺最终链接控制权；
+- 把 FFI 层做薄，且集中。业务 crate 不要直接依赖大段 ``bindgen`` 输出；
+- unsafe 优先包进专门 crate、trait、wrapper 或宏里，而不是散在叶子业务逻辑里；
+- 绑定按子系统边界拆，而不是一口气生成一个巨型 ``bindings.rs``；
+- proc-macro 单独成 crate，因为它天然属于宿主侧编译时依赖；
+- 对外 API 和内部 FFI API 分开，前者服务工程可维护性，后者服务真实互操作；
+- 目录结构尽量同时让 C 工程开发者和 Rust 工程开发者都能快速定位代码；
+- 如果测试依赖完整系统运行时，就让系统构建工具负责集成测试；Cargo 更适合跑纯 Rust lint、格式化、文档和部分单元测试；
+
+其中最重要的一条其实是：
+
+- 不要为了“让 Rust 看起来更纯”而破坏整个工程原本已经稳定的构建和发布模型；
+
+在混合工程里，真正高质量的 Rust 接入，往往不是“Cargo 感最强”的那种，而是：
+
+- Rust 层获得了足够好的类型安全和开发体验；
+- 同时又不强迫整个大工程为它推倒重来；
+
+一个更通用的推荐目录模板
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+如果以后自己设计一套类似 QEMU 的 C/Rust 混合工程，一个比较稳妥的模板可以是：
+
+.. code-block:: text
+
+    hybrid-project/
+    |- meson.build
+    |- include/
+    |- src/
+    |- subsystems/
+    |- rust/
+    |  |- Cargo.toml
+    |  |- meson.build
+    |  |- bindings/
+    |  |- core-sys/
+    |  |- core-api/
+    |  |- macros/
+    |  |- modules/
+    |  |  |- device-a/
+    |  |  `- device-b/
+    |  `- tests/
+    |- generated/
+    `- subprojects/
+
+对应职责大致可以约定为：
+
+- ``include/``、``src/``、``subsystems/``: C 主体和现有子系统；
+- ``rust/bindings/``: bindgen 配置、wrapper header、生成参数脚本；
+- ``rust/*-sys`` 或等价目录：原始 FFI 边界；
+- ``rust/*-api``: 安全包装与高层抽象；
+- ``rust/macros``: proc-macro；
+- ``rust/modules/*``: 真正的业务/设备/后端实现；
+- ``subprojects/``: 需要被系统构建工具显式认识的第三方依赖；
+
+这类模板最重要的不是目录名字本身，而是目录背后的层次关系：
+
+- 原始绑定不要和业务实现混在一起；
+- 宏 crate 不要和普通目标侧库混在一起；
+- 系统构建工具需要知道的第三方依赖，要有明确落点；
+- 生成代码和手写代码尽量分开；
+
+.. note::
+
+    QEMU 这类工程最值得借鉴的，不是它用了哪些具体 crate 名字，而是它把问题拆成了几层：
+    主构建系统负责最终产物，Cargo 负责 Rust 子世界，绑定层和业务层分离，proc-macro 单独隔离，
+    目录结构尽量保持和原 C 工程的子系统语义一致。
