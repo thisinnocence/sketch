@@ -724,14 +724,114 @@ Rust 工程组织
 ``tests`` / ``examples`` / ``benches`` 的常见用法
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Rust 工程里，测试代码一般不只一种形态，常见会分成三层：
+Rust 工程里，测试代码一般不只一种形态。工程上最常见的其实是四层：
 
 - 单元测试（unit test）：通常写在模块内部的 ``#[cfg(test)] mod tests`` ；
 - 集成测试（integration test）：放在 ``tests/`` 目录下；
+- 文档测试（doctest）：写在公开 API 的文档注释里；
 - 示例与基准：分别放在 ``examples/`` 与 ``benches/`` ；
 
-单元测试更适合测局部实现细节，因为它可以直接访问当前模块的私有项；而 ``tests/`` 下的 integration test
+其中最值得注意的是 Rust 对 ``tests/`` 的处理方式，和 C/C++ 很不一样。
+
+在 C/C++ 里，如果你用 ``gtest/gmock`` ，通常要自己在 CMake/Bazel/Meson 里再声明一个测试目标，把生产代码对象文件、
+测试源码、 ``gtest_main`` 或自定义 main 一起链接成一个测试可执行文件。测试目标本身是构建系统显式声明出来的。
+
+Rust 这里更“语言内建”一些：因为 ``rustc`` 的编译入口就是 crate root，所以 ``tests/foo.rs`` 这种文件天然就可以被当成
+一个独立 crate 来编译；Cargo 只需要把它当成 ``--test`` 目标交给 ``rustc`` ，再链接上 libtest harness 即可。
+换句话说， ``tests/`` 下每个顶层测试文件，本质上都是一个单独的 test binary crate。
+
+这里虽然最终也会生成一个可执行测试程序，但普通情况下并不需要你自己写 ``fn main()`` 。
+原因是 ``rustc --test`` 会为测试 crate 自动生成 test harness，也就是自动生成一个测试入口 ``main`` ，负责：
+
+- 收集 ``#[test]`` 标记的测试函数；
+- 处理过滤、并发执行、结果汇总；
+- 把每个测试函数的 panic 记成失败；
+
+这也是为什么 Rust 里“给一个功能单独起一个测试 bin”非常自然，而不用像 C++ 那样先补一层额外的构建脚本目标。
+这一点的体感其实也有点像 Go：测试入口是工具链自动接管的，构建系统本身理解源码组织和依赖图，
+所以工程组织通常比传统 C/C++ 轻得多。更准确地说，Rust 和 Go 都更像“工具链先把测试台子搭好，你只管写测试函数”，
+而 C/C++ 更像“你先把测试目标、main、链接关系搭出来，再把 gtest/gmock 放上去”。
+
+例如一个常见目录可以是：
+
+.. code-block:: text
+
+    my-crate/
+    |- Cargo.toml
+    |- src/
+    |  `- lib.rs
+    `- tests/
+       |- api.rs
+       |- cli.rs
+       `- common/
+          `- mod.rs
+
+这里：
+
+- ``tests/api.rs`` 是一个 integration test crate；
+- ``tests/cli.rs`` 是另一个 integration test crate；
+- ``tests/common/mod.rs`` 只是被这些测试 crate 复用的普通模块，不会单独变成测试目标；
+
+如果从编译模型理解：
+
+- ``#[cfg(test)]`` 的单元测试，是“把测试代码编进当前 crate”；
+- ``tests/*.rs`` 的集成测试，是“额外再编几个依赖当前库 crate 的测试 crate”；
+
+所以单元测试更适合测局部实现细节，因为它可以直接访问当前模块的私有项；而 ``tests/`` 下的 integration test
 更像从外部使用者视角验证公共 API 和系统行为。
+
+例如模块内单元测试：
+
+.. code-block:: rust
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn parse_ok() {
+            assert!(parse("42").is_ok());
+        }
+    }
+
+而 ``tests/api.rs`` 则通常写成：
+
+.. code-block:: rust
+
+    use my_crate::Client;
+
+    #[test]
+    fn client_can_connect() {
+        let _ = Client::new();
+    }
+
+和 C++ ``gtest/gmock`` 对比时，可以抓几个工程上最关键的差异：
+
+- ``gtest`` 主要是测试框架库；Rust 的 ``#[test]`` + libtest harness 更接近工具链内建能力；
+- C++ 常见是“手工声明 test target + 链接生产代码”；Rust 常见是“每个测试文件天然就是一个 crate root”；
+- ``EXPECT_*`` / ``ASSERT_*`` 在 Rust 里大多对应 ``assert!`` / ``assert_eq!`` / ``matches!`` 这类宏；
+- Rust 标准库没有 ``gmock`` 那样官方内建 mock 框架，工程上更常见的是基于 trait 写 fake/stub，必要时再用 ``mockall`` 一类三方库；
+
+另外，Rust 代码里到处可见的 ``#[test]`` 、 ``#[cfg(test)]`` 、 ``#[derive(Debug)]`` 、 ``#[allow(dead_code)]``
+这类 ``#[]`` 语法，统一叫 attribute。它不是 C/C++ 预处理器那种文本替换，而是附着在函数、模块、结构体、crate 上的
+编译期元信息或指令，用来告诉编译器/宏系统“这段代码是什么角色、该不该编译、要不要自动生成实现、要不要调整 lint”等。
+
+这里常见有两种形式：
+
+- ``#[xxx]``: 作用到后面的 item；
+- ``#![xxx]``: 作用到当前模块或整个 crate；
+
+和测试最相关的几个 attribute 是：
+
+- ``#[test]``: 把函数标成测试用例，让 test harness 收集并运行；
+- ``#[cfg(test)]``: 只有测试构建时才编译这段代码；
+- ``#[should_panic]``: 这个测试预期必须 panic；
+
+其中 ``#[cfg(test)]`` 可以粗略类比成 C/C++ 里“为了 UT 打开的编译宏”，但它比 ``#ifdef UNIT_TEST`` 规整得多：
+
+- C/C++ 预处理宏是文本级开关，先替换再编译；
+- Rust ``#[cfg(test)]`` 是编译器理解的条件编译，不是文本替换；
+- 它控制的是“这个 item 要不要进入当前编译图”，而不是“先把哪段文本展开出来”；
 
 例如：
 
@@ -747,28 +847,87 @@ Rust 工程里，测试代码一般不只一种形态，常见会分成三层：
         }
     }
 
-而 ``tests/api_test.rs`` 则通常写成：
+它的含义是：普通 ``cargo build`` 时，这整个 ``tests`` 模块不会参与编译；只有 ``cargo test`` 之类测试构建时才会编进去。
+这也是为什么 Rust 单元测试经常直接写在模块内部，而不需要像 C++ 一样经常额外暴露 internal header、friend test 或测试专用入口。
+
+“错误/异常”这件事，两边心智模型也不同：
+
+- Rust 没有 C++ 那种通用语言级 exception 作为日常错误处理机制；
+- 业务错误通常用 ``Result<T, E>`` 显式返回；
+- 测试失败通常靠 ``assert!`` 触发 ``panic!`` ；
+- 如果要验证某段代码必然 panic，可以用 ``#[should_panic]`` ；
+
+例如：
 
 .. code-block:: rust
 
-    use my_crate::Client;
-
     #[test]
-    fn client_can_connect() {
-        let _ = Client::new();
+    #[should_panic]
+    fn empty_input_panics() {
+        parse("");
     }
 
-这两类测试的差异，本质上是：
+这里的 ``panic`` 更接近“当前测试失败/异常终止”，而不是 C++ 里那种可在业务层层传播的 exception 机制。
+默认测试执行时，test harness 会捕获每个测试用例的 panic，并把它记成该用例失败，而不是直接让整个测试进程立刻退出。
 
-- 模块内测试偏白盒；
-- ``tests/`` 下测试偏黑盒；
+不过有一个工程上很容易踩坑的点：如果测试里自己再 ``spawn`` 一个线程，那么子线程的 panic 不会自动等价于当前测试函数失败，
+你通常需要显式 ``join`` 才能把失败收回来。例如：
 
-业界实践上，通常建议：
+.. code-block:: rust
 
-- 核心算法、边界条件、多分支逻辑优先写单元测试；
-- 公共接口、模块协作、对外行为保证放 integration test；
+    #[test]
+    fn worker_should_finish() {
+        let h = std::thread::spawn(|| {
+            panic!("boom");
+        });
+
+        h.join().unwrap();
+    }
+
+这里 ``join().unwrap()`` 会把子线程的 panic 重新反映到当前测试；如果你把 ``JoinHandle`` 直接丢掉，测试函数本身可能已经返回，
+那这个失败就不一定会按你预期计入当前测试结果。所以 Rust 里测试并发代码时，通常比“有没有 exception”更重要的问题是：
+线程 panic 是否被显式汇总、任务是否被等待完成、共享状态是否有确定收尾。
+
+回到 ``cargo test`` 本身，它可以理解成“统一编排所有测试相关目标”的入口，大致会覆盖：
+
+- 当前 crate 的 ``#[cfg(test)]`` 单元测试；
+- ``tests/`` 下的 integration test crate；
+- 文档测试；
+- 某些情况下还会为 bin/lib 目标生成测试构建产物；
+
+工程上最常用的几个对应关系是：
+
+.. code-block:: bash
+
+    cargo test                  # 当前 package 的默认测试入口
+    cargo test --lib            # 只跑 library crate 相关测试
+    cargo test --bins           # 跑 binary target 里的测试
+    cargo test --tests          # 只跑 tests/ 下的 integration tests
+    cargo test --doc            # 只跑文档测试
+    cargo test --test api       # 只跑 tests/api.rs 这个测试 crate
+    cargo test -p core          # 在 workspace 里只测某个 package
+    cargo test --workspace      # 跑整个 workspace
+
+如果把它和 C++ 构建系统对照，可以近似理解成：
+
+- ``cargo test --test api`` 类似“只构建并运行某个指定测试目标”；
+- ``cargo test --workspace`` 类似“让顶层构建系统把所有测试目标统一跑一遍”；
+
+但 Rust 更进一步的一点是：这些测试目标和 package/crate 的对应关系，本来就在 Cargo 模型里，所以日常不需要你再手写很多
+额外的 target 定义。
+
+因此在工程实践里，一个很常见、也很推荐的组织方式是：
+
+- ``main.rs`` 保持很薄，把业务逻辑放进 ``lib.rs`` ；
+- 白盒细节测试放 ``#[cfg(test)] mod tests`` ；
+- 黑盒行为测试放 ``tests/*.rs`` ；
+- 共享测试夹具如果只服务当前 package，先放 ``tests/common/`` ；
+- 如果多个 crate 都要复用测试支撑代码，再考虑抽成 workspace 里的 ``test-support`` crate；
 - ``examples/`` 里的代码尽量保持“真的能运行”，不要把它当伪代码文档；
 - benchmark 放到独立目录，不要和功能测试混在一起；
+
+把这套结构立住之后，Rust 的测试工程化会比 C++ 轻很多：测试目标天然跟着 crate 走， ``cargo test`` 负责统一编排，
+而你主要要思考的是“哪些行为属于白盒，哪些保证应该黑盒化”，而不是先去手工搭测试可执行文件。
 
 单 crate 何时够用，何时拆成 workspace
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
