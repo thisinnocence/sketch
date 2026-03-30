@@ -13,6 +13,7 @@
    cc-code-style
    cc-feature
    rust-notes
+   rust-engineering
    js-notes
    AI-notes
    rtl-notes
