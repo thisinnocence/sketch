@@ -21,6 +21,8 @@ Rust 工程实践
 
     rustc -> crate -> 单 crate 小工程 -> cargo/package -> workspace -> 混合工程 -> 大型工程
 
+.. _rust-engineering-compile:
+
 Rustc 与 Crate
 ==============
 
