@@ -1,7 +1,7 @@
 .. Michael Wu 版权所有
 
 :Authors: Michael Wu
-:Version: 0.2
+:Version: 0.3
 
 Rust 工程实践
 *************
@@ -127,6 +127,36 @@ Rust 工程里最容易混淆的四个概念其实正好对应四个层级：
 
 这一步里， ``main.rs`` 本身就是 crate root，编译结果是一个 binary crate。
 
+如果不额外指定输出文件名，默认会在当前目录生成一个可执行文件，名字通常来自 crate 名；而在这里这种直接调用
+``rustc main.rs`` 的场景下，默认 crate 名通常又来自源文件主名，所以这个例子里常见就是 ``main`` （Windows 下通常是
+``main.exe`` ）。
+
+这一点和很多人熟悉的 ``gcc foo.c`` 不一样：``rustc`` 默认不会吐一个通用的 ``a.out`` ，而是倾向于按当前 crate 名命名产物。
+
+如果想自己指定产物名，可以写：
+
+.. code-block:: bash
+
+    rustc main.rs -o hello
+
+如果只是临时试验、一次性小工具，直接这样编译往往已经够用；但要注意它默认更接近“未优化构建”。
+如果你想手工做一个偏 release 风格的产物，至少应显式打开优化，例如：
+
+.. code-block:: bash
+
+    rustc main.rs -O -o hello
+
+``-O`` 可以理解为常用优化开关；如果你想更细地控制，也可以写 ``-C opt-level=2`` 或 ``-C opt-level=3`` 。
+
+这一套手工 ``rustc`` 用法尤其适合下面这类场景：
+
+- 单文件；
+- 只依赖 ``std`` ；
+- 不需要第三方依赖；
+- 更像一次性实验、脚本替代物或很小的辅助工具。
+
+一旦开始出现外部依赖、测试、多个目标、特性开关、构建脚本或发布需求，就应该尽快切回 Cargo，而不是继续手搓命令行参数。
+
 .. note::
 
     关于这里为什么可以直接使用 ``println!`` ，以及 ``std`` / prelude / 宏默认可见性的区别，
@@ -188,9 +218,13 @@ Rust 工程里最容易混淆的四个概念其实正好对应四个层级：
 
 .. code-block:: bash
 
-    rustc --crate-type=rlib lib.rs
+    rustc --crate-type=rlib --crate-name math lib.rs
 
-这里产物通常是 ``libmath.rlib`` 一类文件。它不只是静态代码块，里面还带着给 Rust 编译器使用的 metadata。
+这里显式把 crate 名设成了 ``math`` ，这样后面才能用 ``use math::add;`` 和
+``--extern math=...`` 对应起来。否则如果直接写 ``rustc --crate-type=rlib lib.rs`` ，默认 crate 名会来自文件名
+``lib.rs`` ，通常会变成 ``lib`` ，后面按 ``math`` 去引用就会报错。
+
+产物通常会是 ``libmath.rlib`` 一类文件。它不只是静态代码块，里面还带着给 Rust 编译器使用的 metadata。
 
 再做一个依赖这个库的二进制：
 
@@ -375,9 +409,36 @@ Cargo 当然负责依赖下载，但它更重要的职责其实是“Rust 工程
 - 读取 ``Cargo.toml`` 清单；
 - 解析 package 和依赖图；
 - 下载或定位依赖；
+- 通过 ``cargo install`` 安装可执行工具；
 - 生成对每个 crate 的 ``rustc`` 调用参数；
 - 调度构建、测试、文档、示例和 benchmark；
 - 管理 ``target/`` 缓存与增量构建。
+
+这里还可以补一个很多初学者会忽略的点：Cargo 不只是“给当前工程拉依赖”，它也常被用来安装 Rust 生态里的命令行工具，
+例如 ``cargo-expand`` 、 ``ripgrep`` 的 Rust 版本工具、代码生成器、linter 辅助工具等。通常执行 ``cargo install some-tool``
+以后，生成的可执行文件会放到 ``$CARGO_HOME/bin`` ；如果没有显式设置 ``CARGO_HOME`` ，默认一般就是 ``~/.cargo/bin`` 。
+
+另一个容易混淆的点是：“依赖被拉到哪里”。一般不是直接放进当前项目的 ``target/`` 里。更常见的情况是：
+
+- 从 crates.io 下载的源码包、索引和解压后的源码，通常缓存于 ``$CARGO_HOME/registry`` ；
+- git 依赖通常缓存于 ``$CARGO_HOME/git`` ；
+- 而当前项目针对这些依赖实际编译出来的 ``.rlib`` 、中间文件和最终产物，才放在当前项目的 ``target/`` 下。
+
+这也解释了为什么不同项目即使 ``Cargo.lock`` 不同，通常也不会“版本冲突”：
+
+- ``$CARGO_HOME`` 更像共享的下载缓存，可以同时保存同一个 crate 的多个版本；
+- 真正决定某个项目使用哪个版本的，是该项目自己的 ``Cargo.lock`` 与解析结果；
+- 真正面向当前项目生成的编译产物，则会写入该项目自己的 ``target/`` 目录。
+
+至于“多个版本文件名不是会一样吗”，Cargo 也已经处理好了：
+
+- 在下载缓存里，源码目录或压缩包通常直接带版本号，例如 ``crate-name-1.2.3`` ；
+- 在 ``target/`` 里的编译产物名通常还会带一段元数据哈希，用来区分版本、feature、target 和 profile 等构建条件。
+
+所以从工程角度看，可以把它理解成：
+
+- ``$CARGO_HOME`` 负责共享下载缓存，允许多版本并存；
+- ``target/`` 负责当前项目的构建结果，与具体 lock、feature 和编译配置绑定。
 
 所以从工程视角看，Cargo 更像：
 
@@ -394,11 +455,27 @@ Package 的作用
 - ``crate`` 回答的是“编译单元是什么”；
 - ``package`` 回答的是“这个项目如何声明、依赖、发布和组织若干目标”。
 
+这里还要补一条经常被忽略的边界：
+
+- ``crate`` 是 ``rustc`` 编译模型里的概念；
+- ``package`` 是 Cargo 在 ``Cargo.toml`` 这一层引入的项目/清单概念。
+
+也就是说，离开 Cargo 去手工调用 ``rustc`` 时，你仍然在处理 crate；但 ``package`` 这层组织、发布和默认目录约定，
+本质上是 Cargo 生态给你的工程抽象。
+
 比如同一个项目里可以同时有：
 
-- 一个 ``lib.rs`` 对应的 library crate；
+- 至多一个 ``lib.rs`` 对应的 library crate；
 - 一个 ``main.rs`` 对应的 binary crate；
 - 若干 ``src/bin/*.rs`` 对应的额外 binary crate。
+
+这里的“至多一个 lib”也很关键：一个 package 可以没有 library crate，但通常只能有一个 library target；
+而 binary target 则可以有多个。
+
+如果从 crate graph 看这件事，关系通常会更清楚：
+
+- library crate 往往位于中间层，负责承载可复用能力；
+- binary crate 往往是叶子节点，只依赖别的 crate，不作为别人的依赖被使用。
 
 它们可能共享：
 
@@ -430,6 +507,12 @@ Package 的作用
 - ``lib.rs`` 是一个 library crate；
 - ``main.rs`` 是一个 binary crate；
 - ``bin/admin.rs`` 是另一个 binary crate。
+
+很多真实工程里，依赖关系往往更接近这样：
+
+- ``main.rs`` 依赖 ``lib.rs`` ；
+- ``bin/admin.rs`` 也依赖 ``lib.rs`` ；
+- 但 ``main.rs`` 和 ``bin/admin.rs`` 自己通常不会再被别的 crate 依赖。
 
 也就是说，package 不是 crate，crate 也不是模块。工程上最好把这三层彻底分开看。
 
