@@ -84,6 +84,7 @@ div.mermaid {
     margin: var(--code-block-margin-y) 0;
     padding: 0;
     overflow-x: auto;
+    text-align: left;
     background: transparent !important;
     border: 0;
     border-radius: 0;
@@ -96,7 +97,7 @@ div.mermaid svg {
     width: auto !important;
     max-width: 100% !important;
     height: auto;
-    margin: 0 auto;
+    margin: 0;
     background: transparent;
 }
 
