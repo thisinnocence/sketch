@@ -37,7 +37,7 @@ todo_include_todos = True  # 显示文档中的 TODO 项
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 # 
 html_static_path = ['_static']     # 静态文件目录（CSS/JS/图片）
-html_css_files = ['my_theme.css']  # 自定义 CSS 文件（可选）
+html_css_files = ['my_theme.css', 'code-theme.css']  # 自定义 CSS 文件
 #
 # https://sphinx-wagtail-theme.readthedocs.io/en/latest/customizing.html
 html_theme = 'sphinx_wagtail_theme'  # wagtail 主题
@@ -47,5 +47,5 @@ html_theme_options = dict(
 )
 #
 # https://pygments.org/styles/
-# pygments_style = 'sphinx'  # 代码高亮, 可配套 furo 主题
+pygments_style = 'sphinx'    # 使用经典 Sphinx 高亮配色
 # html_theme = 'furo'        # furo 主题

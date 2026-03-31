@@ -1,4 +1,115 @@
-/* 设置文档宽度为1080px */
-.wy-nav-content {
-    max-width: 1080px;
+:root {
+    --code-bg: #eeffcc;
+    --code-border: #d8e6a3;
+    --code-radius: 0.25rem;
+    --code-text: #404040;
+    --code-lineno-highlight-bg: #ffffc0;
+    --code-font-family: Inconsolata, "SFMono-Regular", Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", Courier, monospace;
+    --code-font-size: 14px;
+    --code-line-height: 1.4;
+    --code-padding-y: 1rem;
+    --code-padding-x: 1.25rem;
+    --code-block-margin-y: 1rem;
+    --code-lineno-padding-x: 5px;
+}
+
+/* Keep sphinx_wagtail_theme layout, but restore classic light Sphinx code blocks. */
+
+/* Shared container chrome for highlighted blocks and Mermaid output. */
+div[class^="highlight-"],
+div.highlight,
+div.literal-block-wrapper,
+pre.literal-block,
+pre.mermaid,
+div.mermaid {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--code-radius);
+}
+
+div[class^="highlight-"] {
+    margin: var(--code-block-margin-y) 0;
+}
+
+/* Sphinx emits nested wrappers for code blocks; keep every layer on the same light background. */
+div[class^="highlight-"] > div.highlight,
+div.literal-block-wrapper > div.highlight,
+div.literal-block-wrapper pre,
+pre.literal-block,
+pre.mermaid,
+div.mermaid {
+    background: var(--code-bg) !important;
+}
+
+div.highlight {
+    position: relative;
+}
+
+/* Inner code area shared by highlighted blocks and literal blocks. */
+div[class^="highlight-"] pre,
+div.highlight pre,
+div.literal-block-wrapper pre,
+pre.literal-block,
+pre.mermaid {
+    margin: 0;
+    padding: var(--code-padding-y) var(--code-padding-x);
+    background: transparent !important;
+    color: var(--code-text) !important;
+    border: 0;
+    border-radius: inherit;
+    box-shadow: none;
+    font-family: var(--code-font-family);
+    font-size: var(--code-font-size);
+    line-height: var(--code-line-height);
+    font-weight: 400;
+}
+
+/*
+ * Reset the theme's dark token colors first, then let the explicit Pygments
+ * rules below re-apply the Sphinx palette token by token.
+ */
+div[class^="highlight-"] pre span,
+div[class^="highlight-"] pre a,
+div.highlight pre span,
+div.highlight pre a,
+div.literal-block-wrapper pre span,
+div.literal-block-wrapper pre a,
+pre.literal-block span,
+pre.literal-block a {
+    color: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+    background-color: transparent;
+}
+
+/* Mermaid blocks should visually match code blocks, but still scroll horizontally if needed. */
+div.mermaid {
+    margin: var(--code-block-margin-y) 0;
+    padding: var(--code-padding-y) var(--code-padding-x);
+    overflow-x: auto;
+}
+
+div.mermaid svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    background: transparent;
+}
+
+/* Line numbers and current-line highlighting. */
+td.linenos .normal,
+span.linenos {
+    color: inherit;
+    background-color: transparent;
+    padding-left: var(--code-lineno-padding-x);
+    padding-right: var(--code-lineno-padding-x);
+}
+
+td.linenos .special,
+span.linenos.special {
+    color: #000;
+    background-color: var(--code-lineno-highlight-bg);
+    padding-left: var(--code-lineno-padding-x);
+    padding-right: var(--code-lineno-padding-x);
 }
