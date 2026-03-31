@@ -20,6 +20,8 @@ extensions = [
     'sphinx_copybutton',    # 代码块复制按钮
     'sphinx.ext.mathjax',   # LaTeX 数学公式支持
     'myst_parser',          # Markdown 解析
+    'mermaid_force_light',  # Mermaid 默认会跟随 prefers-color-scheme，这里显式标记 light
+    'sphinxcontrib.mermaid',# Mermaid 图支持
     'sphinx_wagtail_theme', # wagtail 主题支持
 ]
 
@@ -35,7 +37,7 @@ todo_include_todos = True  # 显示文档中的 TODO 项
 
 # --- HTML output ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-# 
+#
 html_static_path = ['_static']     # 静态文件目录（CSS/JS/图片）
 html_css_files = ['my_theme.css', 'code-theme.css']  # 自定义 CSS 文件
 #

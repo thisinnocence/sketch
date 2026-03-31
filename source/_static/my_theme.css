@@ -20,9 +20,7 @@
 div[class^="highlight-"],
 div.highlight,
 div.literal-block-wrapper,
-pre.literal-block,
-pre.mermaid,
-div.mermaid {
+pre.literal-block {
     background: var(--code-bg);
     border: 1px solid var(--code-border);
     border-radius: var(--code-radius);
@@ -36,9 +34,7 @@ div[class^="highlight-"] {
 div[class^="highlight-"] > div.highlight,
 div.literal-block-wrapper > div.highlight,
 div.literal-block-wrapper pre,
-pre.literal-block,
-pre.mermaid,
-div.mermaid {
+pre.literal-block {
     background: var(--code-bg) !important;
 }
 
@@ -50,8 +46,7 @@ div.highlight {
 div[class^="highlight-"] pre,
 div.highlight pre,
 div.literal-block-wrapper pre,
-pre.literal-block,
-pre.mermaid {
+pre.literal-block {
     margin: 0;
     padding: var(--code-padding-y) var(--code-padding-x);
     background: transparent !important;
@@ -83,17 +78,25 @@ pre.literal-block a {
     background-color: transparent;
 }
 
-/* Mermaid blocks should visually match code blocks, but still scroll horizontally if needed. */
+/* Keep Mermaid diagrams visually separate from code blocks. */
+pre.mermaid,
 div.mermaid {
     margin: var(--code-block-margin-y) 0;
-    padding: var(--code-padding-y) var(--code-padding-x);
+    padding: 0;
     overflow-x: auto;
+    background: transparent !important;
+    border: 0;
+    border-radius: 0;
+    max-width: 100%;
 }
 
+pre.mermaid > svg,
 div.mermaid svg {
     display: block;
-    max-width: 100%;
+    width: auto !important;
+    max-width: 100% !important;
     height: auto;
+    margin: 0 auto;
     background: transparent;
 }
 

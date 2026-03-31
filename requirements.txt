@@ -4,5 +4,6 @@ sphinx
 sphinx_rtd_theme
 furo
 myst_parser
+sphinxcontrib-mermaid
 sphinx_copybutton
 sphinx_wagtail_theme
