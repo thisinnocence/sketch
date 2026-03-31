@@ -116,3 +116,19 @@ span.linenos.special {
     padding-left: var(--code-lineno-padding-x);
     padding-right: var(--code-lineno-padding-x);
 }
+
+/* Keep document tables content-sized instead of stretching full width. */
+table.docutils:not(.highlighttable) {
+    width: auto !important;
+    max-width: 100%;
+}
+
+table.docutils:not(.highlighttable) th,
+table.docutils:not(.highlighttable) td {
+    padding: 0.45rem 1rem 0.45rem 0.75rem;
+}
+
+table.docutils:not(.highlighttable) th > p,
+table.docutils:not(.highlighttable) td > p {
+    margin: 0;
+}
