@@ -17,3 +17,4 @@
    js-notes
    AI-notes
    rtl-notes
+   Redis
