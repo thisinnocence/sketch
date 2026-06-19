@@ -478,7 +478,7 @@ https://github.com/thisinnocence/qemu/blob/my/v8.2.0/my_tests/mini_virt/mini-vir
 ------------------------
 
 | QEMU内置的gdb server可以单步调试内核，这个非常方便。可以看内核官方文档的链接:
-| https://docs.kernel.org/dev-tools/gdb-kernel-debugging.html
+| https://docs.kernel.org/process/debugging/gdb-kernel-debugging.html
 
 使用QEMU ``-S -s`` 拉起linux，这个会使用QEMU内置的gdb server， 我们用 ``gdb-multiarch`` 连接这个server调试 ::
 
