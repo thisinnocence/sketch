@@ -45,7 +45,7 @@ html_css_files = ['base.css', 'code.css']  # 自定义 CSS 文件
 html_theme = 'sphinx_wagtail_theme'  # wagtail 主题
 html_theme_options = dict(
     project_name = "wu-sketch",
-    github_url = "https://github.com/thisinnocence/sketch/tree/master/source/"
+    github_url = "",
 )
 #
 # https://pygments.org/styles/
