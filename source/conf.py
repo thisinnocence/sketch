@@ -5,7 +5,7 @@ import sys
 # --- Project Information ---
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 project = 'wu-sketch'
-copyright = '2025, Michael-Wu'
+copyright = '2026-present, Michael-Wu'
 author = 'Michael-Wu'
 
 # --- General Configuration ---
