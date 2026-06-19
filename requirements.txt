@@ -7,3 +7,4 @@ myst_parser
 sphinxcontrib-mermaid
 sphinx_copybutton
 sphinx_wagtail_theme
+sphinx-autobuild
