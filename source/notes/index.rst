@@ -10,6 +10,7 @@
    Sphinx
    learn-coding
    algorithm
+   os
    cc-notes
    cc-code-style
    cc-feature
