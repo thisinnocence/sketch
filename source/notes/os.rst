@@ -1,7 +1,7 @@
 .. Michael Wu Copyright 2026,-
 
 :Authors: Michael Wu
-:Version: 0.2
+:Version: 0.3
 
 操作系统
 *********
@@ -295,6 +295,9 @@ Process 是 address space、打开文件等 OS 资源的容器，thread 才是 C
 Scheduling
 ==========
 
+Scheduling Basics
+-----------------
+
 Scheduler 决定 runnable process 何时获得 CPU。课程重点不是记住复杂策略，而是理解 preemption、context switch
 和 sleep / wakeup 如何组合。
 
@@ -320,6 +323,58 @@ Scheduler 决定 runnable process 何时获得 CPU。课程重点不是记住复
    - Interrupt 发生在 kernel mode 时，如果 preempt count 允许，IRQ exit 路径可通过 ``preempt_schedule_irq()``
      触发抢占。
    - 任务主动等待 I/O、锁或条件时，会进入 sleep 并调用 ``schedule()`` 让出 CPU。
+
+Linux Scheduling Trigger
+------------------------
+
+Linux 并没有一个常驻 kernel thread 负责轮询是否需要调度。Timer、wakeup 和跨 CPU 事件会在各自的当前
+执行上下文中触发抢占判断；需要抢占时先设置 ``TIF_NEED_RESCHED``，目标 CPU 之后在允许调度的安全点调用
+``schedule()``。
+
+Timer tick 发生在 timer interrupt context：
+
+.. code-block:: text
+
+   timer IRQ
+       -> tick_sched_handle()
+       -> update_process_times()
+       -> sched_tick()
+       -> scheduling class 的 task_tick()
+       -> resched_curr()
+       -> 设置 TIF_NEED_RESCHED
+
+这里通常只标记需要调度，不直接在 hard IRQ 中切换任务。IRQ 退出时，如果允许抢占，可以通过
+``preempt_schedule_irq()`` 进入 scheduler。
+
+Wakeup 发生在执行唤醒操作的当前上下文：
+
+.. code-block:: text
+
+   device completion / lock release / condition satisfied
+       -> wake_up()
+       -> try_to_wake_up()
+       -> ttwu_queue()
+       -> wakeup_preempt()
+       -> resched_curr()
+
+调用者可能是 device ISR、softirq、正在执行 syscall 的普通进程或 kernel thread，并不固定属于某一种上下文。
+
+如果被唤醒任务应在另一个 CPU 上运行，wakeup CPU 会向目标 CPU 发送 reschedule IPI
+（Inter-Processor Interrupt，核间中断）：
+
+在 Arm GIC 中，IPI 通常通过 SGI（Software Generated Interrupt，软件生成中断）实现。IPI 表示核间通信的
+用途，SGI 是 GIC 提供的具体中断机制；GICv3 / GICv4 中可以通过 ``ICC_SGI1R_EL1`` 等寄存器向目标 CPU
+发送 SGI。
+
+.. code-block:: text
+
+   CPU 0: resched_curr(CPU 1 runqueue)
+       -> 设置 CPU 1 当前任务的 TIF_NEED_RESCHED
+       -> smp_send_reschedule(CPU 1)
+
+   CPU 1: reschedule IPI
+       -> scheduler_ipi()
+       -> IRQ exit 时进入 scheduler
 
 Virtual Memory
 ==============
