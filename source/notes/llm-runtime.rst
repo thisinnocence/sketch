@@ -1,7 +1,7 @@
 .. Michael Wu Copyright 2026,-
 
 :Authors: Michael Wu
-:Version: 0.1
+:Version: 0.2
 
 LLM Runtime
 ***********
@@ -10,9 +10,10 @@ Overview
 ========
 
 简单了解一下 LLM 的底层实现。从传统程序员熟悉的进程、内存、文件格式和 CPU hot path 等视角类比入手来理解。
-先把 inference runtime 当成一个普通 Linux process 看：它加载什么文件，分配什么内存，主循环怎么跑，CPU 时间花在哪里。
+先把 inference runtime 当成一个普通 Linux process 看：它加载什么文件，分配什么内存，主循环怎么跑，CPU 时
+间花在哪里。
 
-一个最小的 LLM runtime 运行时：
+以 ``llama2.c`` 为例，一个最小的 LLM runtime 运行时：
 
 .. code-block:: text
 
@@ -20,9 +21,9 @@ Overview
        |
        |  argv: model weights file, tokenizer file, prompt, sampling params
        v
-   mmap model weights
+   load / mmap model weights
        |
-       |  map binary weights into process address space
+       |  load binary weights into memory or map them into process address space
        v
    heap activation buffers
        |
@@ -30,7 +31,7 @@ Overview
        v
    decode loop
        |
-       |  one token in, one forward pass, one token out
+       |  consume prompt tokens, then generate one token at a time
        v
    stdout token stream
 
@@ -97,8 +98,8 @@ Llama 2 风格模型的 CPU 推理路径跑通，代码短，又接近真实 run
 
    一个 token 的 logit 越高，表示模型越倾向选它；越低，表示模型越不倾向选它。真正重要的是不同 token
    之间的相对差值：``10`` 和 ``9`` 差距不大，两个 token 都还有机会；``10`` 和 ``0`` 差距很大，前者会
-   明显压过后者。经过 ``softmax`` 后，每个值都会落在 ``(0, 1)`` 区间内，所有值加起来等于 ``1``，
-   这些相对差距才会变成概率分布。
+   明显压过后者。理论上，经过 ``softmax`` 后，每个值都会落在 ``(0, 1)`` 区间内，所有值加起来等于 ``1``，
+   这些相对差距才会变成概率分布；实际浮点计算中，极小值可能下溢成 ``0``。
 
 llama2.c 模块
 ---------------
@@ -159,17 +160,23 @@ llama2.c 实现
 
        # 逐层跑 Transformer block，模型有 n_layers 层就循环 n_layers 次
        for each layer:
-           q = matmul(x, Wq)
-           k = matmul(x, Wk)  # 写入当前 position 的 KV cache
-           v = matmul(x, Wv)  # 写入当前 position 的 KV cache
-           x = attention(q, KV cache[0..pos])
-           x = x + matmul(ffn(x), Wo)
+           h = rmsnorm(x)
+           q = matmul(h, Wq)
+           k = matmul(h, Wk)  # 写入当前 position 的 KV cache
+           v = matmul(h, Wv)  # 写入当前 position 的 KV cache
+           attn = attention(q, KV cache[0..pos])
+           x = x + matmul(attn, Wo)
 
+           h = rmsnorm(x)
+           ffn = silu(matmul(h, W1)) * matmul(h, W3)
+           x = x + matmul(ffn, W2)
+
+       x = rmsnorm(x)
        logits = matmul(x, classifier_weight)
        return logits
 
    function sampler_select(logits):
-       # 调整 logits -> softmax 成概率 -> 按 argmax / top-p 等策略选 token
+       # temperature 为 0 时直接 argmax；否则 softmax 后按 top-p 等策略采样
        return next_token
 
    function main(prompt):
@@ -284,13 +291,15 @@ llama2.c 实现
        v                                          |
    print text piece -- 继续生成下一个 token -------+
 
-核心是 loop。模型不是一次性把整段 answer 算出来，而是每次只预测下一个 token：
+核心是 loop。模型不会一次预测完整 answer，而是自回归地预测下一个 token。现代 runtime 通常先用 prefill
+一次处理多个 prompt token，再进入逐 token decode；``llama2.c`` 为了保持实现简单，prompt 阶段也逐 token
+调用 ``forward``：
 
 .. code-block:: text
 
    prompt: "Linux kernel is"
 
-   step 0: input tokens from prompt
+   prompt phase: feed prompt tokens one by one (llama2.c)
    step 1: predict " a"
    step 2: feed " a", predict " monolithic"
    step 3: feed " monolithic", predict " kernel"
@@ -409,8 +418,8 @@ llama2.c 实现
 RunState
 --------
 
-``RunState`` 是每个进程自己的 mutable workspace。它包含当前 token 前向计算要用的临时向量，以及跨 token
-保留的 ``KV cache``。
+在 ``llama2.c`` 中，``RunState`` 是这次模型执行使用的 mutable workspace。它包含当前 token 前向计算要用的
+临时向量，以及跨 token 保留的 ``KV cache``。
 
 .. csv-table:: RunState Mental Model
    :header: "数据", "生命周期", "作用"
@@ -419,11 +428,12 @@ RunState
    "activation buffer", "一次 forward 内反复复用", "保存当前 layer 的中间结果，如 ``x``、``xb``、``hb``"
    "attention buffer", "一次 attention 计算内复用", "保存当前位置对历史位置的 attention score"
    "logits", "每一步生成后更新", "vocab 中每个 token 的下一步分数"
-   "key cache", "整个 decode session 内增长", "保存历史 token 的 K 向量，避免重复计算"
-   "value cache", "整个 decode session 内增长", "保存历史 token 的 V 向量，attention 需要读取"
+   "key cache", "启动时一次性分配；有效内容随 position 增加", "保存历史 token 的 K 向量，避免重复计算"
+   "value cache", "启动时一次性分配；有效内容随 position 增加", "保存历史 token 的 V 向量，attention 需要读取"
 
-KV cache 是理解 LLM latency 的关键。没有 KV cache 时，每生成一个新 token 都要重新计算所有历史 token 的 K/V。
-有了 KV cache，新 token 只计算自己的 K/V，然后和历史 K/V 做 attention。
+KV cache 是理解 LLM latency 的关键。没有 KV cache 时，每生成一个新 token 都要重新跑一遍历史 prefix 的
+Transformer 计算，其中包括重新计算所有历史 token 的 K/V。有了 KV cache，新 token 只计算自己的 K/V，
+然后和历史 K/V 做 attention。
 
 .. code-block:: text
 
@@ -455,7 +465,7 @@ tokenizer 的 vocab / merge 规则里。
 - token 不等于字符，也不等于单词。
 - 一个中文字符、一个英文词片段、一个空格前缀，都可能成为 token 的一部分。
 - decode 时要把 token id 还原成 text piece，逐步打印才像 streaming output。
-- vocab size 越大，最后 logits 的维度越大，采样也越贵。
+- vocab size 越大，最后的 classifier projection、softmax 和采样通常也越贵，其中 classifier projection 更重。
 
 一次 token 的 forward path
 ===========================
@@ -527,6 +537,15 @@ Attention 的核心是让当前 token 读取历史 token 的信息。当前 toke
 
 从系统角度看，attention 的代价会随着 position 增长。第 10 个 token 只看 10 个位置，第 1000 个 token 要看
 1000 个位置。KV cache 解决的是『不要重算历史 K/V』，不是『不要读取历史 K/V』。
+
+``llama2.c`` 还支持 grouped-query attention：当 ``n_kv_heads < n_heads`` 时，多个 query head 共享一组
+K/V head。此时 KV cache 每个位置的宽度不是 ``dim``，而是：
+
+.. code-block:: text
+
+   kv_dim = dim * n_kv_heads / n_heads
+
+这样可以减少 KV cache 占用和读取量。
 
 Feed Forward Network
 --------------------
