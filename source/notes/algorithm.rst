@@ -33,7 +33,8 @@ Overview
 - Segment Tree: 线段树，一种二叉树，用于高效处理区间查询和更新问题。
 - Fenwick Tree: 树状数组，一种数据结构，用于高效处理前缀和查询和单点更新。
 - Skip List: 跳表，一种基于多层链表的概率性数据结构，支持快速查找、插入和删除。
-- Bloom Filter: 布隆过滤器，一种空间效率高的概率性数据结构，用于测试元素是否在集合中，允许误判但不允许漏判。
+- Bloom Filter: 布隆过滤器，一种空间效率高的概率性数据结构，用于测试元素是否在集合中。标准 Bloom Filter
+  只支持插入，允许把不存在的元素误判为存在，但不会把已插入的元素误判为不存在。
 
 关键定义：
 
@@ -60,7 +61,8 @@ Linear structure
 术语解释：
 
 - KMP: Knuth-Morris-Pratt 算法，字符串匹配算法，通过预处理模式串构建部分匹配表，避免重复比较。
-- Deque: Double-ended queue，双端队列，支持在两端进行插入和删除操作。C++标准库 queue 底层使用 deque 实现。
+- Deque: Double-ended queue，双端队列，支持在两端进行插入和删除操作。``std::queue<T>`` 默认使用
+  ``std::deque<T>``，也可以指定 ``std::list<T>`` 等满足接口要求的底层容器。
 
 快慢指针
 ----------
@@ -99,7 +101,8 @@ Linear structure
 在 C/C++ 中，标准主要规定接口行为，具体搜索算法由库实现决定：
 
 - C：C 标准不规定 ``strstr`` 的算法和复杂度；glibc 对较短模式使用 modified Horspool，对长模式使用 Two-Way，musl 主要使用 Two-Way。
-- C++17：标准不规定 ``std::string::find`` 的具体算法；最坏复杂度为 O(mn)，实现可以使用更高效的算法。
+- C++17：标准只规定 ``std::string::find`` 的结果，不规定具体算法和复杂度；朴素实现的最坏复杂度为 O(mn)，
+  标准库可以使用更高效的算法。
 
 .. note::
 
@@ -121,7 +124,7 @@ Linear structure
    "基本结构", "key 经 Hash 函数映射到 Bucket；Map / Set", "insert、find、erase、去重、频次统计", "平均 O(1)，最坏 O(n)；通常不保证遍历顺序"
    "Hash 函数", "将 key 稳定、均匀地分布到 Bucket", "取模、位混合、组合字段 Hash", "相等的 key 必须有相同 Hash；避免使用可变 key"
    "冲突处理", "链地址法；开放定址法", "线性探测、二次探测、双重 Hash", "聚集问题；开放定址删除需要 Tombstone"
-   "装载因子与扩容", "load factor = 元素数 / Bucket 数；超阈值后 rehash", "扩容、缩容、渐进式 rehash", "rehash 单次 O(n)，插入均摊 O(1)；扩容可使引用 / 迭代器失效"
+   "装载因子与扩容", "load factor = 元素数 / Bucket 数；超阈值后 rehash", "扩容、缩容、渐进式 rehash", "C++17 rehash 平均 O(n)、最坏 O(n²)；iterator 失效，pointer / reference 保持有效"
    "典型应用", "用空间换取查询时间", "Two Sum、分组、缓存、索引、集合运算", "根据是否需要有序性选择 Hash Table 或 Balanced BST"
 
 术语解释：
@@ -146,6 +149,9 @@ C++ ``unordered_map`` 技术上也可采用类似策略，但 libstdc++ 和 libc
 树
 ===
 
+Tree
+----
+
 树是层次化的非线性结构，重点掌握遍历、递归定义、高度与操作复杂度。
 
 .. csv-table:: Tree
@@ -155,7 +161,7 @@ C++ ``unordered_map`` 技术上也可采用类似策略，但 libstdc++ 和 libc
    "二叉树", "每个节点至多两个子节点", "前序、中序、后序、层序；重建、高度、直径、LCA", "遍历顺序；递归与栈；空树、单节点和退化链表"
    "二叉搜索树(BST)", "左子树 < 根 < 右子树", "查找、插入、删除、合法性校验、第 k 小", "平均 O(log n)，最坏 O(n)；删除节点的三种情况"
    "平衡二叉搜索树", "AVL、Red-Black Tree；通过旋转维持平衡", "左旋、右旋、插入 / 删除后再平衡", "树高 O(log n)；理解平衡目的与旋转原理，细节属进阶"
-   "Heap / Priority Queue", "完全二叉树；通常用数组存储；大/小顶堆", "heapify、push、pop、Top-K、堆排序", "建堆 O(n)；插入 / 删除 O(log n)；父子下标关系"
+   "Heap / Priority Queue", "完全二叉树；通常用数组存储；大/小顶堆", "heapify、push、pop、Top-K、堆排序", "建堆 O(n)；插入、删除堆顶或已知下标 O(log n)；按值查找 O(n)"
    "Huffman Tree", "带权路径长度最小的二叉树", "贪心构造、Huffman 编码", "WPL；前缀码；优先队列构造 O(n log n)"
 
 术语解释：
@@ -189,6 +195,45 @@ C++ ``unordered_map`` 技术上也可采用类似策略，但 libstdc++ 和 libc
         pre_order(root->right, res);
     }
 
+B-tree 与 B+ tree
+-----------------
+
+二叉搜索树适合内存中的动态有序集合；数据库或文件系统面对磁盘 / SSD page 时，更关心减少 I/O 次数。
+这就需要让一个节点容纳更多索引分支，用更高的 fan-out（扇出，即一个节点可以指向的子节点数量）降低树高，
+B-tree 是这种多路搜索树的经典结构。
+
+B-tree（B 树）是一种高度平衡的多路搜索树。每个节点可以保存多个有序 key，内部节点通过 child pointer
+指向不同的 key range，所有叶子节点位于同一层。
+
+B+ tree（B+ 树）是 B-tree 的一种变体。内部节点只保存用于查找的 key 和 child pointer，record 或
+record pointer 全部放在叶子节点；所有叶子节点位于同一层，并通常按 key 顺序连接。point lookup 通过内部
+节点定位 leaf，range scan 则找到起始 key 后沿 leaf 链顺序读取。工程实现通常让一个节点接近一个 page 大小，
+以减少 I/O 次数。
+
+Trie 与 Radix Tree
+------------------
+
+Trie（前缀树）是一种按 key 的字符、byte 或 bit 逐层分支的多叉树。从 root 到某个节点的路径表示一个
+prefix，terminal 标记用于区分完整 key 和普通前缀。若 child 可以 O(1) 访问，查找长度为 ``L`` 的 key
+需要 O(L) 时间，与集合中的 key 数量没有直接关系。使用固定 child array 实现的 Trie 可能预留大量空
+pointer。
+
+Radix Tree（压缩前缀树）会把只有一个 child 的连续路径压缩成一条带字符串或 bit sequence 的 edge，从而减少
+节点数量和内存占用。这类结构常用于命令补全、词典查询和 IP longest-prefix match；若 child 使用 Hash Table
+或 Balanced BST，还要计入相应的 child lookup 成本。
+
+工程中的树
+----------
+
+.. csv-table:: Tree in Practice
+   :header: "需求", "常见结构", "原因"
+   :widths: 28, 28, 44
+
+   "语法和层次关系", "AST / 普通多叉树", "结构天然具有 parent-child 关系"
+   "外部存储索引与范围查询", "B+ tree", "分支多、树高低，适合 page I/O 和顺序扫描"
+   "前缀与最长前缀匹配", "Trie / Radix Tree", "查询路径由 key 的字符、byte 或 bit 决定"
+   "区间重叠查询", "Interval Tree", "节点维护子树区间信息，可跳过不可能重叠的分支"
+
 图
 ===
 
@@ -213,7 +258,8 @@ Graph
 - DSU（Disjoint Set Union, 并查集）：也常常叫做 Union-Find，一种支持合并和查询连通性的高效数据结构。
 - MST（Minimum Spanning Tree，最小生成树）：覆盖所有顶点且边权和最小的生成树。
 - Dijkstra 算法：用于计算单源最短路径的算法，要求图中所有边权非负。
-- Bellman-Ford 算法：用于计算单源最短路径的算法，允许图中存在负权边，但不允许负权环。
+- Bellman-Ford 算法：用于计算单源最短路径，允许负权边，并能检测源点可达的负权环；受负权环影响的顶点
+  不存在有限最短路径。
 - Floyd-Warshall 算法：用于计算任意两点间最短路径的动态规划算法，适用于稠密图。
 
 图的构建和存储
@@ -246,9 +292,10 @@ Graph
        WeightedGraph weighted_graph(n);
        weighted_graph[0].push_back(Edge{1, 10});  // 0 -10-> 1
 
-       // 邻接矩阵：空间 O(V²)，适合稠密图
-       std::vector<std::vector<int>> matrix(n, std::vector<int>(n, 0));
-       matrix[0][1] = 1;  // 0 -> 1 的边存在权重为 1
+       // 带权邻接矩阵：nullopt 表示无边，因而可以表示权重为 0 的边
+       std::vector<std::vector<std::optional<int>>> matrix(
+           n, std::vector<std::optional<int>>(n));
+       matrix[0][1] = 1;  // 0 -1-> 1
    }
 
 图BFS遍历与回溯
@@ -336,14 +383,17 @@ Dijkstra 算法
 .. code-block:: cpp
 
     using Edge = std::pair<int, int>; // {to, weight}
-    using Graph = std::vector<vector<Edge>>; // 邻接表
+    using Graph = std::vector<std::vector<Edge>>; // 邻接表
 
-    // 非负权图单元最短路径算法，返回 start 到 target 的最短路径；空 vector 表示不可达
+    // 非负权图单源最短路径算法，返回 start 到 target 的最短路径；空 vector 表示不可达
     std::vector<int> dijkstra(const Graph& graph, int start, int target) {
-        std::vector<int> dist(graph.size(), INT_MAX), parent(graph.size(), -1);
+        const long long INF = std::numeric_limits<long long>::max();
+        std::vector<long long> dist(graph.size(), INF);
+        std::vector<int> parent(graph.size(), -1);
 
         // 最小堆，存储 {distance, vertex}，用于选择当前距离最小的顶点
-        std::priority_queue<std::pair<int,int>, std::vector<pair<int,int>>, std::greater<>> pq;
+        using QueueEntry = std::pair<long long, int>;
+        std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<>> pq;
         
         dist[start] = 0;
         pq.push({0, start});
@@ -355,9 +405,11 @@ Dijkstra 算法
             if (u == target) break;
             
             for (auto [v, w] : graph[u]) {
-                // // 松弛操作：尝试通过 u 改善 v 的距离
-                if (dist[v] > dist[u] + w) {
-                    dist[v] = dist[u] + w;
+                // 松弛操作：尝试通过 u 改善 v 的距离
+                if (d > INF - static_cast<long long>(w)) continue; // 防止整数溢出
+                const long long candidate = d + w;
+                if (dist[v] > candidate) {
+                    dist[v] = candidate;
                     parent[v] = u; // 记录前驱节点，用于路径回溯
                     pq.push({dist[v], v});
                 }
@@ -365,7 +417,7 @@ Dijkstra 算法
         }
         
         // 回溯路径
-        if (dist[target] == INT_MAX) return {};
+        if (dist[target] == INF) return {};
         std::vector<int> path;
         for (int v = target; v != -1; v = parent[v]) {
             path.push_back(v);
@@ -377,7 +429,8 @@ Dijkstra 算法
 排序算法
 ========
 
-排序的核心是掌握时间 / 空间复杂度、稳定性、原地性及适用场景；基于比较的排序下界为 Ω(n log n)。
+排序的核心是掌握时间 / 空间复杂度、稳定性、原地性及适用场景。在比较决策树模型下，对任意输入进行排序的
+最坏时间下界为 Ω(n log n)。
 
 .. csv-table:: 排序算法核心知识
    :header: "算法", "核心思想", "时间复杂度（最好 / 平均 / 最坏）", "空间 / 稳定性", "核心考点"
@@ -391,11 +444,12 @@ Dijkstra 算法
 
 C/C++ 标准库提供的排序算法：
 
-- ``qsort``：C 标准库快排，不稳定，O(n log n)，需传比较函数指针
-- ``std::sort``：内省排序（快排 + 堆排 + 插排混合），不稳定，O(n log n)，最通用
-- ``std::stable_sort``：归并排序变体，稳定，O(n log² n) 或 O(n log n)，保留相等元素相对顺序
-- ``std::partial_sort``：堆排序变体，部分排序，O(n log k)，取 Top-K
-- ``std::nth_element``：快速选择，平均 O(n)，不稳定，只保证第 n 个位置正确，不完整排序
+- ``qsort``：C 标准只规定按比较函数排序，不规定具体算法和复杂度；相等元素的顺序未指定，因此不保证稳定。
+- ``std::sort``：不稳定，标准保证 O(n log n) 次比较；常见实现是 introsort。
+- ``std::stable_sort``：稳定；空间充足时 O(n log n)，否则 O(n log² n)；常见实现基于 merge sort。
+- ``std::partial_sort``：将前 k 个元素排好序，其余元素顺序未指定，复杂度约为 O(n log k)；常见实现使用 heap。
+- ``std::nth_element``：平均 O(n)，不保证稳定；保证第 n 个元素就位，并保证前半区元素不大于后半区元素，
+  但不完整排序；常见实现基于 quickselect 或 introselect。
 
 算法范式
 ==========
