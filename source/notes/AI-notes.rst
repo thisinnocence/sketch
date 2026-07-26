@@ -3,7 +3,7 @@
 :Authors: Michael Wu
 :Version: 1.0
 
-AI学习笔记
+AI 学习笔记
 ===========
 
 我对AI的认识一直停留在理论和宏观，记点笔记实操一下。刚开始入门一个领域，从整体，多维度，各个细节切入都影响不大，关键是后续
@@ -42,15 +42,28 @@ AI学习笔记
 AMD GPU对PyTorch的支持
 -----------------------
 
-| ADM ROCm 官网： https://rocm.docs.amd.com/en/latest
-| PyTorch社区关于ROCm的讨论: https://github.com/pytorch/pytorch/issues/106608
-| 结论就是，截至当前(2024.4), PyTorch对Windows ROCm支持还不行(包括WLS2)，只支持物理机装Ubuntu，还有些小问题。
+| AMD ROCm 官网： https://rocm.docs.amd.com/en/latest
+| ROCm 兼容性矩阵： https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html
+| 截至当前(2026.7.26)，PyTorch + ROCm 已不再只支持物理机 Ubuntu，部分显卡可以在原生 Windows 11 和 WSL2 下使用。
+| 不过 AMD 只保证兼容性矩阵中的软硬件组合，Linux 的整体支持仍然更完整。
+| RX 6800 XT 虽然支持 Windows HIP SDK，但不在当前 PyTorch + ROCm 的官方验证范围内，Ubuntu 下也只能算社区方案。
 
-| 微软出的 DirectML 平台：
+| 微软的 DirectML 平台：
 | https://learn.microsoft.com/zh-cn/windows/ai/directml/gpu-pytorch-windows
 | https://learn.microsoft.com/zh-cn/windows/ai/directml/gpu-pytorch-wsl?source=recommendations
 
-没有明确说支持AMD的显卡驱动，支持ROCm，看来 PyTorch 对 AMD显卡当前支持还不友好。如果是A卡，只能先跑CPU版本了。
+RX 6800 XT 在 Windows 下可以通过 ``torch-directml`` 使用 GPU，但它目前只支持到 PyTorch 2.3.1，而且 DirectML 已进入维护模式。
+所以 A 卡并非只能跑 CPU；新显卡优先使用官方 ROCm，RX 6800 XT 可以先尝试 DirectML，或者在 Ubuntu 下使用社区 ROCm 方案。
+
+NVIDIA GPU对PyTorch的支持
+--------------------------
+
+| PyTorch 安装页面： https://pytorch.org/get-started/locally/
+| NVIDIA CUDA on WSL： https://docs.nvidia.com/cuda/wsl-user-guide/
+| 截至当前(2026.7.26)，PyTorch 官方为 Linux 和 Windows 提供 CUDA 版本，WSL2 也可以直接使用宿主机的 NVIDIA 驱动。
+
+NVIDIA 的 CUDA 生态和 PyTorch 支持已经比较成熟，大部分主流 GeForce 显卡都可以直接使用。
+安装时只需根据显卡驱动选择 PyTorch 提供的 CUDA 版本；在 WSL2 内不要重复安装 NVIDIA Linux 显卡驱动。
 
 PyTorch入门
 -----------------
