@@ -18,6 +18,7 @@
    rust-engineering
    js-notes
    AI-notes
+   AI-theory
    llm-runtime
    rtl-notes
    Redis
