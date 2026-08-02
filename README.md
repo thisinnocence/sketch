@@ -33,17 +33,9 @@ deactivate
 
 ## VSCode
 
-If VSCode or Esbonio marks Sphinx extensions in `source/conf.py` as missing,
-make sure the background Sphinx process uses the project virtual environment.
-
-This project keeps `.vscode/` ignored, so add the following local workspace
-setting in `.vscode/settings.json`:
-
-```json
-{
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-    "esbonio.sphinx.pythonCommand": "${workspaceFolder}/.venv/bin/python"
-}
-```
+Project-level VSCode settings are tracked in `.vscode/settings.json`. They
+point Python and Esbonio at the repository virtual environment, configure
+Markdown/RST editing, and keep the documentation workflow consistent across
+machines. Recommended extensions are listed in `.vscode/extensions.json`.
 
 Then restart the Esbonio language server or reload the VSCode window.

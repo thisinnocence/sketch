@@ -1,0 +1,13 @@
+{
+    // Extensions used by this documentation project.
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "lextudio.restructuredtext",
+        "swyddfa.esbonio",
+        "trond-snekvik.simple-rst",
+        "esbenp.prettier-vscode",
+        "davidanson.vscode-markdownlint",
+        "mushan.vscode-paste-image"
+    ]
+}

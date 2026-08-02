@@ -1,0 +1,32 @@
+{
+    "makefile.configureOnOpen": false,
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "esbonio.sphinx.pythonCommand": "${workspaceFolder}/.venv/bin/python",
+    "[markdown]": {
+        "editor.wordWrap": "wordWrapColumn",
+        "editor.wordWrapColumn": 120,
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        // 使用 WSL 中已安装的 Prettier 格式化 Markdown；markdownlint 仅负责检查规则。
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "markdownlint.config": {
+        // 同一章节标题在不同 Markdown 文件中可以重复。
+        "MD024": false,
+        // 允许 Markdown 使用缩进代码块或围栏代码块。
+        "MD046": false
+    },
+    // 将粘贴图片保存到当前 RST 文档的 pic 目录，并生成 RST 图片指令。
+    "pasteImage.path": "${currentFileDir}/pic",
+    "pasteImage.filePathConfirmInputBoxMode": "onlyName",
+    "pasteImage.encodePath": "none",
+    "pasteImage.prefix": ".. image:: ",
+    // 使用本仓库的 doc8.ini 配置 RST 文档检查。
+    "restructuredtext.linter.doc8.extraArgs": [
+        "--config",
+        "${workspaceFolder}/doc8.ini"
+    ],
+    "json.schemaDownload.trustedDomains": {
+        "https://raw.githubusercontent.com/DavidAnson/markdownlint/v0.40.0/schema/markdownlint-config-schema.json": true
+    }
+}
