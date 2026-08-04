@@ -372,3 +372,145 @@ MNIST 有 10 个类别，完全随机猜测的长期平均准确率约为 10%。
 若训练集持续变好而测试集变差，说明模型开始记住训练样本的细节而不善于泛化，这叫过拟合；``Dropout``、更多数据或数据增强等方法
 都在缓解这个问题。测试阶段调用 ``model.eval()`` 和 ``torch.inference_mode()``，是为了关闭训练专用的随机性，并且不再建立求梯度的
 计算图；这让测试结果稳定，也避免无用的内存开销。
+
+Transformer
+-----------
+
+Introduction
+^^^^^^^^^^^^
+
+Transformer 可以先理解成一叠重复的“读上下文，再加工自己”的模块。它不靠 RNN 那样按顺序把状态一路传下去，也不像 CNN
+只看固定邻域；每个 token 都能根据当前任务，从序列中的其他 token 取回有用信息。因此它特别适合处理语言中相距很远的关联。
+
+.. code-block:: text
+
+    文本 -> token -> token embedding + 位置信息
+         -> [self-attention -> 前馈网络] 重复 N 层
+         -> logits -> 下一个 token 的概率
+
+位置信息
+""""""""""""
+
+位置信息指的是：每个 token 在序列中的相对或绝对位置。
+
+例如 ``我 喜欢 你`` 与 ``你 喜欢 我`` 包含相同的三个 token，但主语和宾语互换，含义相反。若只有 token embedding，两个
+序列只是同一组向量的不同排列，模型不知道 ``我`` 在第 1 个位置还是第 3 个位置。绝对位置编码可以把第 0、1、2 个位置的向量
+分别加到 ``我``、``喜欢``、``你`` 的 embedding 上；相对位置则直接告诉 attention：“这个 token 在我左边 1 格”或“右边 2 格”。
+
+前馈网络
+""""""""""""
+
+前馈网络：每个 token 独立加工自己，通常是两层全连接加非线性。它不会让 token 之间交换信息，但能让模型学习更复杂的特征组合。
+
+可以把 attention 想成一次小组讨论：每个 token 先听其他 token 发言，把有用信息带回来；FFN 则像它回到自己座位后，共用的一台
+小加工机。以 ``我 喜欢 苹果`` 为例，``苹果`` 经 attention 已拿到“谁喜欢它、喜欢这个动作”等上下文线索；FFN 不再询问其他
+token，而是把“苹果本身 + 刚得到的关系”组合、变换成更适合下一层使用的表示，例如更明显地携带“这里像宾语”的特征。
+
+第一层全连接可以把向量暂时展开，像同时尝试许多种特征组合；非线性决定哪些组合保留；第二层再压回原来的维度。所有 token
+共用同一台 FFN 加工机，但带入的上下文不同，产物自然不同。简记为：**attention 负责收集信息，FFN 负责消化信息**。
+
+
+Self-attention：每个 token 怎样读取上下文
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+一句文本先被切成 token，并映射为向量；再加入位置信息，否则模型只会看到一组无序的向量。对某个 token 的当前向量，模型会
+生成三份表示：Query（它想找什么）、Key（我可被怎样匹配）和 Value（我的内容）。将 Query 与所有 Key 的相似度归一化为权重，
+再对 Value 加权求和，就得到包含上下文的新表示：
+
+.. math::
+
+    A = \operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right),
+    \qquad H = AV.
+
+这里的每一行权重表示“当前 token 应从哪些 token 取多少信息”。multi-head attention 只是并行做多组不同的查询，
+让不同 head 可以分别关注指代、语法或远距离关联等不同线索。用于生成的模型还会加 causal mask，禁止当前位置读取未来 token；
+而 BERT 一类 encoder 可以同时查看左右两侧上下文。
+
+一个 block、训练与生成
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+self-attention 负责让 token 之间交换信息；随后每个 token 独立通过同一个前馈网络（FFN）做非线性变换。两步外侧的 residual
+connection 保留原来的信息并帮助深层训练，LayerNorm 则稳定数值。因此可以把一个 block 记成：**attention 负责通信，FFN
+负责加工，残差让信息和梯度顺畅通过**。
+
+以 GPT 为例，训练目标通常是“根据前面的 token 预测下一个 token”，用交叉熵让正确 token 的 logit 更高。推理时模型每次选出
+一个新 token，再把它接回输入，循环生成文本；已计算过的 Key/Value 会缓存为 KV cache，避免每一步重复读取整段历史。它学到的是
+从训练数据中预测后续 token 的规律，而不是天然具备事实校验或可靠推理能力。
+
+核心实现：一个最小的 GPT block
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+下面的代码将 `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_ 的核心算子缩成一个 GPT 式 decoder block。
+写法参考了经典的 `The Annotated Transformer <https://nlp.seas.harvard.edu/2018/04/03/attention.html>`_，但省略了 tokenizer、
+embedding、位置编码、语言模型输出层和训练循环，只留下“一个 token 怎样读历史，再更新自己”的主干。
+
+.. code-block:: python
+
+    import math
+
+    import torch
+    from torch import nn
+
+
+    class CausalSelfAttention(nn.Module):
+        def __init__(self, d_model, n_heads):
+            super().__init__()
+            assert d_model % n_heads == 0
+            self.n_heads = n_heads
+            self.head_dim = d_model // n_heads
+            self.qkv = nn.Linear(d_model, 3 * d_model)
+            self.out = nn.Linear(d_model, d_model)
+
+        def forward(self, x):
+            # x: (B, T, C)，T 是 token 数，C 是 d_model。
+            batch_size, length, channels = x.shape
+            q, k, v = self.qkv(x).chunk(3, dim=-1)
+
+            # (B, T, C) -> (B, n_heads, T, head_dim)
+            def split_heads(tensor):
+                return tensor.view(batch_size, length, self.n_heads,
+                                   self.head_dim).transpose(1, 2)
+
+            q, k, v = map(split_heads, (q, k, v))
+            scores = q @ k.transpose(-2, -1) / math.sqrt(self.head_dim)
+
+            # 第 i 个位置只能读取 0..i，不能偷看未来 token。
+            causal_mask = torch.ones(length, length, device=x.device,
+                                     dtype=torch.bool).tril()
+            scores = scores.masked_fill(~causal_mask, float("-inf"))
+            weights = scores.softmax(dim=-1)
+            context = weights @ v
+
+            # 拼回所有 head，回到 (B, T, C)。
+            context = context.transpose(1, 2).contiguous().view(
+                batch_size, length, channels)
+            return self.out(context)
+
+
+    class GPTBlock(nn.Module):
+        def __init__(self, d_model=64, n_heads=4):
+            super().__init__()
+            self.norm1 = nn.LayerNorm(d_model)
+            self.attention = CausalSelfAttention(d_model, n_heads)
+            self.norm2 = nn.LayerNorm(d_model)
+            self.ffn = nn.Sequential(
+                nn.Linear(d_model, 4 * d_model),
+                nn.GELU(),
+                nn.Linear(4 * d_model, d_model),
+            )
+
+        def forward(self, x):
+            x = x + self.attention(self.norm1(x))  # residual connection
+            return x + self.ffn(self.norm2(x))     # residual connection
+
+
+    x = torch.randn(2, 8, 64)  # 2 个序列，每个序列 8 个 token
+    print(GPTBlock()(x).shape)  # torch.Size([2, 8, 64])
+
+``self.qkv(x)`` 一次线性变换产生 Q、K、V；拆成多个 head 后，``q @ k.transpose(-2, -1)`` 得到每个 token 对历史位置的打分。
+下三角 mask 将未来位置改成负无穷，softmax 后它们的权重为 0；``weights @ v`` 就是“按相关性拿回上下文内容”。最后的 ``out``
+混合各个 head 的结果。
+
+``GPTBlock`` 把这一步放进 residual connection，再接逐 token 的 FFN。这里使用常见的 pre-norm 写法：先 LayerNorm，再做
+attention 或 FFN；原始论文的完整 Transformer 还包含 encoder、decoder 的 cross-attention 等组件。把多个 block 堆叠起来，
+并在前后补上 embedding、位置编码与输出到词表的线性层，才是一个可训练的语言模型。
