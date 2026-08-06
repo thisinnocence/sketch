@@ -775,3 +775,139 @@ reference model，提高 ``chosen`` 相比 ``rejected`` 的相对概率。概念
 因此，部署时不能把『经过后训练』理解为真实性证明。需要把模型输出和适当的工具、检索、权限控制、内容策略以及面向实际场景的评测
 结合起来。对用户而言，最实用的判断是：模型给出的流畅回答是按训练分布生成的候选文本；涉及事实、代码执行、医疗、法律或金钱决策时，
 仍应回到可验证的来源和结果。
+
+稠密模型与稀疏 MoE 模型
+------------------------
+
+前面 Transformer block 中的 FFN 是 **稠密（dense）** 的：每一个 token 都经过同一套 FFN 参数。若把这个 FFN 复制为多套
+『专家（expert）』，再让一个 router 为每个 token 只挑少数几套执行，就得到 **稀疏 MoE（Mixture of Experts）**。这里的
+『稀疏』说的是每次前向传播只激活一小部分参数，不是把权重矩阵中大多数元素置零，也不等同于剪枝或量化。
+
+.. code-block:: text
+
+    dense FFN：一个 token -> 同一套 FFN -------------------> 输出
+
+    MoE FFN：  一个 token -> router -> Top-K experts ------> 按路由权重合并 -> 输出
+                                      ├-> expert 3
+                                      └-> expert 7
+
+在常见的 Transformer MoE 中，attention、embedding、LayerNorm 和输出层仍是所有 token 都会执行的稠密部分；通常只把每层的
+FFN 替换为 MoE 层。因此『MoE 有 E 个专家』不表示每个 token 都会运行 E 个完整 Transformer，更不表示 E 倍的所有参数都在本次
+计算中参与。
+
+从 FFN 到 MoE
+^^^^^^^^^^^^^
+
+普通 FFN 可简记为 :math:`y = W_2\,\phi(W_1 x)`。MoE 准备 :math:`E` 个同形状的 FFN，即 :math:`f_1,\ldots,f_E`，router 根据当前
+token 表示 :math:`x` 给出各专家分数。选出分数最高的集合 :math:`S=\operatorname{TopK}(r, k)` 后，只计算其中的专家，再将输出加权：
+
+.. math::
+
+    y = \sum_{i \in S} \tilde r_i f_i(x),
+    \qquad |S|=k \ll E.
+
+例如有 8 个专家、每个 token 选 ``top-2``：专家参数总量约是原 FFN 的 8 倍，但这层每个 token 大致只运行两套专家 FFN 的计算量
+（外加 router 和通信开销）。分数 :math:`\tilde r_i` 通常在选中的专家间重新归一化；具体实现可能使用 top-1、top-2、共享专家或
+不同的加权方式。`Sparsely-Gated MoE <https://arxiv.org/abs/1701.06538>`_ 提出了这种按输入条件选择少数专家的思路，
+`Switch Transformer <https://arxiv.org/abs/2101.03961>`_ 则采用每个 token 选一个专家来简化路由。
+
+.. image:: pic/switch-transformer-moe-architecture.png
+   :scale: 35%
+   :align: left
+   :alt: Switch Transformer 中将 dense FFN 替换为 router 和多个 FFN experts 的结构图
+
+上图是 Switch Transformer 论文的 Figure 2。左侧是一个 Transformer encoder block：原本的 dense FFN 被 Switch FFN 替代；
+右侧放大后可见，两个 token 各自经过 router，但分别只送往 4 个 FFN experts 中的一套。图中实线是 token 的路由，虚线表示把专家
+输出按 gate 值送回合并点。这是理解『稀疏激活的是 FFN，而不是整层 attention 都消失』的经典结构图。
+
+参数量、激活参数与计算量
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+讨论 MoE 时至少要同时问三个数：**总参数量**、**每个 token 的激活参数量** 和 **实际延迟/吞吐**。它们并不相等。
+
+* 总参数量包括全部专家，所以很容易很大；加载模型时显存、内存或磁盘仍要容纳它们，或通过多机分片容纳它们。
+* 激活参数量只计本次 token 实际走到的专家，加上始终执行的 attention 等稠密部分；它更接近单 token 的矩阵乘法 FLOPs。
+* 实际速度还取决于 batch、序列长度、GPU 间通信、expert 的放置与内核实现。小 batch 的逐 token 生成常受路由和通信影响，未必比
+  同等激活计算量的 dense 模型更快。
+
+`Mixtral 8x7B <https://arxiv.org/abs/2401.04088>`_ 是直观例子：每层有 8 个 FFN experts，每个 token 选 2 个。论文把模型描述为
+总计约 47B 参数、推理时约 13B active parameters；这是『总容量大、单次只激活一部分』的含义，不应读作一台设备只需保存 13B
+参数，也不应把它与任意 13B dense 模型的速度或效果直接画等号。
+
+代表模型：公开信息与未知边界
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+模型名称不是架构类别；同一家公司不同代模型也可能从 dense 改用 MoE。因此只按可追溯的模型卡或技术报告分类，而不根据参数量、
+价格或回答风格猜测：
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 18 58
+
+   * - 模型/系列
+     - 公开可确认的类别
+     - 关键公开信息
+   * - `Llama 3 405B <https://arxiv.org/abs/2407.21783>`_
+     - dense
+     - 官方论文明确称其最大模型为 405B 的 dense Transformer；每个 token 使用同一套层参数。
+   * - `Switch Transformer <https://arxiv.org/abs/2101.03961>`_
+     - sparse MoE
+     - 经典研究模型：以 top-1 router 替换 Transformer 的 FFN，重点展示如何把条件计算扩展到大规模训练。
+   * - `Mixtral 8x7B <https://arxiv.org/abs/2401.04088>`_
+     - sparse MoE
+     - 每层 8 个 FFN experts、每 token 选 2 个；论文报告约 47B 总参数、约 13B active parameters。
+   * - `DeepSeek-V3 <https://arxiv.org/abs/2412.19437>`_
+     - sparse MoE
+     - 671B 总参数、每 token 激活 37B；技术报告还公开了 shared expert、routed expert 和受限路由的设计。
+   * - `Claude Opus <https://www.anthropic.com/transparency>`_
+     - 未公开
+     - Anthropic 的公开透明度材料说明预训练、后训练和安全评测，但未给出 expert 数、router 或 dense/MoE 拓扑；因此不能据公开资料
+       将其可靠归类为 dense 或 MoE。
+
+最后一行尤其重要：『闭源』不等于『MoE』，『推理很贵』也不等于『dense』。没有技术报告或模型配置时，最准确的标签是
+『架构未公开』，而不是转述社区猜测。
+
+以 DeepSeek-V3 为例
+^^^^^^^^^^^^^^^^^^^^
+
+.. image:: pic/deepseek-v3-moe-architecture.png
+   :scale: 30%
+   :align: left
+   :alt: DeepSeek-V3 的 Transformer block、DeepSeekMoE 与 Multi-Head Latent Attention 结构图
+
+这是 `DeepSeek-V3 技术报告 <https://arxiv.org/abs/2412.19437>`_ 的 Figure 2。左边仍是普通 Transformer block；右上角放大的是
+DeepSeekMoE：绿色的 shared experts 对每个 token 都执行，蓝色的 routed experts 则由 router 的 top-k 选择。它说明实际 MoE
+并不一定是『只从一组互斥专家中选一个』，还可保留共享专家来承载共同模式，把更有差异的计算交给 routed experts。
+
+该报告给出了足够具体的配置：除最前 3 层外的 FFN 均使用 MoE；每个 MoE 层包含 1 个 shared expert 和 256 个 routed experts，
+每个 token 选择 8 个 routed experts，并限制至多发送到 4 个节点。这些数字解释了为何它能同时拥有 671B 总参数和 37B active
+parameters，也说明『active』仍要把 shared expert、attention 与其他稠密部分算进去，不能简单等于 8 个专家的参数相加。
+
+为什么需要 router 与负载均衡
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+router 的训练目标不只是『选看起来最合适的专家』。若大量 token 都挤到少数专家，其他专家学不到东西，热门专家又会超过设备可处理的
+容量，这叫 expert imbalance 或 routing collapse。训练通常会额外加入 load-balancing auxiliary loss，使不同专家接到的 token
+数量和路由概率更均匀；有的系统还为每个专家设置 capacity，超出的 token 会被丢弃、改派或以其他策略处理。不同论文和工程实现的
+细节不同，所以看到『capacity factor』时，应确认它具体限制的是训练 token、batch token 还是通信缓冲区。
+
+当 experts 分布在多张 GPU 上时，router 还要把 token 表示发往拥有对应 expert 的设备，计算后再收回，这通常涉及 all-to-all
+通信。它是 MoE 的主要工程难点之一：模型的 FLOPs 可以随 top-k 保持较低，但网络带宽、负载不均和同步等待会成为瓶颈。Switch
+Transformer 论文也把通信成本和训练稳定性列为稀疏模型实际落地的挑战。
+
+dense 和 MoE 怎样取舍
+^^^^^^^^^^^^^^^^^^^^^^^
+
+可以把 dense 看成『每个 token 都请同一组通才处理』，把 MoE 看成『先分诊，再请少数专长不同的通才处理』。后者能以较低的
+每 token 激活计算扩展参数容量，并可能让专家形成不同的模式偏好；但这种专门化是训练结果，不保证每个 expert 都有可用的人类标签，
+也不能只从 expert 编号推断其职责。
+
+选择模型时，不能只比较宣传中的总参数量：
+
+* 想要实现简单、部署设备少、延迟更可预测，dense 通常更直接。
+* 训练预算允许多设备通信，且希望在近似每 token 计算下扩大参数容量时，MoE 很有吸引力。
+* 显存受限时，MoE 的『激活参数较少』并不会自动解决权重存放问题；量化、分层存储和 expert 并行仍可能必要。
+* 评估应同时测质量、首 token 延迟、逐 token 延迟、吞吐、峰值显存和不同 batch 下的表现，而不只看参数量或理论 FLOPs。
+
+因此，MoE 是一种条件计算的扩展方式，不是无代价地把 dense 模型『变大』。router 是否稳定、专家是否均衡、通信能否隐藏在计算后面，
+以及部署场景是否有足够并行度，都会决定它实际是否比 dense 模型合适。
