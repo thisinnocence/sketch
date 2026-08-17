@@ -397,6 +397,125 @@ Transformer 可以先理解成一叠重复的『读上下文，再加工自己�
 多出 masked self-attention 和读取 encoder 输出的 cross-attention。后面的 decoder-only 模型保留的正是右侧中不依赖左侧 encoder
 的生成主干。
 
+token & embedding
+""""""""""""""""""""
+
+模型不能直接读懂文字，所以第一步是让 tokenizer 按自己的词表把文本切成一小段一小段的 **token**。token 不一定等于一个词：
+它可能是一个汉字、一个完整单词、单词的一部分、标点，甚至是表示『句子结束』等用途的特殊符号。例如 ``我喜欢苹果`` 可能被切成
+``我 / 喜欢 / 苹果``，也可能采用更细的切法，具体结果取决于当前模型使用的 tokenizer。
+
+每个 token 随后会被换成一个整数 **token ID**。可以把词表想成字典，token ID 只是页码：页码 ``314`` 比 ``98`` 大，并不表示
+它更重要或语义更多。这个整数适合查表，却不适合直接参与神经网络的连续数值计算。
+
+一段文字进入 GPT、再生成文字的完整数据流如下：
+
+.. code-block:: text
+
+    『我喜欢苹果』
+        -> tokenizer.encode()  -> token IDs，例如 [314, 98, 271]
+        -> embedding lookup    -> (T, d_model) 的浮点向量
+        -> Transformer blocks  -> 含上下文的 (T, d_model) 向量
+        -> vocab linear + softmax -> 下一个 token 的概率
+        -> 采样/argmax         -> 新 token ID
+        -> tokenizer.decode()  -> 显示给人的文字
+
+词表不是业界统一标准，而是训练某个 tokenizer 时产生的模型资产。开发者先选择语料、normalizer、预切分规则以及 BPE、WordPiece
+或 Unigram 等算法，再指定词表大小和 special token。以 BPE 为例，它反复把语料中常共同出现的片段合并至目标词表规模；因此语料和
+参数不同，最终的『token -> ID』表也不同。Unigram 一类 tokenizer 还可能为条目保存浮点评分，用于选择切分方案，但那不是 token 的
+语义向量。
+
+token 通常能显示为文本，却不一定是原始输入中完整的 UTF-8 子串：`Tokenizer API <https://huggingface.co/docs/tokenizers/main/api/tokenizer>`_
+的 ``id_to_token`` 返回字符串，``token_to_id`` 返回整数；normalizer 可能先改变 Unicode 表示，WordPiece 用 ``##`` 标记续接片段，
+byte-level/byte-fallback tokenizer 还可能以字符或 ``<0xNN>`` 表示原始字节，special token 则不对应用户输入片段。只有 embedding
+lookup 之后，离散符号才变为可做矩阵运算的浮点向量；`ByteFallback 文档 <https://huggingface.co/docs/tokenizers/main/en/api/decoders#bytefallback>`_
+展示了字节 token 如何在解码时重新组合为 UTF-8 文本。token 也不是语言学上不可再分的『最小单位』；一个中文词可以被切成一个或多个
+token，一个英文长词也可能拆成多个子词。
+
+**Embedding** 就是把这个『页码』换成一串可计算的浮点数。模型内部有一张可训练的 embedding 矩阵，每个 token ID 对应其中一行；
+查出的一行便是该 token 的向量。例如：
+
+.. code-block:: text
+
+    『苹果』 -> token ID 314 -> 查 embedding 矩阵第 314 行
+             -> [0.12, -0.31, 0.08, ...]
+
+向量中的每个 float 没有统一的『正常范围』，也不是概率，因而**不必落在** ``[0, 1]`` 或 ``[-1, 1]``。从数学上说，一个分量可取任意
+实数；训练从接近 0 的小随机值开始，再由损失函数和梯度更新为模型需要的正数或负数。某个 checkpoint 中实际出现多大的值，取决于
+初始化方式、训练过程、归一化层和权重格式，不能只根据 ``d_model`` 推出。
+
+.. note::
+
+   **checkpoint（检查点）** 是训练在某个时刻保存下来的模型快照，至少包含当时的模型参数，通常也需要配置才能正确加载。若目标是
+   中断后继续训练，checkpoint 往往还会保存 optimizer 状态、学习率调度器、已训练步数和随机数状态；面向推理发布的文件则常只保留
+   权重、配置及配套 tokenizer 等必要资产。它不是训练代码或原始训练数据本身。
+
+保存时它必须是某种有限精度的浮点数，这才有硬件可表示范围：FP16 约为 ``[-65504, 65504]``，BF16 约为
+``[-3.39 × 10^38, 3.39 × 10^38]``，FP32 约为 ``[-3.40 × 10^38, 3.40 × 10^38]``。这些是 dtype 的极限，并不是建议值；
+训练或推理中的 embedding 与激活若变得过大，可能发生溢出或数值不稳定，所以模型会借助初始化、RMSNorm/LayerNorm 等机制让数值
+保持在适合计算的尺度。``NaN`` 和正负无穷也是浮点格式可编码的特殊值，但正常模型权重不应包含它们。
+
+可以把这个向量理解成模型为 ``苹果`` 准备的一张『特征卡』。卡上的单个数字通常没有『水果』『红色』这样固定、可直接命名的含义，
+但训练会调整整张卡，使常在相似语境中出现、具有可复用关系的 token 呈现有用的向量模式。
+
+刚查表得到的是 token 的 **初始表示**，还没有结合这一次句子的上下文。``苹果公司发布产品`` 和 ``我吃了一个苹果`` 中的
+``苹果`` 会从同一个初始 embedding 出发；加上位置信息并经过多层 attention 和前馈网络后，才分别形成偏向『公司』和『水果』的
+上下文表示。简记为：**token 是文字片段，token ID 是查表地址，embedding 是模型真正拿来计算的向量。**
+
+这里的 **token vector dimension**，通常记为 ``d_model`` 或 ``hidden_size``，就是每个 token 向量中浮点数的个数，也就是
+这张『特征卡』有多少个格子。若 ``d_model = 4``，一个 token 的向量可以写成 ``[0.12, -0.31, 0.08, 0.55]``；真实模型的
+维度通常大得多，例如 768、4096 等。同一模型中，每个 token 的初始 embedding 都有相同的维度，Transformer 各层传递的表示也
+通常保持这个宽度，才能彼此进行矩阵运算。
+
+.. note::
+
+   ``d_model`` 由模型的参数量、显存与算力预算共同决定；维度越大，表达能力和成本通常越高。它还需与 attention 的 head 数配合，
+   通常要求能被 ``num_heads`` 整除。已有 checkpoint 不能只改配置来改变 ``d_model``，否则权重形状会不匹配。
+
+不要把它和 ``vocabulary size``（词表大小 ``V``）混淆：``V`` 是『有多少种可查的 token』， ``d_model`` 是『每一种 token 的
+特征卡有多长』。因此 embedding 矩阵的形状是 ``(V, d_model)``：例如词表有 50,000 个 token、向量维度为 4,096 时，矩阵有
+50,000 行，每行 4,096 个浮点数。维度更大能让模型携带和组合更多特征，但 embedding 参数、每层激活和计算开销也会随之增加；它
+不是某个 token 自己可以随意不同的『长度』，而是模型架构预先规定的共同宽度。
+
+位置信息也需要做成同样长的向量，才能与 token embedding 逐元素相加。多头 attention 会把 ``d_model`` 切分给多个 head，
+例如 ``d_model = 4096``、32 个 head 时，每个 head 通常处理 128 维；各 head 汇合后仍回到 4096 维。
+
+.. attention::
+
+   **token ID 是整数索引，不是 float。** 输入模型前形状通常为 (B, T)，元素是词表行号；数据类型可以是 int32 或 int64，
+   但不能是 float16 或 float32。PyTorch 的 Embedding 接口接受 IntTensor（int32）或 LongTensor（int64）索引，教材和许多
+   训练代码仍常将 input_ids 统一为 torch.long（int64）。
+
+   常见词表远小于 :math:`2^{31}`，int32 足以表示 token ID，部分推理引擎会用它节省带宽；但 ID 相比 embedding、KV cache 和
+   激活占用的内存很小，通用训练接口更常用 int64。不要改用 unsigned int：主流 ``Embedding`` 接口定义的是有符号 int32/int64，
+   而 uint 在许多张量算子中的支持较受限。
+
+   embedding、权重和激活才是浮点数。训练/推理常以 BF16 或 FP16 计算，并在部分累加、归一化或优化器状态中保留 FP32；具体 dtype
+   取决于硬件和框架。可记作：**ID 用整数作地址，embedding 之后才用浮点数作计算。**
+
+词表及切分规则必须与模型的 embedding 矩阵和输出词表严格配套：同一个 ID 在不同 tokenizer 中可能指向不同 token，直接互换会让
+输入语义错位。因此开放权重模型除 ``*.safetensors`` 与 ``config.json`` 外，通常还会发布 tokenizer 资产。官方
+`Qwen2.5-7B-Instruct 文件列表 <https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/tree/main>`_ 除权重和 ``config.json`` 外，
+还包含 ``tokenizer.json``、``tokenizer_config.json``、``vocab.json`` 与 ``merges.txt``：前者是完整 tokenizer 描述，后两者分别是
+token 到 ID 的映射和 BPE 合并规则，配置文件说明 tokenizer 类型、special token 与聊天模板等约定。
+
+官方 `DeepSeek-V3 文件列表 <https://huggingface.co/deepseek-ai/DeepSeek-V3/tree/main>`_ 采用另一种打包方式，只提供
+``tokenizer.json`` 与 ``tokenizer_config.json``；前者已携带完整描述，后者包含 ``LlamaTokenizerFast`` 类型、特殊 token 与聊天
+模板。开放权重不等于公开训练语料，也不表示权重、代码和 tokenizer 必然使用同一许可证；例如 Qwen2.5-7B-Instruct 标注为
+Apache-2.0，DeepSeek-V3 的代码使用 MIT，而其模型权重另受 Model License 约束。
+
+还要区分两个同名方向的术语：``tokenizer.encode/decode`` 是文本与 token ID 的格式转换；Transformer 的 **encoder/decoder**
+是网络结构。经典 encoder-decoder Transformer 用 encoder 双向读取完整源句、用 decoder 自回归生成目标句并通过 cross-attention
+读取源句表示：
+
+.. code-block:: text
+
+    encoder-decoder：源文本 -> encoder -> 源句表示
+                                  ^          |
+    目标文本 <--- tokenizer.decode <- decoder -+ 逐 token 生成
+
+GPT 是没有独立 encoder 的 decoder-only 模型；BERT 则属于可双向读取输入的 encoder-only 模型。阅读资料时，先问清
+『encode/decode』说的是 tokenizer 的格式转换，还是 Transformer 的 encoder/decoder 模块。
+
 位置信息
 """"""""""""
 
@@ -417,113 +536,6 @@ token，而是把『苹果本身 + 刚得到的关系』组合、变换成更适
 
 第一层全连接可以把向量暂时展开，像同时尝试许多种特征组合；非线性决定哪些组合保留；第二层再压回原来的维度。所有 token
 共用同一台 FFN 加工机，但带入的上下文不同，产物自然不同。简记为：**attention 负责收集信息，FFN 负责消化信息**。
-
-编码、解码与 embedding
-^^^^^^^^^^^^^^^^^^^^^^^
-
-这三个词容易混在一起，因为它们都可被翻译成『编码/解码』，但处在不同层次。先把一段文字送入 GPT 的数据流拆开：
-
-.. code-block:: text
-
-    『我喜欢苹果』
-        -> tokenizer.encode()  -> token IDs，例如 [314, 98, 271]
-        -> embedding lookup    -> (T, d_model) 的浮点向量
-        -> Transformer blocks  -> 含上下文的 (T, d_model) 向量
-        -> vocab linear + softmax -> 下一个 token 的概率
-        -> 采样/argmax         -> 新 token ID
-        -> tokenizer.decode()  -> 显示给人的文字
-
-``tokenizer.encode`` 的本质是按 tokenizer 的规则将文本切成词表定义的 token，并查表映射为整数 token ID；token 是离散的符号单元，
-ID 是它在词表中的编号/index，而不是 token 本身，也不表示数值大小或语义距离。
-
-词表不是业界统一标准，更不是类似 RFC 的协议；它是 **训练某个 tokenizer 时产生的模型资产**。开发者先选取有代表性的文本语料，
-确定 normalizer、预切分规则和 BPE、WordPiece 或 Unigram 等算法，再指定词表大小、最低频率与 special token。以 BPE 为例，
-它从较小的基础符号集合出发，反复把语料中常共同出现的片段合并，直到达到目标词表规模；因此语料、算法参数或 special token
-不同，最终的『token -> ID』表就会不同。
-
-因此，token 本身不是模型使用的浮点表示。词表的一个条目通常是类似『苹果』、``ing`` 或 ``<|im_end|>`` 的文本/字节片段，
-外加它的整数 ID；浮点数存放在另一张可训练的 embedding 矩阵中。Unigram 一类 tokenizer 还可能为条目保存一个浮点评分，
-但它只用于选择切分方案，不是 token 本身的语义向量。若词表大小为 ``V``、隐藏维度为 ``d_model``，矩阵形状为
-``(V, d_model)``。用 ID ``314`` 查 embedding 矩阵的第 314 行，得到的不是一个标量，而是一个长度为 ``d_model`` 的浮点 **向量**：
-
-.. code-block:: text
-
-    词表：       ID 314 -> 『苹果』             # 符号/文本，不含浮点数
-    embedding：  第 314 行 -> [0.12, -0.31, ...] # d_model 个浮点数构成的向量
-
-这个向量是该 token 进入 Transformer 前的初始表示；加上位置信息并经过多层 attention/FFN 后，它会变成依赖上下文的向量。
-所以同一个 token 在不同句子中的最终表示可以不同，但词表 ID 不变。不要把『词表』和『embedding 矩阵』混成一张表：前者回答
-『这个 ID 对应哪个符号？』，后者回答『模型当前如何用一组浮点数表示这个符号？』。
-
-发布『开放权重』模型时，完整可运行的发布包通常不只包含 ``*.safetensors`` 权重分片，也会带上 tokenizer 与配置；否则使用者无法
-把文本转换成模型 embedding 所期待的 ID。以官方 `Qwen2.5-7B-Instruct 文件列表 <https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/tree/main>`_
-为例，除权重和 ``config.json`` 外，还包含 ``tokenizer.json``、``tokenizer_config.json``、``vocab.json`` 与 ``merges.txt``。
-其中 ``tokenizer.json`` 是 Fast Tokenizer 的完整序列化描述；``vocab.json`` 是 token 到 ID 的映射，``merges.txt`` 是 BPE 的合并规则；
-``tokenizer_config.json`` 则说明 tokenizer 类型、special token 和聊天模板等运行约定。
-
-`DeepSeek-V3 的官方文件列表 <https://huggingface.co/deepseek-ai/DeepSeek-V3/tree/main>`_ 采用另一种打包方式：根目录提供
-``tokenizer.json`` 与 ``tokenizer_config.json``，而不单独列出 ``vocab.json``/``merges.txt``；前者已携带完整 tokenizer 描述，
-后者包含 ``LlamaTokenizerFast`` 类型、特殊 token 与聊天模板。两种形式都能让推理框架复原相同的『文本 -> ID』规则，文件名不同
-不代表 tokenizer 的地位不同。
-
-这里也要区分术语：这类发布通常称为 **开放权重**，不等于公开预训练语料，也不必然等于代码和所有资产都采用同一种开源许可证。
-Qwen2.5-7B-Instruct 在其模型页标注为 Apache-2.0；DeepSeek-V3 的官方仓库代码使用 MIT，而 Base/Chat 模型权重另受
-Model License 约束。下载或再分发前，应分别查看权重、代码与 tokenizer 文件对应的许可证。
-
-这个词表及其切分规则会随 checkpoint 一起保存，例如 ``tokenizer.json``，有时拆为 ``vocab``、``merges`` 和配置文件。它必须与
-模型的 embedding 矩阵和输出词表严格配套：ID 为 314 时，模型只把它解释为第 314 行对应的那个 token。不同模型可以有意复用
-同一个 tokenizer，但不能默认互换 tokenizer 或直接复用 ID；否则同一串整数会查到错误的 token 与 embedding，模型输入的语义随即错位。
-
-从概念上说，token 是 tokenizer 词表中的 **离散符号**。`Tokenizer API <https://huggingface.co/docs/tokenizers/main/api/tokenizer>`_
-的 ``id_to_token`` 返回字符串，``token_to_id`` 返回整数；因此它通常能显示为文本，但不应机械理解为原始输入中一个完整的 UTF-8
-子串。normalizer 可先改变 Unicode 表示，WordPiece 会用 ``##`` 标记续接片段，byte-level/byte-fallback tokenizer 还可能以
-字符或 ``<0xNN>`` 形式表示原始字节，special token 则根本不对应用户输入片段。只有 embedding lookup 之后，这个离散符号才变为
-可做矩阵运算的浮点向量；`ByteFallback 文档 <https://huggingface.co/docs/tokenizers/main/en/api/decoders#bytefallback>`_ 展示了
-字节 token 如何在解码时才重新组合为 UTF-8 文本。
-
-所以 token 不是自然语言意义上的『最小词汇片段』，而是相对于当前 tokenizer 词表和算法选出的一个片段。它可能恰好是完整词，
-也可能是词的一部分、单个字符、一个或多个字节，或特殊控制符。例如同一个英文长词可被不同词表切成不同的子词组合；一个中文词也
-可以是一个 token、多个汉字 token，或与相邻标点/空白按规则组合的片段。所谓『最小』只表示 tokenizer 已选定该 token 后不会在
-这一次 encode 中继续拆分它，并不表示它是语言学上不可再分的最小单位。
-
-.. attention::
-
-   **token ID 是整数索引，不是 float。** 输入模型前，它的形状通常是 ``(B, T)``，元素是词表行号；``[314, 98, 271]`` 的
-   数据类型可以是 ``int32`` 或 ``int64``，但不能是 ``float16`` 或 ``float32``，否则 ``314.0`` 既不是稳定的数组下标，也会暗示
-   ID 之间存在可计算的大小和距离关系。PyTorch 的 ``nn.Embedding`` 当前接受 ``IntTensor`` (int32) 或 ``LongTensor`` (int64)
-   作为索引；教材和许多 PyTorch/Hugging Face 训练代码仍常将 ``input_ids`` 统一为 ``torch.long`` (int64)。
-
-   从存储角度说，常见词表远小于 :math:`2^{31}`，int32 足以表示 token ID，推理引擎也可能在内部使用 int32 以节省带宽；但输入
-   ID 相比 embedding、KV cache 和激活所占内存很小，故通用训练接口更看重兼容性而常用 int64。不要改用 unsigned int：主流
-   ``Embedding`` 接口定义的是有符号 int32/int64，且 uint 在许多张量算子中的支持较受限。
-
-   真正参与矩阵乘法、attention 和反向传播的是查表后的 embedding、权重和激活，它们是浮点数。当前的大模型训练/推理常用 mixed
-   precision：计算和大部分张量使用 BF16 或 FP16 以节省显存和提高吞吐，部分累加、归一化或优化器状态保留 FP32 以维持数值稳定；
-   具体 dtype 取决于硬件和框架。可记作：**ID 用整数作地址，embedding 之后才用浮点数作计算。**
-
-**tokenizer 编码/解码** 是文本格式转换。``encode`` 先按 tokenizer 的规则把 Unicode 文本切成词表定义的离散符号单元，
-这些单元才是严格意义上的 token；然后查词表，把每个 token 映射为对应的整数 token ID。因而 ID 是 token 在词表中的编号/index，
-不是 token 本身，也不是它的数值特征；日常讨论中常把 ID 或序列位置也简称为 token，读资料时需看上下文。token 也不必是自然语言
-的『最小单位』：BPE 等子词 tokenizer 会根据词表把『苹果』切成一个或多个片段，英文长词也可能拆开，另有表示句子边界或角色的
-special token。不同 tokenizer 的词表和切分规则不同，同一段文本得到的 ID 序列也可能不同。
-
-``decode`` 将 ID 序列按同一词表拼回文本。ID 只是编号，``314`` 比 ``98`` 大没有语义上的『更接近』；模型不能直接对离散整数做
-有意义的梯度计算，所以接下来才是 **token embedding**：从一张可训练矩阵中按 ID 取出一行长度为 ``d_model`` 的浮点向量。训练会让
-在相似上下文出现的 token 向量形成可复用的几何模式；再加上前面介绍的位置信息，才得到 Transformer 的初始输入。
-
-**Transformer encoder/decoder** 则是网络结构的命名，并不等于 ``tokenizer.encode/decode``。经典的 encoder-decoder Transformer
-常用于翻译：encoder 不看未来限制地读取完整源句，输出每个源 token 的上下文表示；decoder 逐 token 生成目标句，既用 causal
-self-attention 看已生成的目标 token，又通过 cross-attention 读取 encoder 的源句表示。
-
-.. code-block:: text
-
-    encoder-decoder：源文本 -> encoder -> 源句表示
-                                  ^          |
-    目标文本 <--- tokenizer.decode <- decoder -+ 逐 token 生成
-
-GPT 是 **decoder-only** 模型：它没有单独的 encoder，prompt 和已生成的 token 一起放入带 causal mask 的 decoder，持续预测下一个
-token。BERT 一类则是 **encoder-only**：它可双向读取完整输入，适合抽取、分类或获得文本表示，但原生结构不按 GPT 的方式逐 token
-生成。故阅读模型资料时，先问清『encode/decode』说的是 tokenizer 的格式转换，还是 Transformer 的 encoder/decoder 模块。
 
 什么是 decoder-only
 """"""""""""""""""""
@@ -572,6 +584,13 @@ connection 保留原来的信息并帮助深层训练，LayerNorm 则稳定数�
 以 GPT 为例，训练目标通常是『根据前面的 token 预测下一个 token』，用交叉熵让正确 token 的 logit 更高。推理时模型每次选出
 一个新 token，再把它接回输入，循环生成文本；已计算过的 Key/Value 会缓存为 KV cache，避免每一步重复读取整段历史。它学到的是
 从训练数据中预测后续 token 的规律，而不是天然具备事实校验或可靠推理能力。
+
+.. note::
+
+   这种『根据前面预测下一个，再把结果接回去』的方式叫 **自回归**，英文是 **autoregression**；用于语言模型时常说
+   **autoregressive language modeling** 或 **next-token prediction**。当前主流的文本生成式 LLM 基本都以它为核心：模型按顺序
+   建模 :math:`P(x_t \mid x_{<t})`，并在推理时重复采样下一个 token。这里的『基本都』指 GPT、Llama、Qwen 等对话/续写模型，
+   并非所有语言模型；例如 BERT 使用 masked language modeling，也不按这种方式逐 token 生成。
 
 核心实现：一个最小的 GPT block
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
