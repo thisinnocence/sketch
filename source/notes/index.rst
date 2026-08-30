@@ -19,6 +19,7 @@
    js-notes
    AI-notes
    AI-theory
+   llm-math
    llm-runtime
    rtl-notes
    Redis
