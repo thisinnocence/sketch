@@ -653,6 +653,25 @@ LLM 参数量变大通常同时来自『层数更多』和『每层矩阵更宽/
    d_model 翻倍 → 每层参数量大约变成 4 倍
    层数翻倍     → 总参数量约翻倍
 
+这里还要区分『总参数量』（Total Parameters）和『激活参数量』（Active Parameters）：
+
+* 总参数量是模型保存的全部可训练参数，决定模型权重文件和加载权重所需显存的大致规模。
+* 激活参数量是处理一个 token 的一次前向计算中，实际被选中并参与运算的那部分模型参数，主要用来描述
+  稀疏 MoE 模型每个 token 的计算规模。这里的『激活』是选择哪些权重参与计算，不是前文激活函数产生的
+  activation values（激活值）。
+
+对于 Dense Model，每个 token 都会经过所有 Transformer Layer 中的 Attention 和 MLP，因此激活参数量基本
+接近总参数量。对于 MoE Model，每层的 Attention 等共享参数仍然都会参与计算，但 Router 通常只为每个 token
+从多个 Expert 中选择 Top-K 个；未被选中的 Expert 权重仍属于模型总参数，却不参与该 token 在这一层的计算。例如
+一个 MoE 层有 8 个 Expert、每个 token 只选择 2 个，那么该层 Expert 部分的激活参数量约为总 Expert 参数量的
+:math:`2/8`，另外还要加上共享的 Attention、Router、Norm 等参数。因此不能简单地把整个模型的激活参数量写成
+总参数量的 :math:`2/8`。
+
+所以『总参数更多、激活参数较少』表示 MoE 可以用更大的参数空间存储不同模式，同时让单个 token 只使用其中
+一条稀疏计算路径。不过激活参数量只是计算量的近似指标：实际速度还受 Expert 间通信、负载均衡、内存带宽、
+Batch 中不同 token 是否选中不同 Expert 等因素影响；而加载模型时通常仍需容纳全部权重，不能按激活参数量估算
+权重显存。
+
 为了不让这些 Shape 只停留在符号上，我们拿 TinyLlama 举个例子：
 https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0/blob/main/config.json
 
