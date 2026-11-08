@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="930" viewBox="0 0 1200 930" role="img" aria-labelledby="title desc">
+<title id="title">NPU / TPU Logical Architecture</title>
+<desc id="desc">Host runtime submits commands to a scalar processor and scheduler. Dashed control paths drive matrix, vector and data movement engines. Solid bidirectional data paths connect engines, on-chip SRAM, the memory controller and external HBM or DRAM.</desc>
+<defs>
+<marker id="data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#197f83"/></marker>
+<marker id="control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#566b89"/></marker>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#20344d} .heading{font-size:32px;font-weight:700}.label{font-size:23px;font-weight:600}.sub{font-size:18px;fill:#53667e}.data{fill:none;stroke:#197f83;stroke-width:3;marker-start:url(#data);marker-end:url(#data)}.control{fill:none;stroke:#566b89;stroke-width:2.5;stroke-dasharray:8 6;marker-end:url(#control)}</style>
+</defs>
+<rect width="1200" height="930" fill="white"/>
+<rect x="60" y="195" width="1080" height="570" rx="24" fill="#f6f9fc" stroke="#cdd9e6" stroke-width="2"/>
+<text x="600" y="58" text-anchor="middle" class="heading">NPU / TPU Logical Architecture</text>
+<text x="90" y="235" class="label" fill="#53667e">NPU</text>
+<rect x="390" y="94" width="420" height="70" rx="13" fill="#e4eefc" stroke="#7299c4" stroke-width="2"/>
+<text x="600.0" y="137.0" text-anchor="middle" class="label">Host CPU / Runtime</text>
+<rect x="140" y="270" width="240" height="70" rx="13" fill="#edf3ff" stroke="#8faed7" stroke-width="2"/>
+<text x="260.0" y="313.0" text-anchor="middle" class="label">Command Queue</text>
+<rect x="425" y="270" width="350" height="70" rx="13" fill="#edf3ff" stroke="#8faed7" stroke-width="2"/>
+<text x="600.0" y="313.0" text-anchor="middle" class="label" style="font-size:20px">Scalar / Command Processor</text>
+<rect x="820" y="270" width="260" height="70" rx="13" fill="#edf3ff" stroke="#8faed7" stroke-width="2"/>
+<text x="950.0" y="313.0" text-anchor="middle" class="label">Task Scheduler</text>
+<path d="M600 164 V215 H260 V270" class="control"/>
+<path d="M380 305 H425" class="control"/>
+<path d="M775 305 H820" class="control"/>
+<rect x="140" y="430" width="280" height="90" rx="13" fill="#fff3dd" stroke="#dbb36b" stroke-width="2"/>
+<text x="280.0" y="472.0" text-anchor="middle" class="label">Matrix Engine</text><text x="280.0" y="502.0" text-anchor="middle" class="sub">MXU / Cube</text>
+<rect x="460" y="430" width="280" height="90" rx="13" fill="#fff3dd" stroke="#dbb36b" stroke-width="2"/>
+<text x="600.0" y="472.0" text-anchor="middle" class="label">Vector Engine</text><text x="600.0" y="502.0" text-anchor="middle" class="sub">SIMD / Reduction</text>
+<rect x="780" y="430" width="300" height="90" rx="13" fill="#fff3dd" stroke="#dbb36b" stroke-width="2"/>
+<text x="930.0" y="472.0" text-anchor="middle" class="label">DMA / MTE</text><text x="930.0" y="502.0" text-anchor="middle" class="sub">Data Movement</text>
+<path d="M950 340 V385 H280 V430" class="control"/>
+<path d="M600 385 V430" class="control"/>
+<path d="M950 385 V430" class="control"/>
+<rect x="140" y="590" width="820" height="65" rx="13" fill="#e9f5f5" stroke="#75b5b7" stroke-width="2"/>
+<text x="550.0" y="630.5" text-anchor="middle" class="label">On-chip SRAM / Scratchpad</text>
+<rect x="140" y="685" width="940" height="60" rx="13" fill="#edf3ff" stroke="#8faed7" stroke-width="2"/>
+<text x="610.0" y="723.0" text-anchor="middle" class="label">Memory Controller</text>
+<path d="M280 520 V590" class="data"/>
+<path d="M600 520 V590" class="data"/>
+<path d="M860 520 V590" class="data"/>
+<path d="M1020 520 V685" class="data"/>
+<path d="M600 655 V685" class="data"/>
+<rect x="390" y="795" width="420" height="70" rx="13" fill="#e4eefc" stroke="#7299c4" stroke-width="2"/>
+<text x="600.0" y="838.0" text-anchor="middle" class="label">HBM / DRAM</text>
+<path d="M600 745 V795" class="data"/>
+<text x="88" y="563" class="sub">NoC / local interconnect</text>
+<path d="M860 817 H915" class="data"/><text x="935" y="824" class="sub">Data</text><path d="M860 851 H915" class="control"/><text x="935" y="858" class="sub">Control</text>
+<text x="600" y="905" text-anchor="middle" class="sub">Logical abstraction; implementation varies by device.</text></svg>

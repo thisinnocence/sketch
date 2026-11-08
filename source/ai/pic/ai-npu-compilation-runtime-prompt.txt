@@ -1,0 +1,9 @@
+Generation mode: built-in image_gen tool; original generated bitmap used directly in the article.
+Prompt:
+Use case: infographic-diagram. Create a clean technically accurate wide landscape block diagram for an NPU/TPU architecture article. White background, flat blue teal amber rounded boxes, clear large English typography, thin orthogonal arrows, no decoration. Title: "Model Compilation and Runtime".
+Top left blue box "Model graph + shapes / dtypes". Split into three clearly labelled paths: "AOT" -> "Offline compiler" -> "Device executable"; "JIT" -> "Trace / capture at runtime" -> "Compile on cache miss" -> "Executable cache"; "Eager" -> "Operator dispatch" -> "Precompiled kernels".
+All three paths converge to large teal box near bottom "Runtime: load code, bind buffers, submit".
+Separate amber side column: "Checkpoint weights" -> "Load / optional quantize, pack, shard" -> "Device weight buffers". Arrow from Device weight buffers into Runtime box, clearly label "data". Small note next to weights "May be embedded as constants in some AOT packages".
+Runtime arrow -> "Driver / command queues" -> "NPU / TPU hardware".
+Footer small readable text "Weights are tensor data. Compilation produces executable computation. Paths vary by backend."
+Avoid suggesting weights are transformed directly into instructions. Keep all arrows unambiguous with no crossing through boxes. Exact readable labels; no watermark.
