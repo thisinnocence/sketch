@@ -4,7 +4,7 @@ sphinx
 sphinx_rtd_theme
 furo
 myst_parser
-sphinxcontrib-mermaid
+sphinxcontrib-mermaid==3.0.0a1
 sphinx_copybutton
 sphinx_wagtail_theme
 sphinx-autobuild
