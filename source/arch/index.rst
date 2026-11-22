@@ -15,3 +15,5 @@
    数字芯片开发
    PCIe总线
    Linux-user-ELF程序
+   gem5逻辑架构
+   gem5访存流程

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 342" role="img" aria-labelledby="title desc">
+  <title id="title">Classic L1D 依赖解除与 retry</title>
+  <desc id="desc">A 就绪时仍等待 B。B 就绪后安排下一 Tick 的 retry 事件。事件同步通知 O3，load 在后续 CPU tick 重新参与仲裁。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0L8 4L0 8Z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="900" height="342" rx="16" fill="#f8fafc" stroke="#cbd5e1"/>
+  <g font-family="system-ui, 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif" fill="#172554" text-anchor="middle">
+    <text x="450" y="39" font-size="23" font-weight="700">资源就绪、通知与重新发射</text>
+    <g stroke-width="1.5">
+      <rect x="28" y="73" width="192" height="110" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+      <rect x="246" y="73" width="192" height="110" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+      <rect x="464" y="73" width="192" height="110" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+      <rect x="682" y="73" width="192" height="110" rx="10" fill="#ecfdf5" stroke="#86efac"/>
+    </g>
+    <g font-size="17" font-weight="700">
+      <text x="124" y="101">A 先就绪</text>
+      <text x="342" y="101">Tick t · B 就绪</text>
+      <text x="560" y="101">Tick t + 1 · retry</text>
+      <text x="778" y="101">后续 CPU tick</text>
+    </g>
+    <g font-size="14">
+      <text x="124" y="131">B 仍阻塞，T 关闭</text>
+      <text x="124" y="155">load 留在等待列表</text>
+      <text x="342" y="131">T 打开，blocked == 0</text>
+      <text x="342" y="155">schedule(sendRetryEvent)</text>
+      <text x="560" y="131">processSendRetry()</text>
+      <text x="560" y="155">同步通知 O3 端口</text>
+      <text x="778" y="131">重新参与发射仲裁</text>
+      <text x="778" y="155">取得资源后尝试发包</text>
+    </g>
+    <g fill="none" stroke="#475569" stroke-width="1.7" marker-end="url(#arrow)">
+      <path d="M221 128H244"/>
+      <path d="M439 128H462" stroke-dasharray="4 3"/>
+      <path d="M657 128H680" stroke-dasharray="4 3"/>
+    </g>
+    <text x="450" y="228" font-size="16" font-weight="700">O3 等待状态</text>
+    <rect x="84" y="246" width="346" height="44" rx="8" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="470" y="246" width="346" height="44" rx="8" fill="#fff" stroke="#cbd5e1"/>
+    <path d="M431 268H468" fill="none" stroke="#475569" stroke-width="1.7" marker-end="url(#arrow)"/>
+    <g font-family="monospace" font-size="16">
+      <text x="257" y="274">blockedMemInsts</text>
+      <text x="643" y="274">retryMemInsts</text>
+    </g>
+    <text x="450" y="320" font-size="14" fill="#334155">收到 retry 时转移等待列表，之后由 CPU tick 重新调度</text>
+  </g>
+</svg>
