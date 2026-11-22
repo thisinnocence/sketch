@@ -101,7 +101,6 @@ LLM 所需的数学工具
 
 .. list-table:: 主要符号
    :header-rows: 1
-   :widths: 18 24 58
 
    * - 符号
      - 类型或 Shape
@@ -217,7 +216,6 @@ LLM 所需的数学工具
 
 .. list-table:: 常用运算符
    :header-rows: 1
-   :widths: 24 76
 
    * - 写法
      - 含义

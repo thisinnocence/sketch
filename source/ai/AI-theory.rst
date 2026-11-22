@@ -21,7 +21,6 @@ Mixture of Experts（MoE，混合专家）和 Pipeline Parallelism（流水线�
 
 .. csv-table:: AI Theory Knowledge
    :header: "方向", "原题考点", "mental model"
-   :widths: 18, 38, 44
 
    "概率与线性代数", "方差、概率密度、PCA、SVD、向量相似度", "随机性如何传播；矩阵如何分解和降维"
    "机器学习", "正则化、交叉熵、聚类、推荐相似度", "目标函数、数据假设和泛化之间的关系"
@@ -1043,7 +1042,6 @@ Python 实现
 
 .. csv-table:: Inferred Theory Topics
    :header: "主题", "可能问法", "必须掌握"
-   :widths: 22, 38, 40
 
    "概率统计", "条件概率、Bayes、协方差、MLE/MAP、置信区间", "公式假设；独立、不相关、条件独立的区别"
    "优化", "SGD/AdamW、学习率、梯度累积、裁剪、正则化", "更新公式；收敛与显存/吞吐 trade-off"

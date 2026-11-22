@@ -13,7 +13,6 @@ Overview
 
 .. csv-table:: Data Structure & Algorithm Overview
    :header: "章节", "内容", "备注"
-   :widths: 18, 64, 18
 
    "复杂度分析", "时间复杂度、空间复杂度、Big O", "基础"
    "线性结构", "数组、链表、栈、队列、字符串", "基础"
@@ -227,7 +226,6 @@ Radix Tree（压缩前缀树）会把只有一个 child 的连续路径压缩成
 
 .. csv-table:: Tree in Practice
    :header: "需求", "常见结构", "原因"
-   :widths: 28, 28, 44
 
    "语法和层次关系", "AST / 普通多叉树", "结构天然具有 parent-child 关系"
    "外部存储索引与范围查询", "B+ tree", "分支多、树高低，适合 page I/O 和顺序扫描"

@@ -14,7 +14,6 @@ CPU, memory, disk, device 抽象成 process, virtual memory, file, pipe, socket 
 
 .. csv-table:: Operating System Overview
    :header: "章节", "内容", "核心问题"
-   :widths: 18, 54, 28
 
    "Kernel / User", "privilege mode, system call, trap, interrupt", "用户程序如何安全进入内核"
    "Architecture", "ISA, privilege level, MMU, cache, interrupt, atomic instruction", "OS 依赖哪些硬件机制"

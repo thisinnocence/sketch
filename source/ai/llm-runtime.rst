@@ -79,7 +79,6 @@ Llama 2 风格模型的 CPU 推理路径跑通，代码短，又接近真实 run
 
 .. csv-table:: Demo Choice
    :header: "项目", "代码规模 / 关注点", "适合建立的模型", "取舍"
-   :widths: 18, 32, 30, 20
 
    "llama2.c", "``run.c`` 约 973 行 C；model weights + tokenizer + decode loop", "推理 runtime、内存布局、CPU 热点", "贴近系统背景"
    "picoGPT", "GPT-2 forward pass 可压到几十行 NumPy", "Transformer forward 的最小数学路径", "系统 runtime 味道弱"
@@ -111,7 +110,6 @@ llama2.c 模块
 
 .. csv-table:: llama2.c Runtime Modules
    :header: "模块", "大致职责", "系统视角"
-   :widths: 22, 44, 34
 
    "``Config``", "保存模型维度、层数、head 数、vocab size、context length", "类似文件头里的 ABI / layout metadata"
    "``TransformerWeights``", "把模型权重文件中的连续权重切成多个 typed pointer", "类似对 mmap 区域做结构化视图"
@@ -433,7 +431,6 @@ RunState
 
 .. csv-table:: RunState Mental Model
    :header: "数据", "生命周期", "作用"
-   :widths: 24, 28, 48
 
    "activation buffer", "一次 forward 内反复复用", "保存当前 layer 的中间结果，如 ``x``、``xb``、``hb``"
    "attention buffer", "一次 attention 计算内复用", "保存当前位置对历史位置的 attention score"
@@ -664,7 +661,6 @@ int4 或更低精度是其他推理框架常见的进一步量化方案，不是
 
 .. csv-table:: Precision Tradeoff
    :header: "形式", "优点", "代价"
-   :widths: 18, 42, 40
 
    "float32", "代码简单，数值路径直观", "模型权重文件大，带宽压力大，CPU 慢"
    "int8 quantization", "模型更小，内存读更少，整数计算可能更快", "代码复杂，需要 scale / dequantize，精度略降"

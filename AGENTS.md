@@ -53,3 +53,9 @@
   Check that identifiers render as inline code and no markup delimiters
   show in the surrounding prose. Sphinx can build successfully even
   when inline markup appears as plain text.
+
+# Table column widths
+
+- Use the default column layout for all documentation tables. Omit the
+  reStructuredText `:widths:` option, including `:widths: auto`, and avoid
+  explicit per-column width settings in other table formats.

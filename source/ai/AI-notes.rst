@@ -861,7 +861,6 @@ token 表示 :math:`x` 给出各专家分数。选出分数最高的集合 :math
 
 .. list-table::
    :header-rows: 1
-   :widths: 24 18 58
 
    * - 模型/系列
      - 公开可确认的类别

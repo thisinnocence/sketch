@@ -316,7 +316,6 @@ NPU 与 CPU / GPU 的核心区别
 
 .. list-table::
    :header-rows: 1
-   :widths: auto
 
    * - 维度
      - CPU
@@ -379,7 +378,6 @@ AOT、JIT 与逐算子执行
 
 .. list-table::
    :header-rows: 1
-   :widths: 16 28 28 28
 
    * - 执行方式
      - 何时编译
@@ -547,7 +545,6 @@ Attention
 
 .. list-table::
    :header-rows: 1
-   :widths: auto
 
    * - 计算阶段
      - 主要执行单元
@@ -680,7 +677,6 @@ Scale-up 和 Scale-out 的边界并不严格由卡数决定，而是由具体网
 
 .. list-table::
    :header-rows: 1
-   :widths: auto
 
    * - 并行方式
      - 核心机制
