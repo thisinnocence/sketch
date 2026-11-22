@@ -1,46 +1,6 @@
 SoC 总线协议
 ############
 
-从 doorbell 到 DMA
-========================================
-
-**Doorbell（门铃）** 是一种通知机制。以 DMA 提交队列为例，驱动先把工作写进共享内存，
-再通过 MMIO 写设备的 doorbell 寄存器，告诉设备「队列里有新工作」。
-设备手册定义写入值的含义。有的寄存器只需写一个通知值，有的要求写入新的队尾索引。
-
-#. **准备工作**\ 。假设提交队列原本为空，队头和队尾都在槽位 4。
-   驱动填好槽位 4、5 的描述符，其中包含输入和输出缓冲区的 DMA 地址、长度等信息。
-#. **通知设备**\ 。驱动按 DMA 映射和设备的排序要求发布描述符，再用 MMIO 写入新队尾 6。
-   设备由此知道槽位 4、5 可以消费，一次 doorbell 就提交了两笔工作。
-   NVMe 的 Submission Queue Tail Doorbell 就采用这种写队尾的方式。
-#. **执行并报告完成**\ 。设备用 DMA 读取描述符，再访问描述符指向的缓冲区。
-   处理结束后，设备可写完成队列或更新状态寄存器，也可发 IRQ 通知 CPU。
-   对驱动而言，写 doorbell 是提交动作，完成状态才是回收这批缓冲区的依据之一。
-
-驱动需要保证设备在收到通知后能读到已发布的描述符。以内存中的 ownership 字段为例，
-Linux 驱动可用 ``dma_wmb()`` 排序描述符内容和 ownership 的写入，
-再用满足相应 MMIO 排序要求的 accessor 写 doorbell。若映射需要 cache 同步，
-还需按 DMA API 的要求把缓冲区交给设备。参见 `Linux 内存屏障文档`_ 和 `NVMe PCIe 传输规范`_。
-
-**GICv4 中的 doorbell** 也用于通知，但收件人是 hypervisor。
-当一个虚拟中断变为 pending，而目标 vPE（虚拟处理单元）当前未装载到物理核的 GIC 接口时，
-在已配置 doorbell 且触发条件满足的情况下，GIC 可以发出一个物理 doorbell IRQ。
-这条 IRQ 告诉 hypervisor「这个 vPE 有待处理的虚拟中断」，供它决定何时调度目标 vCPU。
-因此在 DMA 例子里，是驱动通过寄存器写通知设备取队列；在 GICv4 例子里，
-是中断控制器通过物理 IRQ 通知 hypervisor 处理待运行的 vPE。
-参见 `ARM GICv3/v4 虚拟化导读`_ 的图 5-4。
-
-回到 DMA 提交队列，下面的 SoC 示例分别画出了寄存器写和 DMA 读的路径。
-CPU 发出的 MMIO 写可以经 AXI-to-APB bridge 到达控制寄存器；
-DMA engine 发出的内存读则可以经 SMMU、I/O bridge 和一致性互连访问共享内存。
-
-.. figure:: pic/amba/soc.svg
-   :width: 640px
-   :align: center
-   :alt: CPU 的控制路径与设备的 DMA 路径
-
-   一种 SoC 集成方式。箭头表示请求方向，响应沿相应接口返回。
-
 **AMBA（Advanced Microcontroller Bus Architecture）** 是 ARM 发布的一组接口规范。
 规范定义信号、消息、握手、顺序约束和端点义务。
 芯片集成则要选定拓扑、地址映射、接口位宽、缓冲深度、仲裁和时钟域。
@@ -70,8 +30,13 @@ DMA engine 发出的内存读则可以经 SMMU、I/O bridge 和一致性互连�
 AXI：地址、数据与完成
 ========================================
 
-以 memory-mapped AXI4 为例，AXI4-Lite 是适合控制寄存器的单 beat 子集，
-AXI4-Stream 则是用于流式数据的独立接口。AXI5 与 ACE 的扩展能力应按对应版本查阅。
+**Beat** 是数据通道完成一次握手所交接的一份数据。
+以 32 位 AXI4-Lite 接口读取一个 32 位寄存器为例，地址先在 AR 通道交接，
+随后 R 通道一次交接 4 B 数据，这次数据交接就是一个 beat。
+如果接收端暂时没有准备好，同一个 beat 可以等多个时钟周期才交接。
+
+AXI4-Lite 是适合控制寄存器的 AXI4 子集，每笔读或写事务只有一个数据 beat。
+AXI4-Stream 是用于流式数据的独立接口。AXI5 与 ACE 的扩展能力应按对应版本查阅。
 参见 `ARM AXI 规范`_ 和 `ARM AXI 导读`_。
 
 .. figure:: pic/amba/axi.svg
@@ -136,10 +101,10 @@ AxBURST 选择 FIXED、INCR 或 WRAP，burst 不得跨过 4 KiB 边界。
 不同 ID 可以支持乱序完成。读写采用相同 ID 无法提供跨方向的内存排序。
 互连可能需要记录请求来自哪个入口、改写 ID 以消除冲突、
 为 W 保留 AW 选中的出口，以及处理同 ID 跨目标访问的返回顺序。
-AXI 的 B 响应说明写事务的完成，doorbell 触发的业务要由设备另行报告。
+AXI 的 B 响应说明写事务的完成。若写寄存器触发了设备操作，设备可另行报告操作完成。
 
-CHI：节点、缓存行和信用流控
-========================================
+CHI: Nodes, Cache Lines, and Credit-Based Flow Control
+======================================================
 
 同一 cache line 可以在多个 private cache 中有干净副本。
 一个 core 写这条 line 前需要取得写权限并使其他旧副本失效。
@@ -188,32 +153,6 @@ bridge 根据地址与事务属性生成 CHI 请求，由 Home 处理与 CPU cac
 是否保证共享 buffer 的一致性，要沿入口端口、bridge、地址窗口和内存属性核对。
 完全一致的缓存端点还要实现 snoop 和相应的状态转换。
 
-MMU、SMMU 和 DMA engine
-========================================
-
-**CPU MMU** 将 CPU VA 转成物理地址或下一阶段地址，并检查权限、提供内存属性。
-CPU cache 命中可能没有外部访问，cache miss、writeback 和页表 walk 才可能使用互连。
-**DMA engine** 从描述符获得地址和长度，自行发出内存事务。
-**SMMU** 实现 ARM 平台的 IOMMU 功能。SMMUv3 通过 StreamID 查 Stream Table Entry（STE），
-启用 stage 1 时在 STE 指定的结构中选择 Context Descriptor（CD），可以用 SubstreamID 区分上下文。
-启用 stage 2 时，STE 也携带相应配置。IOTLB 未命中可能引发页表读取，地址或权限错误按配置报告故障。
-参见 `ARM SMMUv3 规范`_。
-
-以 Linux 驱动提交 DMA buffer 为例：
-
-#. 驱动准备 buffer 并通过 DMA API 获得 DMA address。CPU 用自己的 VA 访问，
-   设备使用 DMA address。启用 IOMMU 映射时后者通常是 IOVA。
-#. 驱动记录 DMA address 和长度，按队列规则完成同步和发布，再写 doorbell。
-   DMA engine 发出取描述符和搬运 payload 的读写。
-#. 经过 SMMU 的事务被翻译和检查，随后进入互连。
-   coherent I/O 路径可探测 CPU cache，non-coherent 路径依赖映射属性与软件执行的 cache maintenance。
-#. 设备按定义报告完成。当驱动观察到完成、执行必要的排序和 DMA 同步后，
-   CPU 才接回 buffer 所有权并读取结果。
-
-SMMU 翻译、I/O coherence 和设备完成分别回答三个问题：能访问哪里、能看到哪个版本、
-什么时候可以接回所有权。SMMU 自身的页表 walk 是否 coherent，
-也应与 payload 的一致性路径分别确认。参见 `Linux DMA API 指南`_。
-
 互连拓扑、路由和仲裁
 ========================================
 
@@ -244,6 +183,14 @@ SMMU 翻译、I/O coherence 和设备完成分别回答三个问题：能访问�
    * - Mesh
      - 节点按网格连接
      - 选择下一跳，在各 router 上仲裁输出端口
+
+.. figure:: pic/amba/topologies.svg
+   :width: 620px
+   :align: center
+   :alt: 四种互连拓扑。Shared bus 共用通路，Crossbar switch 同时连接两组端口，Ring 标出从 0 经 1 到 2 的路径，Mesh 按网格连接路由节点。
+
+   四种互连拓扑示意。M 表示发起端，S 表示目标端。Crossbar 中的绿线表示两条可并行的连接，
+   Ring 中的绿线表示从节点 0 经节点 1 到节点 2 的两跳路径。Mesh 中每个圆点代表一个 router。
 
 设单向环连接顺序为 0、1、2、3、0。节点 0 给节点 2 发消息，
 经过节点 1 时比较目标 ID 后向前转发，到节点 2 取出。
@@ -294,18 +241,13 @@ Access 置 PENABLE。PREADY 为低时延长 Access 并保持信号，
   支持字节写的实现还要按 PSTRB 更新。bridge 可用寄存器保存 Idle、
   Setup、Access 状态及上游请求的地址和数据。
 
-SystemVerilog 通常用 ``always_comb`` 或连续赋值描述组合逻辑，
-用 ``always_ff`` 表达寄存器。在 Chisel 中可以用 ``Wire``\ 、``Mux``
-建立组合路径，用 ``RegInit``\ 、``RegEnable`` 和 ``Queue`` 表达存储与排队。
-``Decoupled`` 提供 ready/valid 接口形状，AXI 的停顿锁存、排序等规则仍须由模块实现。
-
 AXI 与 APB 若处于异步时钟域，bridge 必须把请求、数据与完成一起交接。
 单比特稳定控制信号可经同步器，多比特 payload 可以用握手保持整体稳定，
 或用带 Gray 指针同步的 asynchronous FIFO。逐位同步无法保证在接收侧拿到同一笔数据。
 设计还要规定 reset 释放以及如何清空跨域的在途事务。
-参见 `Chisel 接口文档`_ 与 `PULP AXI RTL`_ 的 axi_xbar 和 axi_cdc。
+参见 `PULP AXI RTL`_ 的 axi_xbar 和 axi_cdc。
 
-带宽、时延与频率
+Bandwidth, Latency, and Frequency
 ========================================
 
 对每周期最多交接一个 beat 的同步数据通道，理论单向峰值为
@@ -321,7 +263,7 @@ AXI 与 APB 若处于异步时钟域，bridge 必须把请求、数据与完成�
 还要检查 ID、队列深度和目标实际服务能力。
 比较测量值时应注明端点、traffic pattern、并发、读写比及首 beat、尾 beat 或 P99 口径。
 
-一致性成本与加速卡
+Coherence Costs and Accelerator Cards
 ========================================
 
 硬件一致性可能增加 directory 或 snoop filter 元数据、cache tag/state、
@@ -350,7 +292,7 @@ DPU 则以 AXI 访问板载 HBM。AMD 指南讨论了 AXI 端口和 HBM pseudo-c
 的分层。卡内 AXI 通路和 host PCIe DMA 可见性需要分别按接口契约判断。
 参见 `U50 平台指南`_ 与 `DPU HBM 配置`_。
 
-从规范到互连 IP
+From Specifications to Interconnect IP
 ========================================
 
 ARM 发布 AMBA 规范，也授权具体互连 IP。
@@ -394,15 +336,10 @@ Ruby 可经 ``RubyPort::MemResponsePort::recvTimingReq()`` 和
 .. _ARM CHI 导读: https://documentation-service.arm.com/static/682600710aae2a5d8f044978
 .. _ARM AHB 规范: https://developer.arm.com/documentation/ihi0033/latest/
 .. _ARM APB 规范: https://developer.arm.com/documentation/ihi0024/latest/
-.. _ARM SMMUv3 规范: https://documentation-service.arm.com/static/6813b2bbefb0f21122c144c2
 .. _Linux DMA API 指南: https://docs.kernel.org/core-api/dma-api-howto.html
-.. _Linux 内存屏障文档: https://docs.kernel.org/core-api/wrappers/memory-barriers.html
-.. _NVMe PCIe 传输规范: https://nvmexpress.org/wp-content/uploads/NVM-Express-PCI-Express-Transport-Specification-Revision-1.2-2025.03.11-Ratified.pdf
-.. _ARM GICv3/v4 虚拟化导读: https://documentation-service.arm.com/static/65b7c197c2052a35156cc31a
 .. _剑桥大学 SoC 课件: https://www.cl.cam.ac.uk/teaching/1112/SysOnChip/socdam1112.pdf
 .. _得州大学 SoC 课件: https://users.ece.utexas.edu/~gerstl/ee382v_f14/lectures/lecture_12.pdf
 .. _PULP AXI RTL: https://github.com/pulp-platform/axi
-.. _Chisel 接口文档: https://www.chisel-lang.org/docs/explanations/interfaces-and-connections
 .. _U50 平台指南: https://docs.amd.com/r/en-US/ug1120-alveo-platforms/U50-Gen3x16-XDMA-base_5-Platform
 .. _DPU HBM 配置: https://docs.amd.com/r/en-US/pg367-dpucahx8h/Configuring-the-HBM
 .. _ARM CMN-700: https://www.arm.com/products/silicon-ip-system/corelink-interconnect/cmn-700

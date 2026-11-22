@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="382" viewBox="0 0 620 382" role="img" aria-labelledby="title">
+  <title id="title">Shared bus, crossbar switch, ring, and mesh topologies</title>
+  <style>
+    text { font: 16px system-ui, sans-serif; fill: #19334f; text-anchor: middle }
+    .heading { font-weight: 650 }
+    .panel { fill: #f8fbff; stroke: #b8cadf }
+    .node { fill: #eaf3ff; stroke: #5e7da3; stroke-width: 1.4 }
+    .link { fill: none; stroke: #5e7da3; stroke-width: 2 }
+    .active { fill: none; stroke: #00765d; stroke-width: 3 }
+    .wire { fill: none; stroke: #b1c1d4; stroke-width: 1.5 }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#5e7da3"/>
+    </marker>
+    <marker id="active-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#00765d"/>
+    </marker>
+    <rect id="port" class="node" width="44" height="30" rx="5"/>
+  </defs>
+
+  <g>
+    <rect class="panel" x="1" y="1" width="300" height="180" rx="9"/>
+    <text class="heading" x="151" y="29">Shared bus</text>
+    <path class="link" d="M42 104H260 M84 79V104 M218 79V104 M84 104V129 M218 104V129"/>
+    <use href="#port" x="62" y="49"/><text x="84" y="70">M0</text>
+    <use href="#port" x="196" y="49"/><text x="218" y="70">M1</text>
+    <use href="#port" x="62" y="129"/><text x="84" y="150">S0</text>
+    <use href="#port" x="196" y="129"/><text x="218" y="150">S1</text>
+  </g>
+
+  <g transform="translate(318)">
+    <rect class="panel" x="1" y="1" width="300" height="180" rx="9"/>
+    <text class="heading" x="151" y="29">Crossbar switch</text>
+    <path class="wire" d="M86 72H235 M86 110H235 M137 59V140 M202 59V140"/>
+    <path class="active" d="M86 110H202V138" marker-end="url(#active-arrow)"/>
+    <path class="active" d="M86 72H137V138" marker-end="url(#active-arrow)"/>
+    <circle cx="137" cy="72" r="4" fill="#00765d"/>
+    <circle cx="202" cy="110" r="4" fill="#00765d"/>
+    <use href="#port" x="42" y="57"/><text x="64" y="78">M0</text>
+    <use href="#port" x="42" y="95"/><text x="64" y="116">M1</text>
+    <use href="#port" x="115" y="140"/><text x="137" y="161">S0</text>
+    <use href="#port" x="180" y="140"/><text x="202" y="161">S1</text>
+  </g>
+
+  <g transform="translate(0 200)">
+    <rect class="panel" x="1" y="1" width="300" height="180" rx="9"/>
+    <text class="heading" x="151" y="29">Ring</text>
+    <path class="active" d="M108 65H192" marker-end="url(#active-arrow)"/>
+    <path class="active" d="M218 81V126" marker-end="url(#active-arrow)"/>
+    <path class="link" d="M194 143H110" marker-end="url(#arrow)"/>
+    <path class="link" d="M84 127V82" marker-end="url(#arrow)"/>
+    <use href="#port" x="62" y="50"/><text x="84" y="71">0</text>
+    <use href="#port" x="196" y="50"/><text x="218" y="71">1</text>
+    <use href="#port" x="196" y="128"/><text x="218" y="149">2</text>
+    <use href="#port" x="62" y="128"/><text x="84" y="149">3</text>
+  </g>
+
+  <g transform="translate(318 200)">
+    <rect class="panel" x="1" y="1" width="300" height="180" rx="9"/>
+    <text class="heading" x="151" y="29">Mesh</text>
+    <path class="link" d="M87 57H215 M87 105H215 M87 153H215 M87 57V153 M151 57V153 M215 57V153"/>
+    <g class="node">
+      <circle cx="87" cy="57" r="9"/><circle cx="151" cy="57" r="9"/><circle cx="215" cy="57" r="9"/>
+      <circle cx="87" cy="105" r="9"/><circle cx="151" cy="105" r="9"/><circle cx="215" cy="105" r="9"/>
+      <circle cx="87" cy="153" r="9"/><circle cx="151" cy="153" r="9"/><circle cx="215" cy="153" r="9"/>
+    </g>
+  </g>
+</svg>
