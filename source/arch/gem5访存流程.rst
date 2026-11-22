@@ -8,7 +8,7 @@ gem5 访存流程
 
 **时钟周期的取整** gem5 在初始化时将时钟周期四舍五入为整数 Tick，时钟域在该频点使用固定周期。例如默认 1 Tick = 1 ps 时，5.7 GHz 对应约 175.4386 Tick，取整为 175 Tick。每周期的余数不会累积到下一周期， 因此 gem5 按取整后的周期计算，57 个周期经过 9,975 Tick（9.975 ns）。 按设定的 5.7 GHz 直接计算，57 个周期应为 10 ns（对应 10,000 Tick）。 两者相差 25 ps，来自 gem5 对单周期的取整。 `周期换算 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/python/m5/ticks.py#L77>`__ · `时钟域 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/sim/clock_domain.cc#L115>`__
 
-源码基线 `f5c5a6e390 <https://github.com/gem5/gem5/commit/f5c5a6e390f55dd5984977815bf9d0bd05da6945>`__\ 。本文用单核、单 guest 线程、默认同一 EventQueue、 AArch64 O3 CPU、SE、Timing、Classic L1D 和 DRAM 来读普通 ``ldr x0, [x1]`` 与 ``str x0, [x1]``\ 。假设地址有效、访问对齐且在一个 cache line 内，内存可缓存。下文的跨周期行为都以这组模型为准。
+源码基线 `f5c5a6e390 <https://github.com/gem5/gem5/tree/f5c5a6e390f55dd5984977815bf9d0bd05da6945>`__\ 。本文用单核、单 guest 线程、默认同一 EventQueue、 AArch64 O3 CPU、SE、Timing、Classic L1D 和 DRAM 来读普通 ``ldr x0, [x1]`` 与 ``str x0, [x1]``\ 。假设地址有效、访问对齐且在一个 cache line 内，内存可缓存。下文的跨周期行为都以这组模型为准。
 
 先记住两个完成点。\ **Load 得到数据后写入物理寄存器，再经过依赖唤醒和 按序退休。Store 在执行时把数据放入 SQ，先退休，之后才从 SQ 发往 缓存，收到响应后回收 SQ。** 两者都能让 CPU 与其他在途指令重叠工作。
 

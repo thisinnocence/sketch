@@ -1,7 +1,7 @@
 gem5 逻辑架构
 =============
 
-源码阅读基线为 `f5c5a6e390 <https://github.com/gem5/gem5/commit/f5c5a6e390f55dd5984977815bf9d0bd05da6945>`__\ 。
+源码阅读基线为 `f5c5a6e390 <https://github.com/gem5/gem5/tree/f5c5a6e390f55dd5984977815bf9d0bd05da6945>`__\ 。
 
 gem5 是一个模块化的离散事件计算机系统模拟器。一次实验先用 Python 搭建 目标机器、指定 workload，再由 C++ 模型执行指令、处理访存和设备操作。 各模型通过端口交换请求与响应，通过事件队列推进模拟时间。 实验结束或到达指定阶段时，可以读取统计量，或保存 checkpoint 供后续实验恢复。 `Learning gem5 官方概览 <https://www.gem5.org/documentation/learning_gem5/introduction/>`__
 
@@ -9,6 +9,7 @@ gem5 是一个模块化的离散事件计算机系统模拟器。一次实验先
 --------
 
 .. image:: pic/gem5/gem5-v20-architecture-fig4.png
+   :width: 50%
    :alt: 论文图 4：gem5 的模块化架构
 
 *Lowe-Power 等，2020，The gem5 Simulator: Version 20.0+，第 1.3 节图 4。 从论文第 6 页截取原图，图内内容保持原样，许可为 CC BY 4.0。* `ResearchGate 图页 <https://www.researchgate.net/figure/An-overview-of-gem5s-architecture-Its-modular-components-allow-any-of-each-model-type_fig1_342763366>`__ · `arXiv 原文，第 6 页 <https://arxiv.org/pdf/2007.03152v1#page=6>`__ · `CC BY 4.0 <https://creativecommons.org/licenses/by/4.0/>`__
