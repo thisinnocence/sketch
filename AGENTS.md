@@ -36,3 +36,20 @@
   interpreter selection, select `.venv/bin/python` and reload the window.
 - Reuse an existing working `.venv`; do not recreate it for each build.
   Keep `.venv/` and generated `build/` files out of version control.
+
+# Chinese text and reStructuredText inline markup
+
+- Delimit inline literals, emphasis, and links from adjacent Chinese text
+  with spaces. Where the rendered text needs to run together, use a
+  backslash followed by a space in the source.
+
+  ```rst
+  调用 ``read()``\ 。
+  **时序**\ 由 ``read()`` 决定。
+  ```
+- Keep inline literals and emphasis separate. reStructuredText does not
+  support nesting inline literals inside bold or italic text.
+- After editing or converting inline markup, preview the built HTML.
+  Check that identifiers render as inline code and no markup delimiters
+  show in the surrounding prose. Sphinx can build successfully even
+  when inline markup appears as plain text.

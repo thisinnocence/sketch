@@ -186,9 +186,9 @@ SQ 转发路径的 ``WritebackEvent::process()`` 也进入 ``LSQUnit::writeback(
 DDR 数据在哪里读出
 ~~~~~~~~~~~~~~~~~~
 
-**功能读发生在 ``AbstractMemory::access()`` 的 ``pkt->setData(host_addr)``\ 。** ``Packet::setData()`` 调用 ``std::memcpy``\ ，把模拟物理内存中的字节拷进包。 上游 L1D 发出的是 line 请求，所以本例拷贝 64 字节，L1D 再取出 ``ldr`` 需要的 8 字节。 `功能读取 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/abstract_mem.cc#L449>`__ · `字节拷贝 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/packet.hh#L1303>`__
+**功能读**\ 发生在 ``AbstractMemory::access()`` 的 ``pkt->setData(host_addr)``\ 。 ``Packet::setData()`` 调用 ``std::memcpy``\ ，把模拟物理内存中的字节拷进包。 上游 L1D 发出的是 line 请求，所以本例拷贝 64 字节，L1D 再取出 ``ldr`` 需要的 8 字节。 `功能读取 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/abstract_mem.cc#L449>`__ · `字节拷贝 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/packet.hh#L1303>`__
 
-**时序由 ``DRAMInterface::doBurstAccess()`` 决定。** 它根据 bank、row 和 总线约束算出 ``readyTime``\ 。响应事件到期且读请求所需 burst 全部就绪后， 控制器进入上面的功能读，再安排把包送回缓存。 `DRAM 时序 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/dram_interface.cc#L347>`__ · `响应事件 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/mem_ctrl.cc#L488>`__
+**时序**\ 由 ``DRAMInterface::doBurstAccess()`` 决定。 它根据 bank、row 和 总线约束算出 ``readyTime``\ 。响应事件到期且读请求所需 burst 全部就绪后， 控制器进入上面的功能读，再安排把包送回缓存。 `DRAM 时序 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/dram_interface.cc#L347>`__ · `响应事件 <https://github.com/gem5/gem5/blob/f5c5a6e390f55dd5984977815bf9d0bd05da6945/src/mem/mem_ctrl.cc#L488>`__
 
 资源何时可用还不知道，请求在哪里等
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
