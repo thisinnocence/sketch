@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="590" viewBox="0 0 1260 590" role="img" aria-labelledby="title">
+<title id="title">CHI fabric, Home Node, and transaction paths</title>
+<style>
+text { font: 17px system-ui, sans-serif; text-anchor: middle; fill: #19334f }
+.bold { font-weight: 650 } .heading { font-size: 24px; font-weight: 700 } .small { font-size: 15px }
+rect { stroke-width: 1.5 }
+.fabric { fill: #fcf7ea; stroke: #d4a243 }
+.source { fill: #e9f2ff; stroke: #5c91ce }
+.target { fill: #e6f5ec; stroke: #63a280 }
+.buffer { fill: #f1eafa; stroke: #9b79bd }
+.decode { fill: #fff0cc; stroke: #d4a243 }
+.arb { fill: #fae8ef; stroke: #cb7493 }
+.flow,.reply,.select { fill: none; stroke-width: 2; stroke-linejoin: round }
+.flow { stroke: #395979 } .reply { stroke: #7547a9 } .select { stroke: #267260; stroke-dasharray: 5 4 }
+</style>
+<defs><marker id="flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#395979"/></marker><marker id="reply" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7547a9"/></marker><marker id="select" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#267260"/></marker></defs>
+<rect width="1260" height="590" rx="10" fill="#fbfcfe"/>
+<g transform="translate(62 0)">
+<rect x="194" y="34" width="505" height="327" rx="18" class="fabric"/>
+<text x="446" y="72" class="heading">CHI Interconnect / Fabric</text>
+<rect x="733" y="34" width="292" height="420" rx="18" class="buffer"/>
+<text x="879" y="72" class="heading">Home Node · HN-F</text>
+<rect x="20" y="115" width="142" height="60" rx="11" class="source"/><text x="91.0" y="138.5" class="bold">Cluster A</text><text x="91.0" y="163.5" class="small">RN-F requester</text>
+<rect x="20" y="393" width="142" height="60" rx="11" class="source"/><text x="91.0" y="416.5" class="bold">Cluster B</text><text x="91.0" y="441.5" class="small">RN-F peer</text>
+<rect x="20" y="233" width="142" height="60" rx="11" class="source"/><text x="91.0" y="256.5" class="bold">I/O Bridge</text><text x="91.0" y="281.5" class="small">RN-I</text>
+<rect x="216" y="162" width="125" height="112" rx="11" class="decode"/><text x="278.5" y="199.0" class="bold">System Map</text><text x="278.5" y="224.0" class="small">SAM</text><text x="278.5" y="249.0" class="small">Addr → TgtID</text>
+<rect x="369" y="162" width="132" height="112" rx="11" class="decode"/><text x="435.0" y="199.0" class="bold">Routing</text><text x="435.0" y="224.0" class="small">TgtID</text><text x="435.0" y="249.0" class="small">Next hop</text>
+<rect x="530" y="162" width="147" height="112" rx="11" class="arb"/><text x="603.5" y="199.0" class="bold">Arbitration</text><text x="603.5" y="224.0" class="small">Output grant</text><text x="603.5" y="249.0" class="small">Credit check</text>
+<rect x="758" y="117" width="242" height="64" rx="11" class="target"/><text x="879.0" y="142.5" class="bold">Directory / Snoop Filter</text><text x="879.0" y="167.5" class="small">Find possible holders</text>
+<path d="M879 199L970 244L879 289L788 244Z" class="decode"/>
+<text x="879" y="250" class="bold">Snoop needed?</text>
+<rect x="758" y="324" width="242" height="64" rx="11" class="target"/><text x="879.0" y="349.5" class="bold">Select Data Source</text><text x="879.0" y="374.5" class="small">Cache or memory</text>
+<rect x="758" y="406" width="242" height="36" rx="11" class="target"/><text x="879.0" y="430.0" class="bold">Complete Coherence</text>
+<rect x="1056" y="324" width="114" height="64" rx="11" class="target"/><text x="1113.0" y="349.5" class="bold">Memory</text><text x="1113.0" y="374.5" class="small">SN</text>
+<rect x="375" y="508" width="425" height="49" rx="11" class="buffer"/><text x="587.5" y="538.5" class="bold">Response / Data → Requester</text>
+<path d="M162 145H182V184H216" class="flow" marker-end="url(#flow)"/>
+<path d="M162 263H182V246H216" class="flow" marker-end="url(#flow)"/>
+<path d="M341 218H369" class="flow" marker-end="url(#flow)"/>
+<path d="M501 218H530" class="flow" marker-end="url(#flow)"/>
+<path d="M677 208H716V149H758" class="flow" marker-end="url(#flow)"/>
+<path d="M879 181V199" class="flow" marker-end="url(#flow)"/>
+<path d="M879 289V324" class="flow" marker-end="url(#flow)"/>
+<text x="917" y="312" class="small">No</text>
+<path d="M788 244H710V409H162" class="select" marker-end="url(#select)"/>
+<text x="465" y="399" class="small">Yes · SNP to peer cache</text>
+<path d="M162 439H719V360H758" class="reply" marker-end="url(#reply)"/>
+<text x="464" y="430" class="small">Snoop response · RSP / DAT</text>
+<path d="M1000 342H1056" class="flow" marker-end="url(#flow)"/>
+<path d="M1056 371H1000" class="reply" marker-end="url(#reply)"/>
+<text x="1092" y="310" class="small">If needed</text>
+<path d="M879 388V406" class="flow" marker-end="url(#flow)"/>
+<path d="M879 442V533H800" class="reply" marker-end="url(#reply)"/>
+<path d="M375 533H-28V211H91V175" class="reply" marker-end="url(#reply)"/>
+</g>
+</svg>

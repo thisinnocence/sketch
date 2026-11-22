@@ -13,9 +13,9 @@
   <rect width="600" height="232" rx="9" style="fill:#f8fbff;stroke:none"/>
   <rect x="16" y="16" width="120" height="200" rx="7"/><text x="76.0" y="121.0">Manager</text>
   <rect x="464" y="16" width="120" height="200" rx="7"/><text x="524.0" y="121.0">Subordinate</text>
-  <path d="M138 49 L462 49" marker-end="url(#arrow)"/><text x="300.0" y="41.0">AR · 读地址</text>
-  <path d="M462 87 L138 87" marker-end="url(#arrow)"/><text x="300.0" y="79.0">R · 读数据与状态</text>
-  <path d="M138 125 L462 125" marker-end="url(#arrow)"/><text x="300.0" y="117.0">AW · 写地址</text>
-  <path d="M138 163 L462 163" marker-end="url(#arrow)"/><text x="300.0" y="155.0">W · 写数据</text>
-  <path d="M462 201 L138 201" marker-end="url(#arrow)"/><text x="300.0" y="193.0">B · 写响应</text>
+  <path d="M138 49 L462 49" marker-end="url(#arrow)"/><text x="300.0" y="41.0">AR · Read Address</text>
+  <path d="M462 87 L138 87" marker-end="url(#arrow)"/><text x="300.0" y="79.0">R · Read Data</text>
+  <path d="M138 125 L462 125" marker-end="url(#arrow)"/><text x="300.0" y="117.0">AW · Write Address</text>
+  <path d="M138 163 L462 163" marker-end="url(#arrow)"/><text x="300.0" y="155.0">W · Write Data</text>
+  <path d="M462 201 L138 201" marker-end="url(#arrow)"/><text x="300.0" y="193.0">B · Write Response</text>
 </svg>

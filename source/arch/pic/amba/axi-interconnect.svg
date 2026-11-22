@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1010" height="514" viewBox="0 0 1010 514" role="img" aria-labelledby="title">
+<title id="title">AXI crossbar functional blocks and transaction paths</title>
+<style>
+text { font: 17px system-ui, sans-serif; text-anchor: middle; fill: #19334f }
+.bold { font-weight: 650 } .heading { font-size: 24px; font-weight: 700 } .small { font-size: 15px }
+rect { stroke-width: 1.5 }
+.fabric { fill: #fcf7ea; stroke: #d4a243 }
+.source { fill: #e9f2ff; stroke: #5c91ce }
+.target { fill: #e6f5ec; stroke: #63a280 }
+.buffer { fill: #f1eafa; stroke: #9b79bd }
+.decode { fill: #fff0cc; stroke: #d4a243 }
+.arb { fill: #fae8ef; stroke: #cb7493 }
+.flow,.reply,.select { fill: none; stroke-width: 2; stroke-linejoin: round }
+.flow { stroke: #395979 } .reply { stroke: #7547a9 } .select { stroke: #267260; stroke-dasharray: 5 4 }
+</style>
+<defs><marker id="flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#395979"/></marker><marker id="reply" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7547a9"/></marker><marker id="select" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#267260"/></marker></defs>
+<rect width="1010" height="514" rx="10" fill="#fbfcfe"/>
+<rect x="164" y="28" width="688" height="378" rx="18" class="fabric"/>
+<text x="508" y="61" class="heading">AXI Interconnect / Crossbar</text>
+<rect x="14" y="100" width="122" height="67" rx="12" class="source"/><text x="75.0" y="128.0" class="bold">CPU</text><text x="75.0" y="153.0" class="small">Manager 0</text>
+<rect x="14" y="200" width="122" height="67" rx="12" class="source"/><text x="75.0" y="228.0" class="bold">NPU</text><text x="75.0" y="253.0" class="small">Manager 1</text>
+<rect x="14" y="300" width="122" height="67" rx="12" class="source"/><text x="75.0" y="328.0" class="bold">DMA</text><text x="75.0" y="353.0" class="small">Manager 2</text>
+<rect x="181" y="99" width="132" height="267" rx="12" class="buffer"/><text x="247.0" y="214.5" class="bold">Input Buffers</text><text x="247.0" y="239.5" class="small">Port queues</text><text x="247.0" y="264.5" class="small">AR / AW / W</text>
+<rect x="206" y="268" width="24" height="32" rx="3" fill="#fbfcfe" stroke="#9b79bd"/><rect x="235" y="268" width="24" height="32" rx="3" fill="#fbfcfe" stroke="#9b79bd"/><rect x="264" y="268" width="24" height="32" rx="3" fill="#fbfcfe" stroke="#9b79bd"/>
+<rect x="345" y="126" width="147" height="110" rx="12" class="decode"/><text x="418.5" y="163.0" class="bold">Address Decode</text><text x="418.5" y="188.0" class="small">AR / AW address</text><text x="418.5" y="213.0" class="small">→ target port</text>
+<rect x="345" y="287" width="147" height="65" rx="12" class="buffer"/><text x="418.5" y="314.0" class="bold">AW Route</text><text x="418.5" y="339.0" class="small">Target select</text>
+<rect x="530" y="119" width="137" height="242" rx="12" class="decode"/><text x="598.5" y="222.0" class="bold">Switch Fabric</text><text x="598.5" y="247.0" class="small">AR / AW / W</text><text x="598.5" y="272.0" class="small">Select output</text>
+<rect x="707" y="100" width="128" height="67" rx="12" class="arb"/><text x="771.0" y="128.0" class="bold">DDR Arbiter</text><text x="771.0" y="153.0" class="small">Output 0</text>
+<rect x="707" y="200" width="128" height="67" rx="12" class="arb"/><text x="771.0" y="228.0" class="bold">SRAM Arbiter</text><text x="771.0" y="253.0" class="small">Output 1</text>
+<rect x="707" y="300" width="128" height="67" rx="12" class="arb"/><text x="771.0" y="328.0" class="bold">MMIO Arbiter</text><text x="771.0" y="353.0" class="small">Output 2</text>
+<rect x="878" y="100" width="117" height="67" rx="12" class="target"/><text x="936.5" y="128.0" class="bold">DDR Ctrl</text><text x="936.5" y="153.0" class="small">Memory</text>
+<rect x="878" y="200" width="117" height="67" rx="12" class="target"/><text x="936.5" y="228.0" class="bold">SRAM</text><text x="936.5" y="253.0" class="small">Memory</text>
+<rect x="878" y="300" width="117" height="67" rx="12" class="target"/><text x="936.5" y="328.0" class="bold">APB Bridge</text><text x="936.5" y="353.0" class="small">MMIO</text>
+<rect x="306" y="440" width="400" height="44" rx="12" class="buffer"/><text x="506.0" y="469" class="bold">Response Routing · ID → Manager</text>
+<path d="M136 133H181" class="flow" marker-end="url(#flow)"/>
+<path d="M136 233H181" class="flow" marker-end="url(#flow)"/>
+<path d="M136 333H181" class="flow" marker-end="url(#flow)"/>
+<path d="M313 180H345" class="flow" marker-end="url(#flow)"/>
+<path d="M492 180H530" class="flow" marker-end="url(#flow)"/>
+<path d="M418 236V287" class="select" marker-end="url(#select)"/>
+<path d="M492 320H530" class="select" marker-end="url(#select)"/>
+<path d="M302 366V378H513V343H530" class="flow" marker-end="url(#flow)"/>
+<text x="395" y="370" class="small">W data</text>
+<path d="M667 146H687V133H707" class="flow" marker-end="url(#flow)"/>
+<path d="M667 233H707" class="flow" marker-end="url(#flow)"/>
+<path d="M667 320H687V333H707" class="flow" marker-end="url(#flow)"/>
+<path d="M835 133H878" class="flow" marker-end="url(#flow)"/>
+<path d="M835 233H878" class="flow" marker-end="url(#flow)"/>
+<path d="M835 333H878" class="flow" marker-end="url(#flow)"/>
+<path d="M936 367V462H706" class="reply" marker-end="url(#reply)"/>
+<path d="M306 462H75V367" class="reply" marker-end="url(#reply)"/>
+<text x="823" y="450" class="small">R / B · example response</text>
+</svg>
