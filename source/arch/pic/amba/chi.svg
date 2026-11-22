@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 218" width="620" height="218" role="img">
+  <title>CHI transaction paths</title>
+  <style>
+    rect { fill: #eaf3ff; stroke: #5e7da3; stroke-width: 1.4 }
+    text { font: 16px system-ui, sans-serif; fill: #19334f; text-anchor: middle }
+    path { stroke: #47698f; stroke-width: 1.6; fill: none }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <polygon points="0,0 10,5 0,10" fill="#47698f"/>
+    </marker>
+  </defs>
+  <rect width="620" height="218" rx="9" style="fill:#f8fbff;stroke:none"/>
+  <rect x="12" y="72" width="101" height="64" rx="7"/><text x="62.5" y="98.5">RN-F A</text><text x="62.5" y="119.5">请求方</text>
+  <rect x="254" y="72" width="110" height="64" rx="7"/><text x="309.0" y="98.5">HN-F</text><text x="309.0" y="119.5">Home</text>
+  <rect x="507" y="15" width="101" height="64" rx="7"/><text x="557.5" y="41.5">RN-F B</text><text x="557.5" y="62.5">副本持有方</text>
+  <rect x="507" y="139" width="101" height="64" rx="7"/><text x="557.5" y="165.5">SN</text><text x="557.5" y="186.5">内存侧</text>
+  <path d="M113 90 L252 90" marker-end="url(#arrow)"/><text x="182.5" y="82.0">ReadUnique</text>
+  <path d="M254 119 L115 119" marker-end="url(#arrow)"/><text x="184" y="145">数据与完成</text>
+  <path d="M364 83 L505 40" marker-end="url(#arrow)"/><text x="427" y="48">Snoop</text>
+  <path d="M507 63 L366 106" marker-end="url(#arrow)"/><text x="441" y="107">状态 / 数据</text>
+  <path d="M364 122 L505 167" marker-end="url(#arrow)" stroke-dasharray="5 4"/><text x="434" y="172">按需访问</text>
+</svg>

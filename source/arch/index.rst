@@ -13,6 +13,7 @@
    QEMU仿真虚拟化
    QEMU-TCG
    数字芯片开发
+   SoC总线协议
    PCIe总线
    Linux-user-ELF程序
    gem5逻辑架构
