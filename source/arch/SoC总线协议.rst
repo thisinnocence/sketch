@@ -4,10 +4,35 @@ SoC 总线协议
 从 doorbell 到 DMA
 ========================================
 
-驱动向设备寄存器写入 doorbell，设备随后从内存取描述符和输入数据。
+**Doorbell（门铃）** 是一种通知机制。以 DMA 提交队列为例，驱动先把工作写进共享内存，
+再通过 MMIO 写设备的 doorbell 寄存器，告诉设备「队列里有新工作」。
+设备手册定义写入值的含义。有的寄存器只需写一个通知值，有的要求写入新的队尾索引。
+
+#. **准备工作**\ 。假设提交队列原本为空，队头和队尾都在槽位 4。
+   驱动填好槽位 4、5 的描述符，其中包含输入和输出缓冲区的 DMA 地址、长度等信息。
+#. **通知设备**\ 。驱动按 DMA 映射和设备的排序要求发布描述符，再用 MMIO 写入新队尾 6。
+   设备由此知道槽位 4、5 可以消费，一次 doorbell 就提交了两笔工作。
+   NVMe 的 Submission Queue Tail Doorbell 就采用这种写队尾的方式。
+#. **执行并报告完成**\ 。设备用 DMA 读取描述符，再访问描述符指向的缓冲区。
+   处理结束后，设备可写完成队列或更新状态寄存器，也可发 IRQ 通知 CPU。
+   对驱动而言，写 doorbell 是提交动作，完成状态才是回收这批缓冲区的依据之一。
+
+驱动需要保证设备在收到通知后能读到已发布的描述符。以内存中的 ownership 字段为例，
+Linux 驱动可用 ``dma_wmb()`` 排序描述符内容和 ownership 的写入，
+再用满足相应 MMIO 排序要求的 accessor 写 doorbell。若映射需要 cache 同步，
+还需按 DMA API 的要求把缓冲区交给设备。参见 `Linux 内存屏障文档`_ 和 `NVMe PCIe 传输规范`_。
+
+**GICv4 中的 doorbell** 也用于通知，但收件人是 hypervisor。
+当一个虚拟中断变为 pending，而目标 vPE（虚拟处理单元）当前未装载到物理核的 GIC 接口时，
+在已配置 doorbell 且触发条件满足的情况下，GIC 可以发出一个物理 doorbell IRQ。
+这条 IRQ 告诉 hypervisor「这个 vPE 有待处理的虚拟中断」，供它决定何时调度目标 vCPU。
+因此在 DMA 例子里，是驱动通过寄存器写通知设备取队列；在 GICv4 例子里，
+是中断控制器通过物理 IRQ 通知 hypervisor 处理待运行的 vPE。
+参见 `ARM GICv3/v4 虚拟化导读`_ 的图 5-4。
+
+回到 DMA 提交队列，下面的 SoC 示例分别画出了寄存器写和 DMA 读的路径。
 CPU 发出的 MMIO 写可以经 AXI-to-APB bridge 到达控制寄存器；
 DMA engine 发出的内存读则可以经 SMMU、I/O bridge 和一致性互连访问共享内存。
-设备接收寄存器写与 DMA 完成是两个时间点，后者通常由完成队列、状态寄存器或 IRQ 报告。
 
 .. figure:: pic/amba/soc.svg
    :width: 640px
@@ -16,7 +41,7 @@ DMA engine 发出的内存读则可以经 SMMU、I/O bridge 和一致性互连�
 
    一种 SoC 集成方式。箭头表示请求方向，响应沿相应接口返回。
 
-**AMBA（Advanced Microcontroller Bus Architecture）** 是 Arm 发布的一组接口规范。
+**AMBA（Advanced Microcontroller Bus Architecture）** 是 ARM 发布的一组接口规范。
 规范定义信号、消息、握手、顺序约束和端点义务。
 芯片集成则要选定拓扑、地址映射、接口位宽、缓冲深度、仲裁和时钟域。
 阅读时可以把协议规范、IP 的 Technical Reference Manual（TRM）和芯片集成手册放在一起对照。
@@ -40,14 +65,14 @@ DMA engine 发出的内存读则可以经 SMMU、I/O bridge 和一致性互连�
      - Setup 和 Access 两阶段
      - UART、timer、看门狗的寄存器口
 
-规范入口见 `Arm AMBA`_，历史沿革见 `AMBA 百科条目`_。
+规范入口见 `ARM AMBA`_，历史沿革见 `AMBA 百科条目`_。
 
 AXI：地址、数据与完成
 ========================================
 
 以 memory-mapped AXI4 为例，AXI4-Lite 是适合控制寄存器的单 beat 子集，
 AXI4-Stream 则是用于流式数据的独立接口。AXI5 与 ACE 的扩展能力应按对应版本查阅。
-参见 `Arm AXI 规范`_ 和 `Arm AXI 导读`_。
+参见 `ARM AXI 规范`_ 和 `ARM AXI 导读`_。
 
 .. figure:: pic/amba/axi.svg
    :width: 600px
@@ -61,20 +86,55 @@ AXI4-Stream 则是用于流式数据的独立接口。AXI5 与 ACE 的扩展能�
 接收端可以提前拉起 READY，也可以在观察到 VALID 后拉起。
 规范约束接口输入和输出之间的组合路径，互连可用 register slice 或带寄存器的 skid buffer 切断长路径。
 
-- **读路径**。AR 交接地址、ID 和 burst 属性，R 返回读数据、ID 和响应码。
+- **读路径**\ 。AR 交接地址、ID 和 burst 属性，R 返回读数据、ID 和响应码。
   RLAST 随最后一个 beat 返回，每一个 beat 都可以遇到背压。
-- **写路径**。AW 交接地址和属性，W 交接数据、字节使能 WSTRB 和尾 beat 标志 WLAST。
+- **写路径**\ 。AW 交接地址和属性，W 交接数据、字节使能 WSTRB 和尾 beat 标志 WLAST。
   W 和 AW 可独立握手，W 甚至可以先到。AXI4 的 W 没有 WID，
   同一接口上的写数据按写地址事务的顺序关联，不交织不同 burst 的写数据。
   地址及最后一个数据 beat 都交接后才能给出整个 burst 的 B 响应。
-- **Burst 和并发**。AxLEN 为 beat 数减一，AxSIZE 编码每 beat 字节数，
-  AxBURST 选择 FIXED、INCR 或 WRAP。burst 不得跨过 4 KiB 边界。
-  不同 ID 可以支持乱序完成，互连仍需遵守同方向、同 ID 等顺序约束。
-  读写采用相同 ID 无法提供跨方向的内存排序。
 
-例如一个 16 beat、每 beat 16 B 的 INCR 读，在 AR 上交接一次地址，
-在 R 上交接 16 次数据。若第八个 beat 遇到 RREADY 为低，R 要保留该 beat，
-其他通道仍可继续交接。互连可能需要记录请求来自哪个入口、改写 ID 以消除冲突、
+Burst 与 outstanding
+---------------------
+
+把 AXI 读想成「先下单，再分批收货」。
+**Burst（突发传输）** 看的是一张单据要分几批交付，
+**outstanding（在途事务）** 数的是已接单、还没交付完的单据有几张。
+
+比如 DMA 要读 256 B 数据，且起始地址按 256 B 对齐，可以发一个 16 beat、每 beat 16 B 的 INCR burst。
+AR 只交接一次起始地址和传输属性，R 再交接 16 次数据。每次 R 握手交接一个 beat，
+最后一个 beat 带 RLAST。若第八个 beat 遇到 RREADY 为低，它就留在通道上等握手。
+整个 burst 仍只算一笔读事务。
+
+如果 DMA 连续发出 A、B 两笔读，每笔都读 16 beat，在同一个 AXI 接口上观察：
+
+.. list-table::
+   :header-rows: 1
+
+   * - 观察到的握手
+     - 尚未完成的读事务
+   * - A 的 AR 被接收
+     - 1 笔（A）
+   * - A 尚未完成，B 的 AR 也被接收
+     - 2 笔（A、B）
+   * - A 的部分数据已交接
+     - 仍是 2 笔（A、B）
+   * - A 的 RLAST 随最后一个 beat 交接
+     - 1 笔（B）
+   * - B 的 RLAST 随最后一个 beat 交接
+     - 0 笔
+
+提高 burst 长度，可以让一次地址握手覆盖更多数据。允许多笔 outstanding，
+则可以让目标处理后面的请求，同时发起端还在等前面的返回。
+上例的两笔读若都还没返回数据，最多有 512 B 等待返回。
+这也是后面用带宽时延积估算所需在途数据量时，要同时看每笔大小和在途笔数的原因。
+对写事务，可以从 AW 握手数到 B 握手来观察地址已接收但尚未完成的笔数。
+互连和目标能容纳多少笔，取决于各自的队列和跟踪资源。
+
+在 AXI 中，AxLEN 为 beat 数减一，AxSIZE 编码每 beat 字节数，
+AxBURST 选择 FIXED、INCR 或 WRAP，burst 不得跨过 4 KiB 边界。
+使用同一个 ID 也可以有多笔 outstanding，仍须遵守同方向、同 ID 的顺序约束。
+不同 ID 可以支持乱序完成。读写采用相同 ID 无法提供跨方向的内存排序。
+互连可能需要记录请求来自哪个入口、改写 ID 以消除冲突、
 为 W 保留 AW 选中的出口，以及处理同 ID 跨目标访问的返回顺序。
 AXI 的 B 响应说明写事务的完成，doorbell 触发的业务要由设备另行报告。
 
@@ -86,7 +146,7 @@ CHI：节点、缓存行和信用流控
 如果另一个 cache 持有最新的脏数据，从 DRAM 直接读取会得到旧值。
 CHI（Coherent Hub Interface）定义请求、探测、供数和完成的语义。
 缓存一致性主要约束同一地址的副本与写入可见性；跨地址的可见顺序还受
-memory model、同步原语和 barrier 约束。参见 `Arm CHI 规范`_ 和 `Arm CHI 导读`_。
+memory model、同步原语和 barrier 约束。参见 `ARM CHI 规范`_ 和 `ARM CHI 导读`_。
 
 .. figure:: pic/amba/chi.svg
    :width: 620px
@@ -134,10 +194,10 @@ MMU、SMMU 和 DMA engine
 **CPU MMU** 将 CPU VA 转成物理地址或下一阶段地址，并检查权限、提供内存属性。
 CPU cache 命中可能没有外部访问，cache miss、writeback 和页表 walk 才可能使用互连。
 **DMA engine** 从描述符获得地址和长度，自行发出内存事务。
-**SMMU** 实现 Arm 平台的 IOMMU 功能。SMMUv3 通过 StreamID 查 Stream Table Entry（STE），
+**SMMU** 实现 ARM 平台的 IOMMU 功能。SMMUv3 通过 StreamID 查 Stream Table Entry（STE），
 启用 stage 1 时在 STE 指定的结构中选择 Context Descriptor（CD），可以用 SubstreamID 区分上下文。
 启用 stage 2 时，STE 也携带相应配置。IOTLB 未命中可能引发页表读取，地址或权限错误按配置报告故障。
-参见 `Arm SMMUv3 规范`_。
+参见 `ARM SMMUv3 规范`_。
 
 以 Linux 驱动提交 DMA buffer 为例：
 
@@ -159,8 +219,9 @@ SMMU 翻译、I/O coherence 和设备完成分别回答三个问题：能访问�
 
 **Interconnect** 是连接 initiator 和 target 的硬件子系统，
 常包含地址译码、交换矩阵、缓冲、桥和时钟或位宽转换。
-**Topology** 描述连接关系。**Routing** 选择输出或下一跳，
-**arbitration**（仲裁）决定竞争同一资源时谁先走，
+**Topology** 描述连接关系。
+**Routing** 选择输出或下一跳，
+**arbitration**\ （仲裁）决定竞争同一资源时谁先走，
 **flow control** 表达接收端有没有空间。
 类似网络交换机的转发表、switch fabric 和输出调度，三个功能可以分开看；
 片上互连还需要维护事务关联、协议顺序和一致性依赖。
@@ -208,7 +269,7 @@ AXI QoS 等字段提供协议层信息；round-robin、固定优先级或加权�
 
 片上端点和地址窗口通常由集成配置、固件、设备树或 ACPI 描述。
 PCIe 提供配置空间、BAR 和层级枚举，root complex 与 switch 支持运行时发现外接设备。
-Arm SoC 也可以集成 PCIe root complex，x86 处理器内部同样使用片上互连。
+ARM SoC 也可以集成 PCIe root complex，x86 处理器内部同样使用片上互连。
 PCIe DMA 的一致性受主机平台与事务属性约束。参见 :doc:`PCIe总线`。
 
 AHB、APB 与 RTL
@@ -218,17 +279,17 @@ AHB、APB 与 RTL
 例如上一笔的数据阶段进行时，下一笔可给出 HADDR 与 HTRANS。
 HREADY 表达数据阶段是否完成，等待会限制流水继续前进。
 AHB-Lite 的一条接口服务单 manager，多发起端可经多层 AHB interconnect
-在目标前仲裁。AHB5 的扩展见 `Arm AHB 规范`_。
+在目标前仲裁。AHB5 的扩展见 `ARM AHB 规范`_。
 
 **APB（Advanced Peripheral Bus）** 常由 bridge 发起访问。
 Setup 置 PSEL、保持 PENABLE 为低并给出地址和控制；
 Access 置 PENABLE。PREADY 为低时延长 Access 并保持信号，
 为高时在采样边沿完成。紧随其后的访问仍需回到 Setup，即使仍然选择同一外设。
-读数据和可选的错误信号在完成时采样。参见 `Arm APB 规范`_。
+读数据和可选的错误信号在完成时采样。参见 `ARM APB 规范`_。
 
-- **组合逻辑**。用 PADDR 译码寄存器，再经 mux 生成 PRDATA。
+- **组合逻辑**\ 。用 PADDR 译码寄存器，再经 mux 生成 PRDATA。
   无需插入等待的设备可以固定 PREADY 为高，也可由接收状态控制。
-- **时序逻辑**。在 PCLK 上升沿且 PSEL、PENABLE、PREADY、PWRITE
+- **时序逻辑**\ 。在 PCLK 上升沿且 PSEL、PENABLE、PREADY、PWRITE
   同时为高时提交写入。这样一个带等待的访问仅产生一次写副作用。
   支持字节写的实现还要按 PSTRB 更新。bridge 可用寄存器保存 Idle、
   Setup、Access 状态及上游请求的地址和数据。
@@ -292,17 +353,19 @@ DPU 则以 AXI 访问板载 HBM。AMD 指南讨论了 AXI 端口和 HBM pseudo-c
 从规范到互连 IP
 ========================================
 
-Arm 发布 AMBA 规范，也授权具体互连 IP。**CoreLink CMN-700** 是基于 CHI
-的 coherent mesh，**CoreLink NI-700** 是可配置的 non-coherent NoC。
-量产 SoC 可选用 Arm 或第三方 IP、用生成工具配置互连，或组合自研与开源 RTL。
+ARM 发布 AMBA 规范，也授权具体互连 IP。
+**CoreLink CMN-700** 是基于 CHI
+的 coherent mesh，
+**CoreLink NI-700** 是可配置的 non-coherent NoC。
+量产 SoC 可选用 ARM 或第三方 IP、用生成工具配置互连，或组合自研与开源 RTL。
 即使互连由供应商提供，集成团队仍要配置地址、QoS、clock/reset 和安全域，
 并验证排序、错误、CDC 和一致性。PULP 的 SystemVerilog AXI 模块展示了
-在 RTL 中复用协议组件的一种方式。参见 `Arm CMN-700`_ 与 `Arm NI-700 TRM`_。
+在 RTL 中复用协议组件的一种方式。参见 `ARM CMN-700`_ 与 `ARM NI-700 TRM`_。
 
 QEMU 与 gem5 的抽象边界
 ========================================
 
-**QEMU** 常建模软件可见的行为。在本地源码基线 ``a5ed11b21a``\ ，
+**QEMU** 常建模软件可见的行为。以下以 `QEMU 官方仓库 v10.2.0`_ 为源码基线。
 ``AddressSpace`` 和 ``MemoryRegion`` 描述地址映射。
 ``system/physmem.c`` 中的 ``address_space_rw()`` 可发起地址空间访问。
 MMIO 在 ``system/memory.c`` 中经 ``memory_region_dispatch_read()`` 或
@@ -311,7 +374,7 @@ DMA 模型使用相应的 AddressSpace，IOMMU MemoryRegion 可提供翻译。
 这覆盖寄存器、地址翻译、IRQ 与 DMA 等功能语义，常规映射没有逐 beat 的 AXI 时序。
 参见 `QEMU Memory API`_ 与 :doc:`QEMU仿真虚拟化`。
 
-**gem5** 可以模拟访问时延、竞争和背压。在本地源码基线 ``24a11f7a95``\ ，
+**gem5** 可以模拟访问时延、竞争和背压。以下以 `gem5 官方仓库 cbc94c1a77`_ 为源码基线。
 Classic 路径以 ``Request``\ 、``Packet`` 和 timing port 表达事务。
 ``sendTimingReq()`` 返回 false 时，需要等待 retry 通知；
 ``NoncoherentXBar`` 可以模拟端口竞争和参数化的转发延迟。
@@ -323,24 +386,29 @@ Ruby 可经 ``RubyPort::MemResponsePort::recvTimingReq()`` 和
 逐周期比对实际芯片还需要相应的实现参数。
 参见 `gem5 CHI`_、`gem5 Garnet`_ 与 :doc:`gem5访存流程`。
 
-.. _Arm AMBA: https://www.arm.com/architecture/system-architectures/amba
+.. _ARM AMBA: https://www.arm.com/architecture/system-architectures/amba
 .. _AMBA 百科条目: https://en.wikipedia.org/wiki/Advanced_Microcontroller_Bus_Architecture
-.. _Arm AXI 规范: https://developer.arm.com/documentation/ihi0022/latest/
-.. _Arm AXI 导读: https://documentation-service.arm.com/static/66fd59a21669c0388dca99b7
-.. _Arm CHI 规范: https://developer.arm.com/documentation/ihi0050/latest/
-.. _Arm CHI 导读: https://documentation-service.arm.com/static/682600710aae2a5d8f044978
-.. _Arm AHB 规范: https://developer.arm.com/documentation/ihi0033/latest/
-.. _Arm APB 规范: https://developer.arm.com/documentation/ihi0024/latest/
-.. _Arm SMMUv3 规范: https://documentation-service.arm.com/static/6813b2bbefb0f21122c144c2
+.. _ARM AXI 规范: https://developer.arm.com/documentation/ihi0022/latest/
+.. _ARM AXI 导读: https://documentation-service.arm.com/static/66fd59a21669c0388dca99b7
+.. _ARM CHI 规范: https://developer.arm.com/documentation/ihi0050/latest/
+.. _ARM CHI 导读: https://documentation-service.arm.com/static/682600710aae2a5d8f044978
+.. _ARM AHB 规范: https://developer.arm.com/documentation/ihi0033/latest/
+.. _ARM APB 规范: https://developer.arm.com/documentation/ihi0024/latest/
+.. _ARM SMMUv3 规范: https://documentation-service.arm.com/static/6813b2bbefb0f21122c144c2
 .. _Linux DMA API 指南: https://docs.kernel.org/core-api/dma-api-howto.html
+.. _Linux 内存屏障文档: https://docs.kernel.org/core-api/wrappers/memory-barriers.html
+.. _NVMe PCIe 传输规范: https://nvmexpress.org/wp-content/uploads/NVM-Express-PCI-Express-Transport-Specification-Revision-1.2-2025.03.11-Ratified.pdf
+.. _ARM GICv3/v4 虚拟化导读: https://documentation-service.arm.com/static/65b7c197c2052a35156cc31a
 .. _剑桥大学 SoC 课件: https://www.cl.cam.ac.uk/teaching/1112/SysOnChip/socdam1112.pdf
 .. _得州大学 SoC 课件: https://users.ece.utexas.edu/~gerstl/ee382v_f14/lectures/lecture_12.pdf
 .. _PULP AXI RTL: https://github.com/pulp-platform/axi
 .. _Chisel 接口文档: https://www.chisel-lang.org/docs/explanations/interfaces-and-connections
 .. _U50 平台指南: https://docs.amd.com/r/en-US/ug1120-alveo-platforms/U50-Gen3x16-XDMA-base_5-Platform
 .. _DPU HBM 配置: https://docs.amd.com/r/en-US/pg367-dpucahx8h/Configuring-the-HBM
-.. _Arm CMN-700: https://www.arm.com/products/silicon-ip-system/corelink-interconnect/cmn-700
-.. _Arm NI-700 TRM: https://documentation-service.arm.com/static/64b99ffadf6cd61d528c840c
+.. _ARM CMN-700: https://www.arm.com/products/silicon-ip-system/corelink-interconnect/cmn-700
+.. _ARM NI-700 TRM: https://documentation-service.arm.com/static/64b99ffadf6cd61d528c840c
 .. _QEMU Memory API: https://www.qemu.org/docs/master/devel/memory.html
+.. _QEMU 官方仓库 v10.2.0: https://github.com/qemu/qemu/tree/v10.2.0
+.. _gem5 官方仓库 cbc94c1a77: https://github.com/gem5/gem5/commit/cbc94c1a773e94118070294750dbe2c9c75898cb
 .. _gem5 CHI: https://www.gem5.org/documentation/general_docs/ruby/CHI/
 .. _gem5 Garnet: https://www.gem5.org/documentation/general_docs/ruby/garnet-2/
